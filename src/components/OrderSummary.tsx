@@ -16,11 +16,19 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
+import { initialUsers } from "@/lib/data";
 
 export default function OrderSummary() {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const { toast } = useToast();
   const [orderResult, setOrderResult] = useState<{ id: string; success: boolean } | null>(null);
+
+  // In a real app, this would come from an auth context
+  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
+  const spentToday = 450.00; // Mock data, would come from transactions
+
+  const potentialBalance = student.balance - totalPrice;
+  const potentialSpentToday = spentToday + totalPrice;
 
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
@@ -28,6 +36,25 @@ export default function OrderSummary() {
         variant: "destructive",
         title: "Your cart is empty",
         description: "Please add items to your cart before placing an order.",
+      });
+      return;
+    }
+
+    if (totalPrice > student.balance) {
+      toast({
+        variant: "destructive",
+        title: "Insufficient Funds",
+        description: `Your balance is ₦${student.balance.toFixed(2)}, but the order total is ₦${totalPrice.toFixed(2)}.`,
+      });
+      return;
+    }
+
+    if (student.dailyLimit && potentialSpentToday > student.dailyLimit) {
+      const remainingLimit = student.dailyLimit - spentToday;
+      toast({
+        variant: "destructive",
+        title: "Daily Limit Exceeded",
+        description: `This order would exceed your daily spending limit. You have ₦${remainingLimit.toFixed(2)} left to spend today.`,
       });
       return;
     }
@@ -96,12 +123,25 @@ export default function OrderSummary() {
       </ScrollArea>
       {cartItems.length > 0 && (
         <div className="p-6 border-t bg-background">
-          <div className="flex justify-between font-bold text-lg mb-4">
-            <span>Total</span>
-            <span>₦{totalPrice.toFixed(2)}</span>
+          <div className="space-y-2 mb-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Current Balance</span>
+              <span>₦{student.balance.toFixed(2)}</span>
+            </div>
+             <div className="flex justify-between">
+              <span className="text-muted-foreground">Order Total</span>
+              <span>- ₦{totalPrice.toFixed(2)}</span>
+            </div>
+            <hr />
+            <div className="flex justify-between font-semibold">
+              <span className="text-muted-foreground">Potential Balance</span>
+              <span className={potentialBalance < 0 ? "text-destructive" : ""}>
+                ₦{potentialBalance.toFixed(2)}
+              </span>
+            </div>
           </div>
           <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg" onClick={handlePlaceOrder}>
-            Place Order
+            Place Order (₦{totalPrice.toFixed(2)})
           </Button>
         </div>
       )}
