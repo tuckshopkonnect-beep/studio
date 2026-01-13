@@ -16,11 +16,14 @@ import { Switch } from "@/components/ui/switch"
 
 export default function SettingsPage() {
   const [posScannerEnabled, setPosScannerEnabled] = useState(true);
+  const [orderTimerEnabled, setOrderTimerEnabled] = useState(false);
 
   useEffect(() => {
-    const storedValue = localStorage.getItem('posScannerEnabled');
-    // Set to true if not found in storage, making it enabled by default
-    setPosScannerEnabled(storedValue !== 'false');
+    const storedPosScanner = localStorage.getItem('posScannerEnabled');
+    setPosScannerEnabled(storedPosScanner !== 'false');
+    
+    const storedOrderTimer = localStorage.getItem('orderTimerEnabled');
+    setOrderTimerEnabled(storedOrderTimer === 'true');
   }, []);
 
   const handlePosScannerToggle = (enabled: boolean) => {
@@ -28,6 +31,11 @@ export default function SettingsPage() {
     localStorage.setItem('posScannerEnabled', String(enabled));
      // Optional: force a reload to reflect sidebar changes immediately, though not ideal.
      // window.location.reload(); 
+  };
+
+  const handleOrderTimerToggle = (enabled: boolean) => {
+    setOrderTimerEnabled(enabled);
+    localStorage.setItem('orderTimerEnabled', String(enabled));
   };
 
 
@@ -83,7 +91,12 @@ export default function SettingsPage() {
                   Automatically open and close the shop at specific times.
                 </p>
               </div>
-              <Switch id="order-timer" aria-label="Enable order timer" />
+              <Switch 
+                id="order-timer" 
+                aria-label="Enable order timer" 
+                checked={orderTimerEnabled}
+                onCheckedChange={handleOrderTimerToggle}
+              />
             </div>
              <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
               <div className="flex-1">

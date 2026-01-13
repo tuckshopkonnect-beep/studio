@@ -6,14 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/hooks/use-cart.tsx';
 import type { MenuItem } from '@/lib/data';
-import { PlusCircle, Check } from 'lucide-react';
+import { PlusCircle, Check, XCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface MenuItemCardProps {
   item: MenuItem;
+  isShopOpen?: boolean;
 }
 
-export default function MenuItemCard({ item }: MenuItemCardProps) {
+export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardProps) {
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -24,6 +25,24 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         setAdded(false);
     }, 2000);
   };
+
+  const isButtonDisabled = added || !isShopOpen;
+  const buttonText = !isShopOpen ? (
+    <>
+      <XCircle className="mr-2 h-4 w-4" />
+      Shop Closed
+    </>
+  ) : added ? (
+    <>
+      <Check className="mr-2 h-4 w-4" />
+      Added!
+    </>
+  ) : (
+    <>
+      <PlusCircle className="mr-2 h-4 w-4" />
+      Add to Order
+    </>
+  );
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -45,18 +64,8 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
       </CardContent>
       <CardFooter className="flex items-center justify-between p-4 bg-muted/50">
         <p className="text-xl font-bold text-primary">₦{item.price.toFixed(2)}</p>
-        <Button onClick={handleAddToCart} size="sm" disabled={added} variant={added ? "secondary" : "default"}>
-           {added ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Added!
-              </>
-          ) : (
-              <>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add to Order
-              </>
-          )}
+        <Button onClick={handleAddToCart} size="sm" disabled={isButtonDisabled} variant={added ? "secondary" : "default"}>
+           {buttonText}
         </Button>
       </CardFooter>
     </Card>
