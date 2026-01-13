@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { DollarSign, History, ShoppingCart, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInput, PersonalizedFoodRecommendationsOutput } from "@/app/actions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initialUsers, initialOrders } from "@/lib/data";
 
@@ -40,24 +40,33 @@ export default function StudentDashboard() {
     .reduce((acc, order) => acc + order.total, 0);
 
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecommendations = async () => {
-    setIsLoading(true);
-    setError(null);
-    const input: PersonalizedFoodRecommendationsInput = {
-      orderHistory: ["Meat Pie", "Sausage Roll"], // Placeholder
-      dietaryRestrictions: ""
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      setIsLoading(true);
+      setError(null);
+      const input: PersonalizedFoodRecommendationsInput = {
+        orderHistory: ["Meat Pie", "Sausage Roll"], // Placeholder
+        dietaryRestrictions: ""
+      };
+      try {
+        const result = await getPersonalizedFoodRecommendations(input);
+        if (result.success && result.data) {
+          setRecommendations(result.data);
+        } else {
+          setError(result.error || "Failed to fetch recommendations.");
+        }
+      } catch (e) {
+         setError("An unexpected error occurred.");
+      } finally {
+        setIsLoading(false);
+      }
     };
-    const result = await getPersonalizedFoodRecommendations(input);
-    if(result.success && result.data) {
-      setRecommendations(result.data);
-    } else {
-      setError(result.error || "Failed to fetch recommendations.");
-    }
-    setIsLoading(false);
-  };
+    
+    fetchRecommendations();
+  }, []);
 
 
   return (
@@ -131,18 +140,20 @@ export default function StudentDashboard() {
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-4 w-1/2" />
                         </div>
+                    ) : error ? (
+                         <div className="text-center text-destructive p-4 border-2 border-dashed border-destructive/50 rounded-lg">
+                           <p>{error}</p>
+                        </div>
                     ) : recommendations ? (
                         <div>
                             <p className="font-semibold text-primary">{recommendations.recommendedItems.join(', ')}</p>
                             <p className="text-sm text-muted-foreground mt-1">{recommendations.reasoning}</p>
                         </div>
                     ) : (
-                        <div className="text-center text-muted-foreground p-4 border-2 border-dashed rounded-lg">
-                           <p>Want to see some recommendations?</p>
-                            <Button variant="link" onClick={fetchRecommendations}>Click here to generate them</Button>
+                         <div className="text-center text-muted-foreground p-4 border-2 border-dashed rounded-lg">
+                           <p>No recommendations available at this time.</p>
                         </div>
                     )}
-                     {error && <p className="text-sm text-destructive mt-2">{error}</p>}
                 </CardContent>
             </Card>
         </div>
