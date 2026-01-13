@@ -18,7 +18,7 @@ interface OrderSummaryProps {
 }
 
 export default function OrderSummary({ student, spentToday }: OrderSummaryProps) {
-  const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
+  const { cart: cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
   const { toast } = useToast();
   const router = useRouter();
 
