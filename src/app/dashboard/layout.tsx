@@ -17,7 +17,9 @@ import {
   KeyRound,
   LogOut,
   Moon,
-  Sun
+  Sun,
+  Palette,
+  QrCode,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -53,6 +55,11 @@ const navItems = [
     { href: "/dashboard/inventory", icon: Package, label: "Menu" },
     { href: "/dashboard/users", icon: Users2, label: "Users" },
     { href: "/dashboard/reports", icon: LineChart, label: "Reports" },
+];
+
+const secondaryNavItems = [
+    { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner" },
+    { href: "/dashboard/appearance", icon: Palette, label: "Appearance" },
     { href: "/dashboard/password-resets", icon: KeyRound, label: "Password Resets" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
@@ -82,6 +89,27 @@ export default function DashboardLayout({
         <TooltipProvider>
           <nav className="flex flex-col items-center gap-2 px-2 py-4">
             {navItems.map((item) => (
+              <Tooltip key={item.href} delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                        "flex h-10 items-center justify-center gap-4 rounded-lg px-4 text-base font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full",
+                        pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground",
+                        isSidebarCollapsed ? "w-10 justify-center" : "justify-start"
+                    )}
+                  >
+                    <item.icon className="size-5" />
+                    <span className={cn("truncate", isSidebarCollapsed && "hidden")}>{item.label}</span>
+                  </Link>
+                </TooltipTrigger>
+                {isSidebarCollapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
+              </Tooltip>
+            ))}
+          </nav>
+          <hr className="mx-4 border-t border-purple-400/30" />
+           <nav className="flex flex-col items-center gap-2 px-2 py-4">
+            {secondaryNavItems.map((item) => (
               <Tooltip key={item.href} delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Link
@@ -136,7 +164,7 @@ export default function DashboardLayout({
                         <Package className="h-5 w-5 transition-all group-hover:scale-110" />
                         <span className="sr-only">TuckshopKonnect</span>
                     </Link>
-                    {navItems.map(item => (
+                    {[...navItems, ...secondaryNavItems].map(item => (
                          <Link
                             key={item.href}
                             href={item.href}
@@ -165,10 +193,10 @@ export default function DashboardLayout({
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                         {index === breadcrumbItems.length - 2 ? (
-                             <BreadcrumbPage className="capitalize">{item}</BreadcrumbPage>
+                             <BreadcrumbPage className="capitalize">{item.replace('-', ' ')}</BreadcrumbPage>
                         ) : (
                              <BreadcrumbLink asChild>
-                                <Link href={`/${breadcrumbItems.slice(0, index + 2).join('/')}`} className="capitalize">{item}</Link>
+                                <Link href={`/${breadcrumbItems.slice(0, index + 2).join('/')}`} className="capitalize">{item.replace('-', ' ')}</Link>
                             </BreadcrumbLink>
                         )}
                     </BreadcrumbItem>
