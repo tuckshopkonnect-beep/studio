@@ -51,6 +51,7 @@ import {
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { initialOrders, initialUsers, menuItems, initialInventory } from "@/lib/data";
+import { exportSectionPDF, generateFullReportPDF } from "@/lib/pdf-utils";
 
 const chartConfig = {
   revenue: {
@@ -174,144 +175,79 @@ export default function ReportsPage() {
 
   // --- PDF Export Logic ---
   const handleExportSection = async (sectionTitle: string) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-
-    const doc = new jsPDF();
-    doc.text(sectionTitle, 14, 16);
-    
-    let body: (string|number)[][] = [];
-    let head: string[][] = [];
-
+    let data;
     switch (sectionTitle) {
       case 'Activity Log':
-        head = [['Date', 'Type', 'Description', 'Amount']];
-        body = activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`]);
+        data = {
+            head: [['Date', 'Type', 'Description', 'Amount']],
+            body: activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`])
+        };
         break;
       case 'Sales Report':
-        head = [['Date', 'Revenue']];
-        body = salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`]);
+        data = {
+            head: [['Date', 'Revenue']],
+            body: salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`])
+        };
         break;
       case 'Sales by Category':
-        head = [['Category', 'Revenue']];
-        body = pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`]);
+        data = {
+            head: [['Category', 'Revenue']],
+            body: pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`])
+        };
         break;
       case 'Business Intelligence':
-        autoTable(doc, {
+        // This case is special as it creates two tables. We'll handle it inside its own function.
+        await exportSectionPDF('Student Spending', {
             head: [['Student', 'Total Spent']],
-            body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`]),
-            startY: 20,
-            didDrawPage: (data) => { data.doc.text('Student Spending', 14, 15); }
+            body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
         });
-        autoTable(doc, {
-            head: [['Product', 'Units Sold', 'Revenue']],
-            body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`]),
-            didDrawPage: (data) => { data.doc.text('Product Performance', 14, data.cursor?.y ? data.cursor.y - 10 : 15); }
+        await exportSectionPDF('Product Performance', {
+             head: [['Product', 'Units Sold', 'Revenue']],
+             body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
         });
-        doc.save('business-intelligence.pdf');
-        return; // Early return for this special case
+        return;
       case 'Inventory Report':
-        head = [['Product', 'Current Stock']];
-        body = initialInventory.map(i => [i.name, i.stock]);
+        data = {
+            head: [['Product', 'Current Stock']],
+            body: initialInventory.map(i => [i.name, i.stock.toString()])
+        };
         break;
+      default:
+        return;
     }
-
-    autoTable(doc, { head, body, startY: 20 });
-    doc.save(`${sectionTitle.toLowerCase().replace(/ /g, '-')}-report.pdf`);
+    await exportSectionPDF(sectionTitle, data);
   };
 
   const handleGenerateReport = async () => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-    
-    const doc = new jsPDF();
-    const finalY = (doc.internal.pageSize.height - 10);
-    const pageMargin = 14;
-
-    doc.setFontSize(20);
-    doc.text("Tuckshop Full Report", pageMargin, 22);
-    doc.setFontSize(12);
-    const fromDate = date?.from ? format(date.from, "LLL dd, y") : 'N/A';
-    const toDate = date?.to ? format(date.to, "LLL dd, y") : 'N/A';
-    doc.text(`Date Range: ${fromDate} - ${toDate}`, pageMargin, 30);
-    let startY = 40;
-
-    // Helper to add a new page if content overflows
-    const checkPageBreak = (currentY: number) => {
-        if (currentY > finalY - 30) { // 30 is a buffer
-            doc.addPage();
-            return 20;
+    const reportData = {
+        activityLog: {
+            head: [['Date', 'Type', 'Description', 'Amount']],
+            body: activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`])
+        },
+        salesReport: {
+            head: [['Date', 'Revenue']],
+            body: salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`])
+        },
+        salesByCategory: {
+            head: [['Category', 'Revenue']],
+            body: pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`])
+        },
+        studentSpending: {
+            head: [['Student', 'Total Spent']],
+            body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
+        },
+        productPerformance: {
+            head: [['Product', 'Units Sold', 'Revenue']],
+            body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
+        },
+        inventoryReport: {
+            head: [['Product', 'Current Stock']],
+            body: initialInventory.map(i => [i.name, i.stock.toString()])
         }
-        return currentY;
-    }
-
-    // Activity Log
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Activity Log", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Date', 'Type', 'Description', 'Amount']],
-        body: activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`]),
-        startY: startY + 5,
-    });
-    startY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Sales Report
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Sales Report", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Date', 'Revenue']],
-        body: salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`]),
-        startY: startY + 5,
-    });
-    startY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Sales by Category
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Sales by Category", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Category', 'Revenue']],
-        body: pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`]),
-        startY: startY + 5,
-    });
-    startY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Student Spending
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Student Spending", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Student', 'Total Spent']],
-        body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`]),
-        startY: startY + 5,
-    });
-    startY = (doc as any).lastAutoTable.finalY + 15;
-    
-    // Product Performance
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Product Performance", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Product', 'Units Sold', 'Revenue']],
-        body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`]),
-        startY: startY + 5,
-    });
-    startY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Inventory Report
-    startY = checkPageBreak(startY);
-    doc.setFontSize(16);
-    doc.text("Inventory Report (Current State)", pageMargin, startY);
-    autoTable(doc, {
-        head: [['Product', 'Current Stock']],
-        body: initialInventory.map(i => [i.name, i.stock]),
-        startY: startY + 5,
-    });
-    
-    doc.save(`full-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    };
+    await generateFullReportPDF(date, reportData);
   };
+
 
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8">
@@ -421,7 +357,7 @@ export default function ReportsPage() {
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    tickFormatter={(value) => `₦${value/1000}k`}
+                    tickFormatter={(value) => `₦${Number(value)/1000}k`}
                 />
                 <ChartTooltip
                   cursor={false}

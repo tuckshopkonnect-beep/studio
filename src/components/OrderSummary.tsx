@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
+import { downloadReceiptPDF } from "@/lib/pdf-utils";
 
 
 export default function OrderSummary() {
@@ -76,57 +77,9 @@ export default function OrderSummary() {
     setOrderResult(null);
   }
 
-  const downloadReceipt = async () => {
-    if (!orderResult) return;
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-    
-    const doc = new jsPDF();
-
-    doc.text("Order Receipt", 14, 20);
-    doc.text(`Transaction ID: ${orderResult.id}`, 14, 30);
-    doc.text(`Student: ${student.name}`, 14, 36);
-    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 42);
-
-    autoTable(doc, {
-        head: [['Item', 'Quantity', 'Price', 'Total']],
-        body: orderResult.items.map(item => [
-            item.name,
-            item.quantity,
-            `₦${item.price.toFixed(2)}`,
-            `₦${(item.price * item.quantity).toFixed(2)}`
-        ]),
-        startY: 50,
-    });
-    
-    let finalY = (doc as any).lastAutoTable.finalY || 70;
-
-    doc.setFontSize(14);
-    doc.text(`Total: ₦${orderResult.total.toFixed(2)}`, 14, finalY + 10);
-    
-    // Add QR code
-    if (qrCodeRef.current) {
-        const svgElement = qrCodeRef.current.querySelector('svg');
-        if (svgElement) {
-            const svgData = new XMLSerializer().serializeToString(svgElement);
-            const canvas = document.createElement("canvas");
-            const svgSize = svgElement.getBoundingClientRect();
-            canvas.width = svgSize.width;
-            canvas.height = svgSize.height;
-            const ctx = canvas.getContext("2d");
-            if (ctx) {
-                const img = document.createElement("img");
-                img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData))));
-                img.onload = function() {
-                    ctx.drawImage(img, 0, 0);
-                    const dataUrl = canvas.toDataURL("image/png");
-                    doc.addImage(dataUrl, 'PNG', 14, finalY + 20, 50, 50);
-                    doc.save(`receipt-${orderResult.id}.pdf`);
-                };
-            }
-        }
-    } else {
-        doc.save(`receipt-${orderResult.id}.pdf`);
+  const handleDownloadReceipt = () => {
+    if (orderResult) {
+      downloadReceiptPDF(orderResult, student.name, qrCodeRef);
     }
   };
 
@@ -219,7 +172,7 @@ export default function OrderSummary() {
               Transaction ID: {orderResult?.id}
             </div>
           <div className="flex flex-col gap-2 mt-4">
-             <Button variant="outline" onClick={downloadReceipt}>
+             <Button variant="outline" onClick={handleDownloadReceipt}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Receipt
             </Button>
