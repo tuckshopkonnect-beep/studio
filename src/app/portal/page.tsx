@@ -30,7 +30,7 @@ export default function PortalPage() {
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <Image
-        src="https://images.unsplash.com/photo-1580582932707-520aed937b73?q=80&w=2070&auto=format&fit=crop"
+        src="https://images.unsplash.com/photo-1491841550275-5d743f3c3450?q=80&w=2070&auto=format&fit=crop"
         alt="Modern school background"
         fill
         className="object-cover -z-20"
