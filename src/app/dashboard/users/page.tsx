@@ -32,18 +32,23 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, File } from "lucide-react";
+import { MoreHorizontal, PlusCircle, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function UsersPage() {
   const users = initialUsers;
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportUsersPDF } = await import('@/lib/pdf-utils');
     exportUsersPDF(users, jsPDF, autoTable);
+  };
+
+  const handleExportCSV = async () => {
+    const { exportUsersCSV } = await import('@/lib/csv-utils');
+    exportUsersCSV(users);
   };
 
   return (
@@ -56,10 +61,18 @@ export default function UsersPage() {
           <TabsTrigger value="admin">Admins</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleExport}>
-            <File className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add User

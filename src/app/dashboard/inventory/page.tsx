@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { File, PlusCircle, MoreHorizontal } from "lucide-react";
+import { File, PlusCircle, MoreHorizontal, Download } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,11 +41,16 @@ export default function InventoryPage() {
   const inventory = initialInventory;
   const menu = menuItems;
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportInventoryPDF } = await import('@/lib/pdf-utils');
     exportInventoryPDF(menu, inventory, jsPDF, autoTable);
+  };
+
+  const handleExportCSV = async () => {
+    const { exportInventoryCSV } = await import('@/lib/csv-utils');
+    exportInventoryCSV(menu, inventory);
   };
 
   return (
@@ -58,10 +63,18 @@ export default function InventoryPage() {
           <TabsTrigger value="draft">Out of Stock</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handleExport}>
-            <File className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Item

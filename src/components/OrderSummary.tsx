@@ -176,7 +176,7 @@ export default function OrderSummary() {
           <div className="flex flex-col gap-2 mt-4">
              <Button variant="outline" onClick={handleDownloadReceipt}>
                 <Download className="mr-2 h-4 w-4" />
-                Download Receipt
+                Download Receipt (PDF)
             </Button>
             <Button onClick={closeDialog}>Close</Button>
           </div>

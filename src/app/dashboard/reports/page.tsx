@@ -172,12 +172,8 @@ export default function ReportsPage() {
     .map(([name, data]) => ({ name, ...data }))
     .sort((a,b) => b.revenue - a.revenue);
 
-  // --- PDF Export Logic ---
-  const handleExportSection = async (sectionTitle: string) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-    const { exportSectionPDF } = await import('@/lib/pdf-utils');
-    
+  // --- Export Logic ---
+  const handleExportSection = async (sectionTitle: string, format: 'pdf' | 'csv') => {
     let data;
     switch (sectionTitle) {
       case 'Activity Log':
@@ -199,17 +195,29 @@ export default function ReportsPage() {
         };
         break;
       case 'Business Intelligence':
-        // This case is special as it creates two tables.
-        const { exportSectionPDF: exportBiSection } = await import('@/lib/pdf-utils');
-        
-        exportBiSection('Student Spending', {
+        const { exportSectionCSV: exportBiSectionCSV } = await import('@/lib/csv-utils');
+        if (format === 'pdf') {
+          const { default: jsPDF } = await import('jspdf');
+          const { default: autoTable } = await import('jspdf-autotable');
+          const { exportSectionPDF } = await import('@/lib/pdf-utils');
+          exportSectionPDF('Student Spending', {
+              head: [['Student', 'Total Spent']],
+              body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
+          }, jsPDF, autoTable);
+          exportSectionPDF('Product Performance', {
+               head: [['Product', 'Units Sold', 'Revenue']],
+               body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
+          }, jsPDF, autoTable);
+        } else {
+          exportBiSectionCSV('Student Spending', {
             head: [['Student', 'Total Spent']],
-            body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
-        }, jsPDF, autoTable);
-        exportBiSection('Product Performance', {
-             head: [['Product', 'Units Sold', 'Revenue']],
-             body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
-        }, jsPDF, autoTable);
+            body: topStudents.map(s => [s.name, s.total.toFixed(2)])
+          });
+          exportBiSectionCSV('Product Performance', {
+            head: [['Product', 'Units Sold', 'Revenue']],
+            body: topProducts.map(p => [p.name, p.unitsSold, p.revenue.toFixed(2)])
+          });
+        }
         return;
       case 'Inventory Report':
         data = {
@@ -220,7 +228,16 @@ export default function ReportsPage() {
       default:
         return;
     }
-    exportSectionPDF(sectionTitle, data, jsPDF, autoTable);
+
+    if (format === 'pdf') {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+      const { exportSectionPDF } = await import('@/lib/pdf-utils');
+      exportSectionPDF(sectionTitle, data, jsPDF, autoTable);
+    } else {
+      const { exportSectionCSV } = await import('@/lib/csv-utils');
+      exportSectionCSV(sectionTitle, data);
+    }
   };
 
   const handleGenerateReport = async () => {
@@ -299,7 +316,7 @@ export default function ReportsPage() {
         </Popover>
         <Button onClick={handleGenerateReport}>
           <FileDown className="mr-2 h-4 w-4" />
-          Generate Full Report
+          Generate Full Report (PDF)
         </Button>
       </div>
 
@@ -310,7 +327,7 @@ export default function ReportsPage() {
                 <CardTitle>Activity Log</CardTitle>
                 <CardDescription>A log of all system events in the selected period.</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Activity Log')}>
+            <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Activity Log', 'pdf')}>
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -346,7 +363,7 @@ export default function ReportsPage() {
                 <CardTitle>Sales Report</CardTitle>
                 <CardDescription>Daily revenue for the selected period.</CardDescription>
             </div>
-             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Sales Report')}>
+             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Sales Report', 'pdf')}>
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -386,7 +403,7 @@ export default function ReportsPage() {
                 <CardTitle>Sales by Category</CardTitle>
                 <CardDescription>Revenue distribution across categories.</CardDescription>
             </div>
-             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Sales by Category')}>
+             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Sales by Category', 'pdf')}>
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -417,7 +434,7 @@ export default function ReportsPage() {
                 <CardTitle>Business Intelligence</CardTitle>
                 <CardDescription>Key performance indicators.</CardDescription>
             </div>
-             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Business Intelligence')}>
+             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Business Intelligence', 'pdf')}>
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -476,7 +493,7 @@ export default function ReportsPage() {
                 <CardTitle>Inventory Report</CardTitle>
                 <CardDescription>Current stock levels for all products (not date-dependent).</CardDescription>
             </div>
-             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Inventory Report')}>
+             <Button size="sm" variant="outline" className="ml-auto gap-1" onClick={() => handleExportSection('Inventory Report', 'pdf')}>
               <Download className="h-4 w-4" />
               Export
             </Button>

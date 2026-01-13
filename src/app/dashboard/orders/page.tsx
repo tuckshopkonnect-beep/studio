@@ -33,17 +33,22 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ListFilter, MoreHorizontal, File } from "lucide-react";
+import { ListFilter, MoreHorizontal, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function OrdersPage() {
   const orders = initialOrders;
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportOrdersPDF } = await import('@/lib/pdf-utils');
     exportOrdersPDF(orders, jsPDF, autoTable);
+  };
+
+  const handleExportCSV = async () => {
+    const { exportOrdersCSV } = await import('@/lib/csv-utils');
+    exportOrdersCSV(orders);
   };
 
   return (
@@ -73,10 +78,18 @@ export default function OrdersPage() {
               <DropdownMenuCheckboxItem>Completed</DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="outline" onClick={handleExport}>
-            <File className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <TabsContent value="all">
