@@ -115,13 +115,16 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
             if (ctx) {
                 const img = document.createElement("img");
                 img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData))));
-                img.onload = function() {
-                    ctx.drawImage(img, 0, 0);
-                    const dataUrl = canvas.toDataURL("image/png");
-                    doc.addImage(dataUrl, 'PNG', 14, finalY + 20, 50, 50);
-                    doc.save(`receipt-${orderResult.id}.pdf`);
-                };
-                return; // Return to wait for image load
+                await new Promise<void>((resolve) => {
+                    img.onload = () => {
+                        ctx.drawImage(img, 0, 0);
+                        const dataUrl = canvas.toDataURL("image/png");
+                        doc.addImage(dataUrl, 'PNG', 14, finalY + 20, 50, 50);
+                        doc.save(`receipt-${orderResult.id}.pdf`);
+                        resolve();
+                    };
+                });
+                return; // Return after promise resolves
             }
         }
     }
@@ -172,8 +175,8 @@ export const generateFullReportPDF = async (dateRange: any, reportData: any) => 
         { title: 'Inventory Report (Current State)', data: reportData.inventoryReport }
     ];
 
-    sections.forEach(section => {
-        if(section.data.body.length === 0) return;
+    for (const section of sections) {
+        if(section.data.body.length === 0) continue;
 
         startY = checkPageBreak(startY);
         doc.setFontSize(16);
@@ -184,7 +187,7 @@ export const generateFullReportPDF = async (dateRange: any, reportData: any) => 
             startY: startY + 5,
         });
         startY = (doc as any).lastAutoTable.finalY + 15;
-    });
+    }
     
     doc.save(`full-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 };

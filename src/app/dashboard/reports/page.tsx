@@ -196,12 +196,13 @@ export default function ReportsPage() {
         };
         break;
       case 'Business Intelligence':
-        // This case is special as it creates two tables. We'll handle it inside its own function.
-        await exportSectionPDF('Student Spending', {
+        // This case is special as it creates two tables.
+        const { exportSectionPDF: exportBiSection } = await import('@/lib/pdf-utils');
+        await exportBiSection('Student Spending', {
             head: [['Student', 'Total Spent']],
             body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
         });
-        await exportSectionPDF('Product Performance', {
+        await exportBiSection('Product Performance', {
              head: [['Product', 'Units Sold', 'Revenue']],
              body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
         });
