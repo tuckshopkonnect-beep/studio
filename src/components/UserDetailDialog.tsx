@@ -46,7 +46,6 @@ const emptyUser: User = {
   avatarUrl: '',
   balance: 0,
   class: '',
-  dailyLimit: 0,
 };
 
 export default function UserDetailDialog({
@@ -109,6 +108,7 @@ export default function UserDetailDialog({
         });
         return;
     }
+    // We pass the password separately if you were to handle it, but here it's just for the form
     onSave(userData);
   };
 
@@ -217,13 +217,9 @@ export default function UserDetailDialog({
                         <Label htmlFor="balance">Initial Balance</Label>
                         <Input id="balance" name="balance" type="number" value={userData.balance} onChange={handleInputChange} disabled={!isEditing} />
                     </div>
-                     <div className="grid gap-2 col-span-2">
-                        <Label htmlFor="dailyLimit">Daily Spending Limit</Label>
-                        <Input id="dailyLimit" name="dailyLimit" type="number" value={userData.dailyLimit || ''} onChange={handleInputChange} disabled={!isEditing} placeholder="No limit" />
-                    </div>
                     <div className="grid gap-2 col-span-2">
                         <Label htmlFor="parent">Link to Parent</Label>
-                         <Select onValueChange={handleParentLinkChange} disabled={!isEditing}>
+                         <Select onValueChange={handleParentLinkChange} disabled={!isEditing} value={String(userData.parentId || '')}>
                             <SelectTrigger id="parent">
                                 <SelectValue placeholder="Select a parent..." />
                             </SelectTrigger>
@@ -269,3 +265,5 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
+
+    

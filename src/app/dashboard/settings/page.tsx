@@ -17,6 +17,16 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import { initialUsers } from "@/lib/data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { User } from "@/lib/data";
+
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -26,6 +36,25 @@ export default function SettingsPage() {
   const [orderCloseTime, setOrderCloseTime] = useState("14:00");
   const [stopOrders, setStopOrders] = useState(false);
   const [isPromoteConfirmOpen, setIsPromoteConfirmOpen] = useState(false);
+
+  // State for individual limits
+  const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [individualLimit, setIndividualLimit] = useState<string>('');
+
+  const studentUsers = allUsers.filter(u => u.role === 'Student');
+  const selectedStudent = allUsers.find(u => u.id === Number(selectedStudentId));
+
+  useEffect(() => {
+    // This is a front-end simulation. In a real app, you'd fetch this from a DB.
+    const student = allUsers.find(u => u.id === Number(selectedStudentId));
+    if (student && student.dailyLimit) {
+      setIndividualLimit(String(student.dailyLimit));
+    } else {
+      setIndividualLimit('');
+    }
+  }, [selectedStudentId, allUsers]);
+
 
   useEffect(() => {
     const storedPosScanner = localStorage.getItem('posScannerEnabled');
@@ -80,6 +109,27 @@ export default function SettingsPage() {
     toast({
         title: "Default limits saved",
         description: "The default spending limits have been updated."
+    });
+  };
+
+  const handleSaveIndividualLimit = () => {
+    if (!selectedStudentId) {
+      toast({ variant: 'destructive', title: "No student selected" });
+      return;
+    }
+    const studentId = Number(selectedStudentId);
+    const newLimit = individualLimit === '' ? undefined : Number(individualLimit);
+    
+    // This is a front-end simulation of updating a user
+    setAllUsers(prevUsers => 
+      prevUsers.map(u => 
+        u.id === studentId ? { ...u, dailyLimit: newLimit } : u
+      )
+    );
+
+    toast({
+      title: "Individual Limit Updated",
+      description: `The daily limit for ${selectedStudent?.name} has been set to ₦${newLimit || 'none'}.`
     });
   };
   
@@ -138,20 +188,44 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Individual Spending Limits</CardTitle>
             <CardDescription>
-                To override the default limits for a specific student, find the user and edit their profile.
+                Override the default daily limit for a specific student, as requested by their parent.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-                You can set a custom daily spending limit for any individual student from the main user management page.
-            </p>
+          <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="student-select">Select Student</Label>
+                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                  <SelectTrigger id="student-select">
+                    <SelectValue placeholder="Choose a student..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {studentUsers.map(student => (
+                      <SelectItem key={student.id} value={String(student.id)}>
+                        {student.name} - {student.class}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedStudentId && (
+                 <div className="grid gap-2">
+                    <Label htmlFor="individual-limit">Custom Daily Limit (₦)</Label>
+                    <div className="relative">
+                       <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                       <Input 
+                        id="individual-limit" 
+                        type="number"
+                        placeholder="Leave blank for no limit" 
+                        className="pl-6"
+                        value={individualLimit}
+                        onChange={(e) => setIndividualLimit(e.target.value)}
+                      />
+                    </div>
+                </div>
+              )}
           </CardContent>
            <CardFooter className="border-t px-6 py-4">
-             <Button asChild variant="outline">
-                <Link href="/dashboard/users">
-                  Manage Users <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-             </Button>
+             <Button onClick={handleSaveIndividualLimit} disabled={!selectedStudentId}>Save Individual Limit</Button>
           </CardFooter>
         </Card>
       </div>
@@ -273,4 +347,6 @@ export default function SettingsPage() {
     </>
   );
 }
+    
+
     
