@@ -1,15 +1,13 @@
-
 "use client";
 
 import type { Order, User, MenuItem, InventoryItem } from '@/lib/data';
 import { format } from 'date-fns';
-
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // --- Specific Report Generators ---
 
-export const exportOrdersPDF = async (orders: Order[]) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const exportOrdersPDF = (orders: Order[]) => {
     const doc = new jsPDF();
     doc.text("Orders Report", 14, 16);
 
@@ -29,9 +27,7 @@ export const exportOrdersPDF = async (orders: Order[]) => {
     doc.save('orders-report.pdf');
 };
 
-export const exportInventoryPDF = async (menu: MenuItem[], inventory: InventoryItem[]) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const exportInventoryPDF = (menu: MenuItem[], inventory: InventoryItem[]) => {
     const doc = new jsPDF();
     doc.text("Menu & Inventory Report", 14, 16);
     
@@ -56,9 +52,7 @@ export const exportInventoryPDF = async (menu: MenuItem[], inventory: InventoryI
     doc.save('inventory-report.pdf');
 };
 
-export const exportUsersPDF = async (users: User[]) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const exportUsersPDF = (users: User[]) => {
     const doc = new jsPDF();
     doc.text("Users Report", 14, 16);
 
@@ -79,9 +73,7 @@ export const exportUsersPDF = async (users: User[]) => {
     doc.save('users-report.pdf');
 };
 
-export const downloadReceiptPDF = async (orderResult: any, studentName: string, qrCodeRef: React.RefObject<HTMLDivElement>) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const downloadReceiptPDF = (orderResult: any, studentName: string, qrCodeRef: React.RefObject<HTMLDivElement>) => {
     const doc = new jsPDF();
 
     doc.text("Order Receipt", 14, 20);
@@ -131,9 +123,7 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
     doc.save(`receipt-${orderResult.id}.pdf`);
 };
 
-export const exportSectionPDF = async (sectionTitle: string, data: any) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const exportSectionPDF = (sectionTitle: string, data: any) => {
     const doc = new jsPDF();
     doc.text(sectionTitle, 14, 16);
     
@@ -142,9 +132,7 @@ export const exportSectionPDF = async (sectionTitle: string, data: any) => {
 };
 
 
-export const generateFullReportPDF = async (dateRange: any, reportData: any) => {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
+export const generateFullReportPDF = (dateRange: any, reportData: any) => {
     const doc = new jsPDF();
     const finalY = (doc.internal.pageSize.height - 10);
     const pageMargin = 14;

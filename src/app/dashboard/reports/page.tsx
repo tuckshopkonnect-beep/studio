@@ -246,7 +246,7 @@ export default function ReportsPage() {
             body: initialInventory.map(i => [i.name, i.stock.toString()])
         }
     };
-    await generateFullReportPDF(date, reportData);
+    generateFullReportPDF(date, reportData);
   };
 
 
