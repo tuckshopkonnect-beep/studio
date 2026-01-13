@@ -25,9 +25,11 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Edit, Save, X, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserDetailDialogProps {
   user: User | null;
+  allUsers: User[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (user: User) => void;
@@ -49,6 +51,7 @@ const emptyUser: User = {
 
 export default function UserDetailDialog({
   user,
+  allUsers,
   isOpen,
   onOpenChange,
   onSave,
@@ -57,11 +60,20 @@ export default function UserDetailDialog({
   isCreating,
 }: UserDetailDialogProps) {
   const [userData, setUserData] = useState<User>(user || emptyUser);
+  const [password, setPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const parentUsers = allUsers.filter(u => u.role === 'Parent');
 
   useEffect(() => {
-    setUserData(user || emptyUser);
-  }, [user]);
+    if (isCreating) {
+        setUserData(emptyUser);
+        setPassword('');
+    } else {
+        setUserData(user || emptyUser);
+    }
+  }, [user, isCreating]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -75,7 +87,28 @@ export default function UserDetailDialog({
     setUserData(prev => ({ ...prev, role: value }));
   };
 
+  const handleParentLinkChange = (value: string) => {
+    setUserData(prev => ({ ...prev, parentId: Number(value) }));
+  };
+  
   const handleSaveClick = () => {
+    // Input validation
+    if (!userData.name || !userData.email) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Name and email are required fields.",
+      });
+      return;
+    }
+    if (isCreating && !password) {
+        toast({
+            variant: "destructive",
+            title: "Validation Error",
+            description: "Password is required for new users.",
+        });
+        return;
+    }
     onSave(userData);
   };
 
@@ -104,7 +137,7 @@ export default function UserDetailDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          {!isEditing && <DialogDescription>{description}</DialogDescription>}
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 py-4">
@@ -136,7 +169,7 @@ export default function UserDetailDialog({
                 <div className='flex-1'>
                     {isEditing ? (
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">First & Last Name</Label>
                             <Input id="name" name="name" value={userData.name} onChange={handleInputChange} />
                         </div>
                     ) : (
@@ -168,6 +201,12 @@ export default function UserDetailDialog({
                     </Select>
                 </div>
             </div>
+            {isCreating && (
+                 <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+            )}
             {userData.role === 'Student' && (
                 <div className={cn("grid grid-cols-2 gap-4 transition-all duration-300", userData.role === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden')}>
                     <div className="grid gap-2">
@@ -175,12 +214,25 @@ export default function UserDetailDialog({
                         <Input id="class" name="class" value={userData.class} onChange={handleInputChange} disabled={!isEditing} />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="balance">Balance</Label>
+                        <Label htmlFor="balance">Initial Balance</Label>
                         <Input id="balance" name="balance" type="number" value={userData.balance} onChange={handleInputChange} disabled={!isEditing} />
                     </div>
                      <div className="grid gap-2 col-span-2">
                         <Label htmlFor="dailyLimit">Daily Spending Limit</Label>
                         <Input id="dailyLimit" name="dailyLimit" type="number" value={userData.dailyLimit || ''} onChange={handleInputChange} disabled={!isEditing} placeholder="No limit" />
+                    </div>
+                    <div className="grid gap-2 col-span-2">
+                        <Label htmlFor="parent">Link to Parent</Label>
+                         <Select onValueChange={handleParentLinkChange} disabled={!isEditing}>
+                            <SelectTrigger id="parent">
+                                <SelectValue placeholder="Select a parent..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {parentUsers.map(parent => (
+                                    <SelectItem key={parent.id} value={String(parent.id)}>{parent.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
             )}
@@ -201,7 +253,7 @@ export default function UserDetailDialog({
                 <X className="mr-2 h-4 w-4" /> Cancel
               </Button>
               <Button onClick={handleSaveClick}>
-                <Save className="mr-2 h-4 w-4" /> Save Changes
+                <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create User" : "Save Changes"}
               </Button>
             </>
           ) : (

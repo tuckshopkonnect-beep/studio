@@ -144,6 +144,7 @@ export default function UsersPage() {
       {isUserDetailOpen && (
         <UserDetailDialog
             user={selectedUser}
+            allUsers={users}
             isOpen={isUserDetailOpen}
             onOpenChange={handleCloseDialog}
             onSave={handleSaveUser}
