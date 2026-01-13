@@ -21,7 +21,6 @@ const Footer = () => {
                     <h4 className="font-semibold mb-2">Navigate</h4>
                     <ul className="space-y-2 text-sm">
                         <li><Link href="/#how-it-works" className="text-muted-foreground hover:text-primary">How It Works</Link></li>
-                        <li><Link href="/#menu" className="text-muted-foreground hover:text-primary">Menu</Link></li>
                         <li><Link href="/portal" className="text-muted-foreground hover:text-primary">Portals</Link></li>
                     </ul>
                 </div>
@@ -58,3 +57,5 @@ const Footer = () => {
 };
 
 export default Footer;
+
+    

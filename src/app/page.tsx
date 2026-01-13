@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, SlidersHorizontal, BookUser, Twitter, Instagram, Facebook } from 'lucide-react';
+import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, SlidersHorizontal, BookUser, Twitter, Instagram, Facebook, Mail } from 'lucide-react';
 import { menuItems } from '@/lib/data';
 import MenuItemCard from '@/components/MenuItemCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -163,9 +163,22 @@ export default function Home() {
                 </div>
             </div>
         </section>
+
+        {/* Contact Section */}
+        <section className="py-16 md:py-24 bg-muted/50">
+            <div className="container px-4 text-center">
+                <Mail className="mx-auto h-12 w-12 text-primary" />
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mt-4">Have Questions?</h2>
+                <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+                    For inquiries, support, or feedback, please reach out to the development team at <a href="mailto:tuckshopkonnect@gmail.com" className="font-semibold text-primary hover:underline">tuckshopkonnect@gmail.com</a>.
+                </p>
+            </div>
+        </section>
       </main>
 
       <Footer />
     </div>
   );
 }
+
+    
