@@ -8,7 +8,8 @@ import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { User } from "@/lib/data";
+import type { User, Order } from "@/lib/data";
+import { CompletedOrder } from "@/hooks/use-cart";
 
 
 interface OrderSummaryProps {
@@ -17,7 +18,7 @@ interface OrderSummaryProps {
 }
 
 export default function OrderSummary({ student, spentToday }: OrderSummaryProps) {
-  const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -58,10 +59,16 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return;
     }
     
-    const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    console.log("Order placed with transaction ID:", transactionId);
+    const newOrder: CompletedOrder = {
+      id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      items: [...cartItems],
+      total: totalPrice,
+      status: 'Ready for Pickup', // New orders are ready for pickup
+      orderDate: new Date().toISOString(),
+    };
 
-    setCompletedOrder({ id: transactionId, items: [...cartItems], total: totalPrice });
+    setCompletedOrder(newOrder);
+    addOrderToHistory(newOrder);
     clearCart();
     router.push('/student/order/confirmation');
   };

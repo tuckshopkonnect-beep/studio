@@ -111,7 +111,7 @@ export default function StudentDashboard() {
           </CardHeader>
           <CardContent className="flex-grow flex items-center justify-center">
             <Button size="lg" variant="outline" asChild>
-              <Link href="#">
+              <Link href="/student/order-history">
                 <History className="mr-2" /> View History
               </Link>
             </Button>

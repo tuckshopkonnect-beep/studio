@@ -9,10 +9,12 @@ export interface CartItem extends MenuItem {
   quantity: number;
 }
 
-interface CompletedOrder {
+export interface CompletedOrder {
   id: string;
   items: CartItem[];
   total: number;
+  status: 'Pending' | 'Preparing' | 'Ready for Pickup' | 'Completed';
+  orderDate: string;
 }
 
 
@@ -21,6 +23,7 @@ interface CartContextType {
   inventory: InventoryItem[];
   completedOrder: CompletedOrder | null;
   setCompletedOrder: (order: CompletedOrder | null) => void;
+  addOrderToHistory: (order: CompletedOrder) => void;
   getStock: (itemId: number) => number;
   addToCart: (item: MenuItem) => void;
   removeFromCart: (itemId: number) => void;
@@ -49,6 +52,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } else {
       sessionStorage.removeItem('completedOrder');
     }
+  };
+
+  const addOrderToHistory = (order: CompletedOrder) => {
+    if (typeof window === 'undefined') return;
+    const history = JSON.parse(localStorage.getItem('orderHistory') || '[]') as CompletedOrder[];
+    const updatedHistory = [order, ...history];
+    localStorage.setItem('orderHistory', JSON.stringify(updatedHistory));
   };
 
 
@@ -133,6 +143,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     inventory,
     completedOrder,
     setCompletedOrder,
+    addOrderToHistory,
     getStock,
     addToCart,
     removeFromCart,
