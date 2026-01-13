@@ -140,8 +140,8 @@ export default function Home() {
         <section id="menu" className="py-16 md:py-24 bg-background">
           <div className="container px-4">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Today's Menu</h2>
-              <p className="text-muted-foreground mt-2">Freshly prepared and ready to be enjoyed.</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Featured Items</h2>
+              <p className="text-muted-foreground mt-2">A selection of our most popular and delicious meals and snacks.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
               {menuItems.slice(0, 4).map(item => (
