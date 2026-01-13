@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Utensils, UserCircle } from "lucide-react";
+import { ShoppingCart, Utensils, UserCircle, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart.tsx";
 import {
@@ -12,9 +13,34 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import OrderSummary from "./OrderSummary";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useEffect } from "react";
 
 export default function Header() {
   const { totalItems } = useCart();
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem("theme") || "light";
+    if (storedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const setTheme = (theme: "light" | "dark") => {
+    localStorage.setItem("theme", theme);
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -30,6 +56,23 @@ export default function Header() {
           <Link href="/portal" className="transition-colors hover:text-primary">User Portals</Link>
         </nav>
         <div className="flex flex-1 items-center justify-end gap-4">
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                    <span className="sr-only">Toggle theme</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                 <DropdownMenuItem onClick={() => setTheme("light")}>
+                    Light
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    Dark
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" asChild>
             <Link href="/portal">
               <UserCircle className="h-5 w-5" />
