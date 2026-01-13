@@ -51,8 +51,6 @@ import {
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { initialOrders, initialUsers, menuItems, initialInventory } from "@/lib/data";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const chartConfig = {
   revenue: {
@@ -175,7 +173,10 @@ export default function ReportsPage() {
     .sort((a,b) => b.revenue - a.revenue);
 
   // --- PDF Export Logic ---
-  const handleExportSection = (sectionTitle: string) => {
+  const handleExportSection = async (sectionTitle: string) => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
     doc.text(sectionTitle, 14, 16);
     
@@ -219,7 +220,10 @@ export default function ReportsPage() {
     doc.save(`${sectionTitle.toLowerCase().replace(/ /g, '-')}-report.pdf`);
   };
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
     const doc = new jsPDF();
     const finalY = (doc.internal.pageSize.height - 10);
     const pageMargin = 14;

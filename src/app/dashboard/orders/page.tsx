@@ -35,13 +35,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { ListFilter, MoreHorizontal, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export default function OrdersPage() {
   const orders = initialOrders;
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
     const doc = new jsPDF();
     doc.text("Orders Report", 14, 16);
 

@@ -36,14 +36,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 export default function InventoryPage() {
   const inventory = initialInventory;
   const menu = menuItems;
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
     doc.text("Menu & Inventory Report", 14, 16);
     

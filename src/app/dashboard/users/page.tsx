@@ -35,14 +35,15 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 
 export default function UsersPage() {
   const users = initialUsers;
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
     const doc = new jsPDF();
     doc.text("Users Report", 14, 16);
 

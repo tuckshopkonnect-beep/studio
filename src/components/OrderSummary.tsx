@@ -17,8 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+
 
 export default function OrderSummary() {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
@@ -77,8 +76,11 @@ export default function OrderSummary() {
     setOrderResult(null);
   }
 
-  const downloadReceipt = () => {
+  const downloadReceipt = async () => {
     if (!orderResult) return;
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
     const doc = new jsPDF();
 
     doc.text("Order Receipt", 14, 20);
