@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/use-cart.tsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,15 +12,17 @@ import { initialUsers } from "@/lib/data";
 
 export default function OrderConfirmationPage() {
     const router = useRouter();
+    const pathname = usePathname();
     const { completedOrder, setCompletedOrder } = useCart();
     const qrCodeRef = useRef<HTMLDivElement>(null);
-    const [isDownloading, setIsDownloading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
 
     const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
 
     const handleDownloadReceipt = async () => {
         if (completedOrder && qrCodeRef.current) {
+            setIsDownloading(true);
             const { default: jsPDF } = await import('jspdf');
             const { default: autoTable } = await import('jspdf-autotable');
             const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
@@ -28,24 +30,28 @@ export default function OrderConfirmationPage() {
                 await downloadReceiptPDF(completedOrder, student.name, qrCodeRef, jsPDF, autoTable);
             } catch (error) {
                 console.error("Failed to download PDF:", error);
+            } finally {
+                setIsDownloading(false);
             }
         }
     };
     
     useEffect(() => {
+        // Auto-download only once when the component mounts with an order
         if (completedOrder && !downloadTriggered.current) {
             downloadTriggered.current = true;
-            setIsDownloading(true);
-            handleDownloadReceipt().finally(() => setIsDownloading(false));
+            handleDownloadReceipt();
         }
     }, [completedOrder]);
 
     useEffect(() => {
-        // Clean up completed order from context when user navigates away
+        // Clean up completed order from context and sessionStorage when user navigates away
         return () => {
-            setCompletedOrder(null);
+            if (pathname !== '/student/order/confirmation') {
+                setCompletedOrder(null);
+            }
         };
-    }, [setCompletedOrder]);
+    }, [pathname, setCompletedOrder]);
 
     if (!completedOrder) {
         return (

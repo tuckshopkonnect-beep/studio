@@ -35,7 +35,21 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
-  const [completedOrder, setCompletedOrder] = useState<CompletedOrder | null>(null);
+  
+  const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(() => {
+     if (typeof window === 'undefined') return null;
+    const savedOrder = sessionStorage.getItem('completedOrder');
+    return savedOrder ? JSON.parse(savedOrder) : null;
+  });
+  
+  const setCompletedOrder = (order: CompletedOrder | null) => {
+    setCompletedOrderState(order);
+    if (order) {
+      sessionStorage.setItem('completedOrder', JSON.stringify(order));
+    } else {
+      sessionStorage.removeItem('completedOrder');
+    }
+  };
 
 
   const getStock = useCallback((itemId: number): number => {
