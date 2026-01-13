@@ -16,7 +16,7 @@ import Link from "next/link";
 import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInput, PersonalizedFoodRecommendationsOutput } from "@/app/actions";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { initialUsers } from "@/lib/data";
+import { initialUsers, initialOrders } from "@/lib/data";
 
 
 export default function StudentDashboard() {
@@ -27,7 +27,17 @@ export default function StudentDashboard() {
     spentToday: 450.00,
   };
 
-  const spentToday = 450.00; // This would typically come from transaction data
+  const spentToday = initialOrders
+    .filter(o => {
+      const orderDate = new Date(o.orderDate);
+      const today = new Date();
+      return o.customerName === student.name &&
+             orderDate.getDate() === today.getDate() &&
+             orderDate.getMonth() === today.getMonth() &&
+             orderDate.getFullYear() === today.getFullYear() &&
+             o.status === 'Completed';
+    })
+    .reduce((acc, order) => acc + order.total, 0);
 
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);

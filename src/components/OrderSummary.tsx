@@ -8,21 +8,27 @@ import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { initialUsers } from "@/lib/data";
+import type { User } from "@/lib/data";
 
 
-export default function OrderSummary() {
+interface OrderSummaryProps {
+  student?: User;
+  spentToday: number;
+}
+
+export default function OrderSummary({ student, spentToday }: OrderSummaryProps) {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder } = useCart();
   const { toast } = useToast();
   const router = useRouter();
 
-
-  // In a real app, this would come from an auth context
-  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
-  const spentToday = 450.00; // Mock data, would come from transactions
+  if (!student) {
+      // Handle case where student is not found or not logged in
+      return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
+  }
 
   const potentialBalance = student.balance - totalPrice;
   const potentialSpentToday = spentToday + totalPrice;
+  const remainingLimit = student.dailyLimit ? student.dailyLimit - spentToday : Infinity;
 
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
@@ -44,7 +50,6 @@ export default function OrderSummary() {
     }
 
     if (student.dailyLimit && potentialSpentToday > student.dailyLimit) {
-      const remainingLimit = student.dailyLimit - spentToday;
       toast({
         variant: "destructive",
         title: "Daily Limit Exceeded",
@@ -113,6 +118,12 @@ export default function OrderSummary() {
       {cartItems.length > 0 && (
         <div className="p-6 border-t bg-background">
           <div className="space-y-2 mb-4 text-sm">
+             <div className="flex justify-between">
+              <span className="text-muted-foreground">Daily Limit Remaining</span>
+              <span className={remainingLimit < totalPrice ? "text-destructive" : ""}>
+                {student.dailyLimit ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
+              </span>
+            </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Current Balance</span>
               <span>₦{student.balance.toFixed(2)}</span>

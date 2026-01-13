@@ -20,9 +20,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useEffect } from "react";
+import { initialUsers, initialOrders } from "@/lib/data";
 
 export default function Header() {
   const { totalItems } = useCart();
+  
+  // In a real app, this would come from an auth context
+  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe');
+
+  const spentToday = student
+    ? initialOrders
+        .filter(o => {
+          const orderDate = new Date(o.orderDate);
+          const today = new Date();
+          return o.customerName === student.name &&
+                 orderDate.getDate() === today.getDate() &&
+                 orderDate.getMonth() === today.getMonth() &&
+                 orderDate.getFullYear() === today.getFullYear() &&
+                 o.status === 'Completed';
+        })
+        .reduce((acc, order) => acc + order.total, 0)
+    : 0;
 
   useEffect(() => {
     // This code runs on the client, after the component mounts
@@ -96,7 +114,7 @@ export default function Header() {
               <SheetHeader className="px-6 pt-6">
                 <SheetTitle>Your Order</SheetTitle>
               </SheetHeader>
-              <OrderSummary />
+              <OrderSummary student={student} spentToday={spentToday} />
             </SheetContent>
           </Sheet>
         </div>
@@ -104,5 +122,3 @@ export default function Header() {
     </header>
   );
 }
-
-    
