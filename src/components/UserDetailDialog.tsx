@@ -48,6 +48,8 @@ const emptyUser: User = {
   class: '',
 };
 
+const classLevels = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
+
 export default function UserDetailDialog({
   user,
   allUsers,
@@ -88,6 +90,10 @@ export default function UserDetailDialog({
 
   const handleParentLinkChange = (value: string) => {
     setUserData(prev => ({ ...prev, parentId: Number(value) }));
+  };
+
+  const handleClassChange = (value: string) => {
+    setUserData(prev => ({ ...prev, class: value }));
   };
   
   const handleSaveClick = () => {
@@ -211,7 +217,16 @@ export default function UserDetailDialog({
                 <div className={cn("grid grid-cols-2 gap-4 transition-all duration-300", userData.role === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden')}>
                     <div className="grid gap-2">
                         <Label htmlFor="class">Class</Label>
-                        <Input id="class" name="class" value={userData.class} onChange={handleInputChange} disabled={!isEditing} />
+                        <Select value={userData.class} onValueChange={handleClassChange} disabled={!isEditing}>
+                          <SelectTrigger id="class">
+                              <SelectValue placeholder="Select a class..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {classLevels.map(level => (
+                                  <SelectItem key={level} value={level}>{level}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="balance">Initial Balance</Label>
@@ -266,4 +281,3 @@ export default function UserDetailDialog({
   );
 }
 
-    
