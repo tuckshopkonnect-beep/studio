@@ -120,12 +120,18 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
                         doc.save(`receipt-${orderResult.id}.pdf`);
                         resolve();
                     };
+                    img.onerror = () => {
+                        // If image fails to load, save without it
+                        doc.save(`receipt-${orderResult.id}.pdf`);
+                        resolve();
+                    }
                 });
-                return; // Return after promise resolves
+                return;
             }
         }
     }
     
+    // Fallback to save if QR code is not available or fails
     doc.save(`receipt-${orderResult.id}.pdf`);
 };
 
