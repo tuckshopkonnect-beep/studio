@@ -85,10 +85,37 @@ export default {
             height: '0',
           },
         },
+        blob: {
+          '0%, 100%': {
+            transform: 'translate(0, 0) scale(1)',
+          },
+          '25%': {
+            transform: 'translate(20px, -30px) scale(1.1)',
+          },
+          '50%': {
+            transform: 'translate(0, 40px) scale(1)',
+          },
+          '75%': {
+            transform: 'translate(-30px, -20px) scale(0.9)',
+          },
+        },
+        tilt: {
+            '0%, 50%, 100%': {
+              transform: 'rotate(0deg)',
+            },
+            '25%': {
+              transform: 'rotate(1deg)',
+            },
+            '75%': {
+              transform: 'rotate(-1deg)',
+            },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'blob': 'blob 8s infinite ease-in-out',
+        'tilt': 'tilt 10s infinite linear',
       },
     },
   },
