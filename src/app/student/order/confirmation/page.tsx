@@ -13,7 +13,7 @@ import { initialUsers } from "@/lib/data";
 export default function OrderConfirmationPage() {
     const router = useRouter();
     const pathname = usePathname();
-    const { completedOrder, setCompletedOrder } = useCart();
+    const { cart, completedOrder, setCompletedOrder, clearCart } = useCart();
     const qrCodeRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
@@ -26,6 +26,7 @@ export default function OrderConfirmationPage() {
     }, []);
 
     const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
+    const studentBalance = student ? student.balance - (completedOrder?.total ?? 0) : 0;
 
     const handleDownloadReceipt = async () => {
         if (completedOrder && qrCodeRef.current) {
@@ -35,7 +36,7 @@ export default function OrderConfirmationPage() {
             const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
             try {
                 // Pass isPosEnabled to the PDF utility
-                await downloadReceiptPDF(completedOrder, student.name, isPosEnabled ? qrCodeRef : null, jsPDF, autoTable);
+                await downloadReceiptPDF(completedOrder, student.name, studentBalance, isPosEnabled ? qrCodeRef : null, jsPDF, autoTable);
             } catch (error) {
                 console.error("Failed to download PDF:", error);
             } finally {
@@ -55,12 +56,19 @@ export default function OrderConfirmationPage() {
 
     useEffect(() => {
         // Clean up completed order from context and sessionStorage when user navigates away
-        return () => {
+        const handleRouteChange = () => {
             if (pathname !== '/student/order/confirmation') {
-                setCompletedOrder(null);
+                 setCompletedOrder(null);
+                 clearCart();
             }
         };
-    }, [pathname, setCompletedOrder]);
+        
+        handleRouteChange();
+
+        return () => {
+           handleRouteChange();
+        };
+    }, [pathname, setCompletedOrder, clearCart]);
 
     if (!completedOrder) {
         return (

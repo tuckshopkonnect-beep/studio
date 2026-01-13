@@ -72,7 +72,7 @@ export const exportUsersPDF = (users: User[], jsPDF: any, autoTable: any) => {
     doc.save('users-report.pdf');
 };
 
-export const downloadReceiptPDF = async (orderResult: any, studentName: string, qrCodeRef: React.RefObject<HTMLDivElement> | null, jsPDF: any, autoTable: any) => {
+export const downloadReceiptPDF = async (orderResult: any, studentName: string, studentBalance: number, qrCodeRef: React.RefObject<HTMLDivElement> | null, jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
 
     doc.text("Order Receipt", 14, 20);
@@ -92,10 +92,14 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
     });
     
     let finalY = (doc as any).lastAutoTable.finalY || 70;
-
-    doc.setFontSize(14);
-    doc.text(`Total: ₦${orderResult.total.toFixed(2)}`, 14, finalY + 10);
     
+    doc.setFontSize(12);
+    doc.text(`Order Total: ₦${orderResult.total.toFixed(2)}`, 14, finalY + 10);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`New Balance: ₦${studentBalance.toFixed(2)}`, 14, finalY + 18);
+    doc.setFont(undefined, 'normal');
+
     if (qrCodeRef?.current) {
         const svgElement = qrCodeRef.current.querySelector('svg');
         if (svgElement) {
@@ -112,7 +116,7 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
                     img.onload = () => {
                         ctx.drawImage(img, 0, 0);
                         const dataUrl = canvas.toDataURL("image/png");
-                        doc.addImage(dataUrl, 'PNG', 14, finalY + 20, 50, 50);
+                        doc.addImage(dataUrl, 'PNG', 14, finalY + 30, 50, 50);
                         doc.save(`receipt-${orderResult.id}.pdf`);
                         resolve();
                     };

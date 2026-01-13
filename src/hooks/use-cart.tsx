@@ -19,7 +19,7 @@ export interface CompletedOrder {
 
 
 interface CartContextType {
-  cartItems: CartItem[];
+  cart: CartItem[];
   inventory: InventoryItem[];
   completedOrder: CompletedOrder | null;
   setCompletedOrder: (order: CompletedOrder | null) => void;
@@ -36,7 +36,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   
   const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(() => {
@@ -70,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const stock = getStock(item.id);
     if (stock <= 0) return;
 
-    setCartItems(prevItems => {
+    setCart(prevItems => {
       const existingItem = prevItems.find(i => i.id === item.id);
       if (existingItem) {
         if (existingItem.quantity < stock) {
@@ -85,12 +85,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = (itemId: number) => {
-    setCartItems(prevItems => prevItems.filter(i => i.id !== itemId));
+    setCart(prevItems => prevItems.filter(i => i.id !== itemId));
   };
 
   const updateQuantity = (itemId: number, quantity: number) => {
       const stock = getStock(itemId);
-      const cartItem = cartItems.find(i => i.id === itemId);
+      const cartItem = cart.find(i => i.id === itemId);
       const originalStock = initialInventory.find(i => i.id === itemId)?.stock ?? 0;
       
       if (quantity <= 0) {
@@ -106,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setCartItems(prevItems =>
+      setCart(prevItems =>
         prevItems.map(i =>
           i.id === itemId ? { ...i, quantity } : i
         )
@@ -114,32 +114,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
   
   const clearCart = () => {
-    setCartItems([]);
+    setCart([]);
   };
 
   useEffect(() => {
-    // Recalculate inventory whenever cartItems change
+    // Recalculate inventory whenever cart change
     const newInventory = initialInventory.map(invItem => {
-        const cartItem = cartItems.find(ci => ci.id === invItem.id);
+        const cartItem = cart.find(ci => ci.id === invItem.id);
         if (cartItem) {
             return { ...invItem, stock: invItem.stock - cartItem.quantity };
         }
         return invItem;
     });
     setInventory(newInventory);
-  }, [cartItems])
+  }, [cart])
 
 
   const totalItems = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cartItems]);
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart]);
 
   const totalPrice = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }, [cartItems]);
+    return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [cart]);
 
   const value = useMemo(() => ({
-    cartItems,
+    cart,
     inventory,
     completedOrder,
     setCompletedOrder,
@@ -151,7 +151,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clearCart,
     totalItems,
     totalPrice
-  }), [cartItems, inventory, completedOrder, getStock]);
+  }), [cart, inventory, completedOrder, getStock]);
 
   return (
     <CartContext.Provider value={value}>
