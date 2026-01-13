@@ -4,13 +4,13 @@
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
 
 const data = [
-  { name: "Mon", total: Math.floor(Math.random() * 300) + 50 },
-  { name: "Tue", total: Math.floor(Math.random() * 300) + 100 },
-  { name: "Wed", total: Math.floor(Math.random() * 300) + 150 },
-  { name: "Thu", total: Math.floor(Math.random() * 300) + 200 },
-  { name: "Fri", total: Math.floor(Math.random() * 300) + 250 },
-  { name: "Sat", total: Math.floor(Math.random() * 100) + 50 },
-  { name: "Sun", total: Math.floor(Math.random() * 100) + 20 },
+  { name: "Mon", total: Math.floor(Math.random() * 30000) + 5000 },
+  { name: "Tue", total: Math.floor(Math.random() * 30000) + 10000 },
+  { name: "Wed", total: Math.floor(Math.random() * 30000) + 15000 },
+  { name: "Thu", total: Math.floor(Math.random() * 30000) + 20000 },
+  { name: "Fri", total: Math.floor(Math.random() * 30000) + 25000 },
+  { name: "Sat", total: Math.floor(Math.random() * 10000) + 5000 },
+  { name: "Sun", total: Math.floor(Math.random() * 10000) + 2000 },
 ]
 
 export default function WeeklySalesChart() {
@@ -33,7 +33,7 @@ export default function WeeklySalesChart() {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `$${value}`}
+          tickFormatter={(value) => `₦${value/1000}k`}
         />
         <Tooltip
           cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '3 3' }}
@@ -44,6 +44,7 @@ export default function WeeklySalesChart() {
             color: 'hsl(var(--foreground))'
           }}
           labelStyle={{ color: 'hsl(var(--foreground))' }}
+          formatter={(value: number) => [`₦${value.toFixed(2)}`, 'Sales']}
         />
         <Legend />
         <Line 

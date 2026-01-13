@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,8 +14,8 @@ import { PlusCircle } from "lucide-react";
 export default function ParentDashboard() {
   // Placeholder data
   const children = [
-    { name: "Alex Doe", balance: 25.50, limit: 10.00 },
-    { name: "Jamie Doe", balance: 15.00, limit: 8.00 },
+    { name: "Alex Doe", balance: 2550.00, limit: 1000.00 },
+    { name: "Jamie Doe", balance: 1500.00, limit: 800.00 },
   ];
 
   return (
@@ -30,11 +31,11 @@ export default function ParentDashboard() {
             <CardContent className="space-y-4">
                 <div>
                 <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
-                <p className="text-2xl font-bold">${child.balance.toFixed(2)}</p>
+                <p className="text-2xl font-bold">₦{child.balance.toFixed(2)}</p>
                 </div>
                 <div>
                 <p className="text-sm font-medium text-muted-foreground">Daily Spending Limit</p>
-                <p className="text-lg font-semibold">${child.limit.toFixed(2)}</p>
+                <p className="text-lg font-semibold">₦{child.limit.toFixed(2)}</p>
                 </div>
             </CardContent>
             <CardFooter className="flex gap-2">

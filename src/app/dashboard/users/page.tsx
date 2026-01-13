@@ -100,7 +100,7 @@ export default function UsersPage() {
                     <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Parent' ? 'secondary' : 'outline'}>{user.role}</Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {user.role === 'Student' ? `$${user.balance.toFixed(2)}` : 'N/A'}
+                    {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {user.class || 'N/A'}

@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -62,7 +63,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>
@@ -149,7 +150,7 @@ export default function DashboardPage() {
                   <TableCell className="hidden sm:table-cell">
                     {new Date(order.orderDate).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">₦{order.total.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

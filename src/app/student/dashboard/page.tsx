@@ -1,4 +1,5 @@
 
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,9 +14,9 @@ import Link from "next/link";
 export default function StudentDashboard() {
   const student = {
     name: "Alex Doe",
-    balance: 25.50,
-    dailyLimit: 10.00,
-    spentToday: 4.50,
+    balance: 2550.00,
+    dailyLimit: 1000.00,
+    spentToday: 450.00,
   };
 
   return (
@@ -28,7 +29,7 @@ export default function StudentDashboard() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${student.balance.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">₦{student.balance.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">Ready for your next order</p>
                 </CardContent>
             </Card>
@@ -38,7 +39,7 @@ export default function StudentDashboard() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">${student.spentToday.toFixed(2)} / ${student.dailyLimit.toFixed(2)}</div>
+                    <div className="text-2xl font-bold">₦{student.spentToday.toFixed(2)} / ₦{student.dailyLimit.toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">Your spending limit for today</p>
                 </CardContent>
             </Card>

@@ -60,11 +60,17 @@ export default function SettingsPage() {
           <form className="grid gap-6 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
-              <Input id="jss-limit" type="number" defaultValue="10.00" />
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                <Input id="jss-limit" type="number" defaultValue="1000.00" className="pl-6" />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
-              <Input id="sss-limit" type="number" defaultValue="15.00" />
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                <Input id="sss-limit" type="number" defaultValue="1500.00" className="pl-6" />
+              </div>
             </div>
             <div className="md:col-span-2">
               <Button>Save Limits</Button>

@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export default function ScannerPage() {
             items: [
                 { name: "Sausage Roll", quantity: 4 }
             ],
-            total: 14.00,
+            total: 1400.00,
             status: "Ready for Pickup",
         });
     } else {
@@ -101,7 +102,7 @@ export default function ScannerPage() {
                 <hr className="my-4" />
                 <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${scannedOrder.total.toFixed(2)}</span>
+                    <span>₦{scannedOrder.total.toFixed(2)}</span>
                 </div>
             </CardContent>
             <CardFooter>
@@ -117,4 +118,3 @@ export default function ScannerPage() {
 const Label = (props: React.LabelHTMLAttributes<HTMLLabelElement>) => (
     <label {...props} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
 );
-

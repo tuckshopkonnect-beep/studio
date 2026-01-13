@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react"
@@ -110,7 +111,7 @@ export default function InventoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        ${item.price.toFixed(2)}
+                        ₦{item.price.toFixed(2)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{stock}</TableCell>
                       <TableCell>

@@ -71,7 +71,7 @@ export default function OrderSummary() {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">₦{item.price.toFixed(2)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)}>
                         <Minus className="h-4 w-4" />
@@ -83,7 +83,7 @@ export default function OrderSummary() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end">
-                    <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold">₦{(item.price * item.quantity).toFixed(2)}</p>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(item.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -98,7 +98,7 @@ export default function OrderSummary() {
         <div className="p-6 border-t bg-background">
           <div className="flex justify-between font-bold text-lg mb-4">
             <span>Total</span>
-            <span>${totalPrice.toFixed(2)}</span>
+            <span>₦{totalPrice.toFixed(2)}</span>
           </div>
           <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg" onClick={handlePlaceOrder}>
             Place Order

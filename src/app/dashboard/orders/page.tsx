@@ -111,7 +111,7 @@ export default function OrdersPage() {
                   <TableCell className="hidden md:table-cell">
                     {new Date(order.orderDate).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">₦{order.total.toFixed(2)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

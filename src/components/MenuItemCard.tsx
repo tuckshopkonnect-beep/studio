@@ -44,7 +44,7 @@ export default function MenuItemCard({ item }: MenuItemCardProps) {
         <CardDescription>{item.description}</CardDescription>
       </CardContent>
       <CardFooter className="flex items-center justify-between p-4 bg-muted/50">
-        <p className="text-xl font-bold text-primary">${item.price.toFixed(2)}</p>
+        <p className="text-xl font-bold text-primary">₦{item.price.toFixed(2)}</p>
         <Button onClick={handleAddToCart} size="sm" disabled={added} variant={added ? "secondary" : "default"}>
            {added ? (
               <>
