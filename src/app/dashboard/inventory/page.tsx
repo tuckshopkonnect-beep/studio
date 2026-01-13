@@ -42,8 +42,10 @@ export default function InventoryPage() {
   const menu = menuItems;
 
   const handleExport = async () => {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const { exportInventoryPDF } = await import('@/lib/pdf-utils');
-    exportInventoryPDF(menu, inventory);
+    exportInventoryPDF(menu, inventory, jsPDF, autoTable);
   };
 
   return (

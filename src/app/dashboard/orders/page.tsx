@@ -40,8 +40,10 @@ export default function OrdersPage() {
   const orders = initialOrders;
 
   const handleExport = async () => {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const { exportOrdersPDF } = await import('@/lib/pdf-utils');
-    exportOrdersPDF(orders);
+    exportOrdersPDF(orders, jsPDF, autoTable);
   };
 
   return (

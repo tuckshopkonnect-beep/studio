@@ -78,8 +78,10 @@ export default function OrderSummary() {
 
   const handleDownloadReceipt = async () => {
     if (orderResult) {
+      const { jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
       const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
-      downloadReceiptPDF(orderResult, student.name, qrCodeRef);
+      downloadReceiptPDF(orderResult, student.name, qrCodeRef, jsPDF, autoTable);
     }
   };
 

@@ -174,7 +174,10 @@ export default function ReportsPage() {
 
   // --- PDF Export Logic ---
   const handleExportSection = async (sectionTitle: string) => {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const { exportSectionPDF } = await import('@/lib/pdf-utils');
+    
     let data;
     switch (sectionTitle) {
       case 'Activity Log':
@@ -198,14 +201,16 @@ export default function ReportsPage() {
       case 'Business Intelligence':
         // This case is special as it creates two tables.
         const { exportSectionPDF: exportBiSection } = await import('@/lib/pdf-utils');
+        const { jsPDF: jsPDFBI, default: autoTableBI } = await import('jspdf').then(pdf => ({ jsPDF: pdf.jsPDF, default: import('jspdf-autotable')}));
+        
         await exportBiSection('Student Spending', {
             head: [['Student', 'Total Spent']],
             body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
-        });
+        }, jsPDF, autoTable);
         await exportBiSection('Product Performance', {
              head: [['Product', 'Units Sold', 'Revenue']],
              body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
-        });
+        }, jsPDF, autoTable);
         return;
       case 'Inventory Report':
         data = {
@@ -216,11 +221,14 @@ export default function ReportsPage() {
       default:
         return;
     }
-    await exportSectionPDF(sectionTitle, data);
+    await exportSectionPDF(sectionTitle, data, jsPDF, autoTable);
   };
 
   const handleGenerateReport = async () => {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const { generateFullReportPDF } = await import('@/lib/pdf-utils');
+
     const reportData = {
         activityLog: {
             head: [['Date', 'Type', 'Description', 'Amount']],
@@ -247,7 +255,7 @@ export default function ReportsPage() {
             body: initialInventory.map(i => [i.name, i.stock.toString()])
         }
     };
-    generateFullReportPDF(date, reportData);
+    generateFullReportPDF(date, reportData, jsPDF, autoTable);
   };
 
 

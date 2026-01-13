@@ -40,8 +40,10 @@ export default function UsersPage() {
   const users = initialUsers;
 
   const handleExport = async () => {
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const { exportUsersPDF } = await import('@/lib/pdf-utils');
-    exportUsersPDF(users);
+    exportUsersPDF(users, jsPDF, autoTable);
   };
 
   return (
