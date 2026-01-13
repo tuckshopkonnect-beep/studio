@@ -34,7 +34,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/componentsui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 export default function UsersPage() {
   const users = initialUsers;
@@ -122,7 +123,7 @@ export default function UsersPage() {
                   <TableCell className="hidden md:table-cell">
                     {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
                   </TableCell>
-                   <TableCell className="hidden md:table-cell">
+                   <TableCell className={cn("hidden md:table-cell font-medium", user.role === 'Student' && "text-primary")}>
                     {user.role === 'Student' && user.dailyLimit ? `₦${user.dailyLimit.toFixed(2)}` : 'N/A'}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
