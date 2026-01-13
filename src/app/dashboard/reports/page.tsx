@@ -39,7 +39,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { Bar, BarChart, Pie, PieChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Line, LineChart, Pie, PieChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid } from "recharts";
 import {
   addDays,
   format,
@@ -123,7 +123,7 @@ export default function ReportsPage() {
   })).sort((a,b) => b.date.getTime() - a.date.getTime());
 
 
-  // Sales Report (Bar Chart)
+  // Sales Report (Line Chart)
   const salesByDay = filteredOrders.reduce((acc, order) => {
       const day = format(new Date(order.orderDate), 'MMM d');
       acc[day] = (acc[day] || 0) + order.total;
@@ -278,7 +278,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart accessibilityLayer data={salesChartData}>
+              <LineChart accessibilityLayer data={salesChartData}>
                  <CartesianGrid vertical={false} />
                 <XAxis
                     dataKey="date"
@@ -297,8 +297,8 @@ export default function ReportsPage() {
                   cursor={false}
                   content={<ChartTooltipContent indicator="dot" />}
                 />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
-              </BarChart>
+                <Line dataKey="revenue" type="monotone" stroke="var(--color-revenue)" strokeWidth={2} dot={false} />
+              </LineChart>
             </ChartContainer>
           </CardContent>
         </Card>
@@ -431,3 +431,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
