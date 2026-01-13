@@ -34,7 +34,7 @@ export default function StudentLoginPage() {
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background">
       <Image
-        src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=2070&auto=format&fit=crop"
+        src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2128&auto=format&fit=crop"
         alt="School background"
         fill
         className="object-cover -z-20"
