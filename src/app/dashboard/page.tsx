@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 const totalRevenue = initialOrders.reduce((acc, order) => acc + order.total, 0);
 const totalOrders = initialOrders.length;
 const totalUsers = initialUsers.length;
+const totalItemsSold = initialOrders.flatMap(o => o.items).reduce((acc, item) => acc + item.quantity, 0);
+
 
 export default function DashboardPage() {
   const recentOrders = initialOrders.slice(0, 5);
@@ -68,7 +70,7 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+573</div>
+            <div className="text-2xl font-bold">+{totalItemsSold}</div>
             <p className="text-xs text-muted-foreground">+31 since yesterday</p>
           </CardContent>
         </Card>
@@ -87,6 +89,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Weekly Sales</CardTitle>
+            <CardDescription>A visual representation of sales over the past week.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <WeeklySalesChart />
@@ -96,7 +99,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
             <CardDescription>
-              A summary of your most recent orders.
+              Your 5 most recent orders.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -105,6 +108,7 @@ export default function DashboardPage() {
               <TableRow>
                 <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Date</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
@@ -113,6 +117,9 @@ export default function DashboardPage() {
                 <TableRow key={order.id}>
                   <TableCell>
                     <div className="font-medium">{order.customerName}</div>
+                    <div className="hidden text-sm text-muted-foreground md:inline">
+                        {order.customerName.toLowerCase().replace(" ", ".")}@school.com
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={
@@ -120,6 +127,9 @@ export default function DashboardPage() {
                       order.status === 'Completed' ? 'default' :
                       order.status === 'Preparing' ? 'secondary' : 'destructive'
                     }>{order.status}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {new Date(order.orderDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
                 </TableRow>
