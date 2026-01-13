@@ -36,11 +36,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
-import { exportInventoryPDF } from "@/lib/pdf-utils";
 
 export default function InventoryPage() {
   const inventory = initialInventory;
   const menu = menuItems;
+
+  const handleExport = async () => {
+    const { exportInventoryPDF } = await import('@/lib/pdf-utils');
+    exportInventoryPDF(menu, inventory);
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -52,7 +56,7 @@ export default function InventoryPage() {
           <TabsTrigger value="draft">Out of Stock</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportInventoryPDF(menu, inventory)}>
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>

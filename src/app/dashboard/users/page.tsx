@@ -35,10 +35,14 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { exportUsersPDF } from "@/lib/pdf-utils";
 
 export default function UsersPage() {
   const users = initialUsers;
+
+  const handleExport = async () => {
+    const { exportUsersPDF } = await import('@/lib/pdf-utils');
+    exportUsersPDF(users);
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -50,7 +54,7 @@ export default function UsersPage() {
           <TabsTrigger value="admin">Admins</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => exportUsersPDF(users)}>
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>

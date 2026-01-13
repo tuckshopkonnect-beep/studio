@@ -51,7 +51,6 @@ import {
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { initialOrders, initialUsers, menuItems, initialInventory } from "@/lib/data";
-import { exportSectionPDF, generateFullReportPDF } from "@/lib/pdf-utils";
 
 const chartConfig = {
   revenue: {
@@ -175,6 +174,7 @@ export default function ReportsPage() {
 
   // --- PDF Export Logic ---
   const handleExportSection = async (sectionTitle: string) => {
+    const { exportSectionPDF } = await import('@/lib/pdf-utils');
     let data;
     switch (sectionTitle) {
       case 'Activity Log':
@@ -219,6 +219,7 @@ export default function ReportsPage() {
   };
 
   const handleGenerateReport = async () => {
+    const { generateFullReportPDF } = await import('@/lib/pdf-utils');
     const reportData = {
         activityLog: {
             head: [['Date', 'Type', 'Description', 'Amount']],

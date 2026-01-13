@@ -35,10 +35,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { ListFilter, MoreHorizontal, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { exportOrdersPDF } from "@/lib/pdf-utils";
 
 export default function OrdersPage() {
   const orders = initialOrders;
+
+  const handleExport = async () => {
+    const { exportOrdersPDF } = await import('@/lib/pdf-utils');
+    exportOrdersPDF(orders);
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -67,7 +71,7 @@ export default function OrdersPage() {
               <DropdownMenuCheckboxItem>Completed</DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="outline" onClick={() => exportOrdersPDF(orders)}>
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>

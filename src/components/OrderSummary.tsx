@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
-import { downloadReceiptPDF } from "@/lib/pdf-utils";
 
 
 export default function OrderSummary() {
@@ -77,8 +76,9 @@ export default function OrderSummary() {
     setOrderResult(null);
   }
 
-  const handleDownloadReceipt = () => {
+  const handleDownloadReceipt = async () => {
     if (orderResult) {
+      const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
       downloadReceiptPDF(orderResult, student.name, qrCodeRef);
     }
   };
