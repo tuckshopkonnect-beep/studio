@@ -55,7 +55,7 @@ export default function PortalPage() {
           {portals.map((portal) => (
              <Card 
                 key={portal.name} 
-                className="flex flex-col text-center transition-all duration-300 bg-background/80 backdrop-blur-sm hover:bg-background/90 hover:shadow-2xl hover:-translate-y-2 border-white/20"
+                className="flex flex-col text-center transition-all duration-300 bg-black/30 backdrop-blur-xl hover:bg-black/40 hover:shadow-2xl hover:-translate-y-2 border-white/20 text-white"
              >
                 <CardHeader className="items-center pt-8">
                     <div className="p-4 bg-primary/10 rounded-full mb-4 border border-primary/20">
@@ -64,7 +64,7 @@ export default function PortalPage() {
                     <CardTitle className="text-xl font-semibold">{portal.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                    <CardDescription>{portal.description}</CardDescription>
+                    <CardDescription className="text-white/70">{portal.description}</CardDescription>
                 </CardContent>
                 <CardContent>
                     <Button asChild className="w-full font-semibold">

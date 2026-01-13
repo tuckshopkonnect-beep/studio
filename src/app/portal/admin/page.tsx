@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
       />
       <div className="absolute inset-0 bg-black/80 -z-10" />
 
-      <Card className="mx-auto max-w-sm w-full bg-white/10 backdrop-blur-lg border-white/20 text-white rounded-2xl shadow-2xl">
+      <Card className="mx-auto max-w-sm w-full bg-black/30 backdrop-blur-xl border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Admin Login</CardTitle>
           <CardDescription className="text-white/80 pt-2">
