@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 // --- Specific Report Generators ---
 
-export const exportOrdersPDF = async (orders: Order[], jsPDF: any, autoTable: any) => {
+export const exportOrdersPDF = (orders: Order[], jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
     doc.text("Orders Report", 14, 16);
 
@@ -26,7 +26,7 @@ export const exportOrdersPDF = async (orders: Order[], jsPDF: any, autoTable: an
     doc.save('orders-report.pdf');
 };
 
-export const exportInventoryPDF = async (menu: MenuItem[], inventory: InventoryItem[], jsPDF: any, autoTable: any) => {
+export const exportInventoryPDF = (menu: MenuItem[], inventory: InventoryItem[], jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
     doc.text("Menu & Inventory Report", 14, 16);
     
@@ -51,7 +51,7 @@ export const exportInventoryPDF = async (menu: MenuItem[], inventory: InventoryI
     doc.save('inventory-report.pdf');
 };
 
-export const exportUsersPDF = async (users: User[], jsPDF: any, autoTable: any) => {
+export const exportUsersPDF = (users: User[], jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
     doc.text("Users Report", 14, 16);
 
@@ -125,7 +125,7 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
     doc.save(`receipt-${orderResult.id}.pdf`);
 };
 
-export const exportSectionPDF = async (sectionTitle: string, data: any, jsPDF: any, autoTable: any) => {
+export const exportSectionPDF = (sectionTitle: string, data: any, jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
     doc.text(sectionTitle, 14, 16);
     
@@ -134,7 +134,7 @@ export const exportSectionPDF = async (sectionTitle: string, data: any, jsPDF: a
 };
 
 
-export const generateFullReportPDF = async (dateRange: any, reportData: any, jsPDF: any, autoTable: any) => {
+export const generateFullReportPDF = (dateRange: any, reportData: any, jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
     const finalY = (doc.internal.pageSize.height - 10);
     const pageMargin = 14;
