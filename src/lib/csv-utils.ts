@@ -74,7 +74,7 @@ export const exportUsersCSV = (users: User[]) => {
     downloadCsv(csvContent, 'users-report.csv');
 };
 
-export const exportSectionCSV = (sectionTitle: string, data: {head: string[], body: any[][]}) => {
-    const csvContent = convertToCsv(data.head, data.body);
+export const exportSectionCSV = (sectionTitle: string, data: {head: string[][], body: any[][]}) => {
+    const csvContent = convertToCsv(data.head[0], data.body);
     downloadCsv(csvContent, `${sectionTitle.toLowerCase().replace(/ /g, '-')}-report.csv`);
 };

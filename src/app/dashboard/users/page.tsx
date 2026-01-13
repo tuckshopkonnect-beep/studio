@@ -34,7 +34,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/componentsui/avatar";
 
 export default function UsersPage() {
   const users = initialUsers;
