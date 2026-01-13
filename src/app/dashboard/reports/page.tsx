@@ -202,11 +202,11 @@ export default function ReportsPage() {
         // This case is special as it creates two tables.
         const { exportSectionPDF: exportBiSection } = await import('@/lib/pdf-utils');
         
-        await exportBiSection('Student Spending', {
+        exportBiSection('Student Spending', {
             head: [['Student', 'Total Spent']],
             body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`])
         }, jsPDF, autoTable);
-        await exportBiSection('Product Performance', {
+        exportBiSection('Product Performance', {
              head: [['Product', 'Units Sold', 'Revenue']],
              body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`])
         }, jsPDF, autoTable);
@@ -220,7 +220,7 @@ export default function ReportsPage() {
       default:
         return;
     }
-    await exportSectionPDF(sectionTitle, data, jsPDF, autoTable);
+    exportSectionPDF(sectionTitle, data, jsPDF, autoTable);
   };
 
   const handleGenerateReport = async () => {
