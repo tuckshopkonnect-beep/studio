@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, ShieldCheck } from "lucide-react";
+import { ShieldCheck, Eye, EyeOff } from "lucide-react";
 
 interface ResetPasswordDialogProps {
   open: boolean;
@@ -32,6 +32,7 @@ export default function ResetPasswordDialog({
   const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleConfirmClick = () => {
     if (!password || !confirmPassword) {
@@ -60,6 +61,7 @@ export default function ResetPasswordDialog({
     onOpenChange(false);
     setPassword("");
     setConfirmPassword("");
+    setShowPassword(false);
   }
 
   return (
@@ -73,29 +75,49 @@ export default function ResetPasswordDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
+          <div className="grid grid-cols-4 items-center gap-4 relative">
             <Label htmlFor="new-password" className="text-right">
               New Password
             </Label>
             <Input
               id="new-password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="col-span-3"
+              className="col-span-3 pr-10"
             />
+             <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                onClick={() => setShowPassword(prev => !prev)}
+            >
+                {showPassword ? <EyeOff /> : <Eye />}
+                <span className="sr-only">Toggle password visibility</span>
+            </Button>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
+          <div className="grid grid-cols-4 items-center gap-4 relative">
             <Label htmlFor="confirm-password" className="text-right">
               Confirm
             </Label>
             <Input
               id="confirm-password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="col-span-3"
+              className="col-span-3 pr-10"
             />
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                onClick={() => setShowPassword(prev => !prev)}
+            >
+                {showPassword ? <EyeOff /> : <Eye />}
+                <span className="sr-only">Toggle password visibility</span>
+            </Button>
           </div>
         </div>
         <DialogFooter>
