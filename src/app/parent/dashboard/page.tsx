@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,21 +15,61 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlusCircle, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { initialUsers } from "@/lib/data";
+import FundWalletDialog from "@/components/FundWalletDialog";
+import type { User } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ParentDashboard() {
-  // Placeholder data - in a real app, this would be fetched based on the logged-in parent
-  const childrenOfParent = initialUsers.filter(u => u.name === 'Emma Brown'); // Example
+  const { toast } = useToast();
+  // In a real app, this would come from an auth context
+  const parent = initialUsers.find(u => u.email === "emma.brown.p@parent.com")!;
+  const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
   
-  const parent = {
-    name: "Mrs. Brown"
-  };
+  const childrenOfParent = allUsers.filter(u => u.parentId === parent.id);
+
+  // State for the funding dialog
+  const [fundingChild, setFundingChild] = useState<User | null>(null);
+  const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);
 
   // Mocked spending data
   const spending = {
-    "Emma Brown": 450.00
+    "Emma Brown": 450.00,
+    // Add other children's spending here if needed
   };
 
+  const handleOpenFundDialog = (child: User) => {
+    setFundingChild(child);
+    setIsFundDialogOpen(true);
+  };
+  
+  const handleFundingSuccess = (amount: number, childId: number) => {
+    // This is a client-side simulation of updating the balance
+    setAllUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === childId ? { ...user, balance: user.balance + amount } : user
+      )
+    );
+    toast({
+        title: "Funding Successful",
+        description: `₦${amount.toFixed(2)} has been added to ${fundingChild?.name}'s account.`,
+    });
+    setIsFundDialogOpen(false);
+    setFundingChild(null);
+  };
+
+
   return (
+    <>
+    {fundingChild && (
+      <FundWalletDialog
+        isOpen={isFundDialogOpen}
+        onOpenChange={setIsFundDialogOpen}
+        child={fundingChild}
+        parentEmail={parent.email}
+        onSuccess={handleFundingSuccess}
+      />
+    )}
+
     <div className="container mx-auto p-4 md:p-6">
         <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Welcome, {parent.name}</h1>
@@ -61,13 +102,13 @@ export default function ParentDashboard() {
                         <div>
                             <div className="flex justify-between text-sm text-muted-foreground mb-1">
                                 <span>Daily Spending</span>
-                                <span>₦{spent.toFixed(2)} / ₦{limit.toFixed(2)}</span>
+                                <span>₦{spent.toFixed(2)} / ₦{limit > 0 ? limit.toFixed(2) : 'No Limit'}</span>
                             </div>
                             <Progress value={progress} />
                         </div>
                     </CardContent>
                     <CardFooter className="grid grid-cols-2 gap-2">
-                        <Button className="w-full">
+                        <Button className="w-full" onClick={() => handleOpenFundDialog(child)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Fund
                         </Button>
                         <Button variant="outline" className="w-full">
@@ -79,5 +120,6 @@ export default function ParentDashboard() {
             })}
         </div>
     </div>
+    </>
   );
 }
