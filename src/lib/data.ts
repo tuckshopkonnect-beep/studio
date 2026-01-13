@@ -27,6 +27,16 @@ export interface InventoryItem {
     lowStockThreshold: number;
 }
 
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'Admin' | 'Parent' | 'Student';
+  avatarUrl: string;
+  balance: number;
+  class?: string;
+}
+
 
 export const menuItems: MenuItem[] = [
   { id: 1, name: 'Classic Sandwich', description: 'A delicious ham and cheese sandwich.', price: 5.50, image: PlaceHolderImages[0] },
@@ -43,10 +53,11 @@ export const menuItems: MenuItem[] = [
 ];
 
 export const initialOrders: Order[] = [
-  { id: 'ORD-001', customerName: 'John Doe', items: [{ name: 'Meat Pie', quantity: 2 }, { name: 'Can of Soda', quantity: 1 }], total: 11.50, status: 'Ready for Pickup', orderDate: '2023-10-27T10:00:00Z' },
-  { id: 'ORD-002', customerName: 'Jane Smith', items: [{ name: 'Garden Salad', quantity: 1 }], total: 6.00, status: 'Preparing', orderDate: '2023-10-27T10:05:00Z' },
-  { id: 'ORD-003', customerName: 'Peter Jones', items: [{ name: 'Classic Sandwich', quantity: 1 }, { name: 'Bottled Water', quantity: 1 }], total: 7.50, status: 'Pending', orderDate: '2023-10-27T10:10:00Z' },
-  { id: 'ORD-004', customerName: 'Mary Williams', items: [{ name: 'Sausage Roll', quantity: 4 }], total: 14.00, status: 'Completed', orderDate: '2023-10-26T12:30:00Z' },
+  { id: 'ORD-001', customerName: 'Liam Johnson', items: [{ name: 'Meat Pie', quantity: 2 }, { name: 'Can of Soda', quantity: 1 }], total: 11.50, status: 'Ready for Pickup', orderDate: '2023-10-27T10:00:00Z' },
+  { id: 'ORD-002', customerName: 'Olivia Smith', items: [{ name: 'Garden Salad', quantity: 1 }], total: 6.00, status: 'Preparing', orderDate: '2023-10-27T10:05:00Z' },
+  { id: 'ORD-003', customerName: 'Noah Williams', items: [{ name: 'Classic Sandwich', quantity: 1 }, { name: 'Bottled Water', quantity: 1 }], total: 7.50, status: 'Pending', orderDate: '2023-10-27T10:10:00Z' },
+  { id: 'ORD-004', customerName: 'Emma Brown', items: [{ name: 'Sausage Roll', quantity: 4 }], total: 14.00, status: 'Completed', orderDate: '2023-10-26T12:30:00Z' },
+  { id: 'ORD-005', customerName: 'James Jones', items: [{ name: 'Choc Chip Cookie', quantity: 5 }], total: 7.50, status: 'Completed', orderDate: '2023-10-26T12:35:00Z' },
 ];
 
 export const initialInventory: InventoryItem[] = menuItems.map(item => ({
@@ -55,3 +66,12 @@ export const initialInventory: InventoryItem[] = menuItems.map(item => ({
     stock: Math.floor(Math.random() * 80) + 20, // Random stock between 20 and 100
     lowStockThreshold: 15,
 }));
+
+export const initialUsers: User[] = [
+    { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0, class: 'N/A' },
+    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 25.50, class: 'JSS 2' },
+    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 15.00, class: 'SSS 1' },
+    { id: 4, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 0, class: 'N/A' },
+    { id: 5, name: 'Emma Brown', email: 'emma.b@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a092581f4e29026703d', balance: 50.25, class: 'JSS 3' },
+    { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0, class: 'N/A' },
+];

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -72,7 +73,7 @@ export default function DashboardLayout({
             "fixed inset-y-0 left-0 z-10 flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300",
             isSidebarCollapsed ? "w-16" : "w-60"
         )}>
-          <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4 justify-center">
+          <div className="flex h-16 items-center gap-2 border-b border-purple-400/30 px-4 justify-center">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
                 <Package />
                 <span className={cn(isSidebarCollapsed && "hidden")}>Tuckshop</span>
@@ -87,7 +88,7 @@ export default function DashboardLayout({
                     href={item.href}
                     className={cn(
                         "flex h-10 items-center justify-center gap-4 rounded-lg px-4 text-base font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full",
-                        pathname.startsWith(item.href) && item.href !== "/dashboard" || pathname === item.href ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground",
+                        pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard") ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground",
                         isSidebarCollapsed ? "w-10 justify-center" : "justify-start"
                     )}
                   >
@@ -102,7 +103,7 @@ export default function DashboardLayout({
            <nav className="mt-auto flex flex-col items-center gap-2 px-2 py-4">
             <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <Link href="/"
+                  <Link href="/portal"
                     className={cn(
                         "flex h-10 items-center justify-center gap-4 rounded-lg px-4 text-base font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-muted-foreground",
                         isSidebarCollapsed ? "w-10 justify-center" : "justify-start"
@@ -139,7 +140,7 @@ export default function DashboardLayout({
                          <Link
                             key={item.href}
                             href={item.href}
-                            className={cn("flex items-center gap-4 px-2.5", pathname.startsWith(item.href) && item.href !== "/dashboard" || pathname === item.href ? "text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground")}
+                            className={cn("flex items-center gap-4 px-2.5", pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/dashboard") ? "text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground")}
                         >
                             <item.icon className="h-5 w-5" />
                             {item.label}
