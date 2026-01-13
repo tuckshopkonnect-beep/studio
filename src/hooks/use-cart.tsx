@@ -3,7 +3,7 @@
 
 import { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import type { MenuItem, InventoryItem } from '@/lib/data';
-import { initialInventory } from '@/lib/data';
+import { initialInventory, menuItems } from '@/lib/data';
 
 export interface CartItem extends MenuItem {
   quantity: number;
@@ -35,10 +35,29 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Function to generate inventory with random stock, but only on the client
+const generateInitialInventory = (): InventoryItem[] => {
+  return menuItems.map(item => ({
+    id: item.id,
+    name: item.name,
+    stock: Math.floor(Math.random() * 80) + 20, // Random stock between 20 and 100
+    lowStockThreshold: 15,
+  }));
+};
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
   
+  // This state will hold the client-side generated inventory
+  const [clientInventory, setClientInventory] = useState<InventoryItem[] | null>(null);
+
+
+  useEffect(() => {
+    // Generate inventory with random stock only on the client-side after mount
+    setClientInventory(generateInitialInventory());
+  }, []);
+
   const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(() => {
      if (typeof window === 'undefined') return null;
     const savedOrder = sessionStorage.getItem('completedOrder');
@@ -63,8 +82,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 
   const getStock = useCallback((itemId: number): number => {
-    return inventory.find(i => i.id === itemId)?.stock ?? 0;
-  }, [inventory]);
+    const currentInventory = clientInventory || inventory;
+    return currentInventory.find(i => i.id === itemId)?.stock ?? 0;
+  }, [inventory, clientInventory]);
 
   const addToCart = (item: MenuItem) => {
     const stock = getStock(item.id);
@@ -91,16 +111,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = (itemId: number, quantity: number) => {
       const stock = getStock(itemId);
       const cartItem = cart.find(i => i.id === itemId);
-      const originalStock = initialInventory.find(i => i.id === itemId)?.stock ?? 0;
+      
+      const sourceInventory = clientInventory || initialInventory;
+      const originalStock = sourceInventory.find(i => i.id === itemId)?.stock ?? 0;
       
       if (quantity <= 0) {
         removeFromCart(itemId);
         return;
       }
       
-      // The available stock is the original stock minus what other people might have in carts,
-      // plus what this user already has in their cart.
-      // For this simulation, we'll just check against the initial stock.
       if (quantity > originalStock) {
         // Can't add more than what's available
         return;
@@ -118,8 +137,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Recalculate inventory whenever cart change
-    const newInventory = initialInventory.map(invItem => {
+    if (!clientInventory) return;
+    // Recalculate inventory whenever cart changes
+    const newInventory = clientInventory.map(invItem => {
         const cartItem = cart.find(ci => ci.id === invItem.id);
         if (cartItem) {
             return { ...invItem, stock: invItem.stock - cartItem.quantity };
@@ -127,7 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return invItem;
     });
     setInventory(newInventory);
-  }, [cart])
+  }, [cart, clientInventory])
 
 
   const totalItems = useMemo(() => {
@@ -140,7 +160,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     cart,
-    inventory,
+    inventory: clientInventory || inventory, // Use client inventory if available
     completedOrder,
     setCompletedOrder,
     addOrderToHistory,
@@ -151,7 +171,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clearCart,
     totalItems,
     totalPrice
-  }), [cart, inventory, completedOrder, getStock]);
+  }), [cart, inventory, clientInventory, completedOrder, getStock]);
 
   return (
     <CartContext.Provider value={value}>

@@ -75,7 +75,7 @@ export const initialOrders: Order[] = [
 export const initialInventory: InventoryItem[] = menuItems.map(item => ({
     id: item.id,
     name: item.name,
-    stock: Math.floor(Math.random() * 80) + 20, // Random stock between 20 and 100
+    stock: 100, // Static initial stock
     lowStockThreshold: 15,
 }));
 

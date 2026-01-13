@@ -9,6 +9,7 @@ import type { MenuItem } from '@/lib/data';
 import { PlusCircle, Check, XCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from './ui/skeleton';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -18,9 +19,16 @@ interface MenuItemCardProps {
 export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardProps) {
   const { addToCart, getStock } = useCart();
   const [added, setAdded] = useState(false);
+  const [stock, setStock] = useState<number | null>(null);
+  
+  useEffect(() => {
+    // The stock value is now fetched on the client side after mount
+    // to prevent hydration mismatch.
+    setStock(getStock(item.id));
+  }, [getStock, item.id]);
 
-  const stock = getStock(item.id);
-  const isInStock = stock > 0;
+
+  const isInStock = stock !== null && stock > 0;
 
   const handleAddToCart = () => {
     if (!isInStock) return;
@@ -41,7 +49,7 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
         Shop Closed
       </>
     );
-  } else if (!isInStock && isShopOpen) {
+  } else if (stock !== null && !isInStock) {
     buttonContent = (
       <>
         <XCircle className="mr-2 h-4 w-4" />
@@ -78,12 +86,17 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
             data-ai-hint={item.image.imageHint}
           />
           {isShopOpen && (
-            <Badge 
-              variant={stock < 10 ? 'destructive' : 'secondary'}
-              className="absolute top-2 right-2"
-            >
-              {stock} left
-            </Badge>
+            <div className="absolute top-2 right-2">
+              {stock === null ? (
+                <Skeleton className="h-6 w-14" />
+              ) : (
+                <Badge 
+                  variant={stock < 10 ? 'destructive' : 'secondary'}
+                >
+                  {stock} left
+                </Badge>
+              )}
+            </div>
           )}
         </div>
       </CardHeader>
