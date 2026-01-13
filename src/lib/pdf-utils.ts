@@ -72,7 +72,7 @@ export const exportUsersPDF = (users: User[], jsPDF: any, autoTable: any) => {
     doc.save('users-report.pdf');
 };
 
-export const downloadReceiptPDF = async (orderResult: any, studentName: string, qrCodeRef: React.RefObject<HTMLDivElement>, jsPDF: any, autoTable: any) => {
+export const downloadReceiptPDF = async (orderResult: any, studentName: string, qrCodeRef: React.RefObject<HTMLDivElement> | null, jsPDF: any, autoTable: any) => {
     const doc = new jsPDF();
 
     doc.text("Order Receipt", 14, 20);
@@ -96,7 +96,7 @@ export const downloadReceiptPDF = async (orderResult: any, studentName: string, 
     doc.setFontSize(14);
     doc.text(`Total: ₦${orderResult.total.toFixed(2)}`, 14, finalY + 10);
     
-    if (qrCodeRef.current) {
+    if (qrCodeRef?.current) {
         const svgElement = qrCodeRef.current.querySelector('svg');
         if (svgElement) {
             const svgData = new XMLSerializer().serializeToString(svgElement);

@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/use-cart.tsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Download, Home, Loader2, AlertTriangle } from "lucide-react";
+import { CheckCircle, Download, Home, Loader2, AlertTriangle, QrCode } from "lucide-react";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
 
@@ -17,6 +17,13 @@ export default function OrderConfirmationPage() {
     const qrCodeRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
+    const [isPosEnabled, setIsPosEnabled] = useState(true);
+
+    useEffect(() => {
+        // Check if POS scanner is enabled from localStorage
+        const posEnabled = localStorage.getItem('posScannerEnabled') !== 'false';
+        setIsPosEnabled(posEnabled);
+    }, []);
 
     const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
 
@@ -27,7 +34,8 @@ export default function OrderConfirmationPage() {
             const { default: autoTable } = await import('jspdf-autotable');
             const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
             try {
-                await downloadReceiptPDF(completedOrder, student.name, qrCodeRef, jsPDF, autoTable);
+                // Pass isPosEnabled to the PDF utility
+                await downloadReceiptPDF(completedOrder, student.name, isPosEnabled ? qrCodeRef : null, jsPDF, autoTable);
             } catch (error) {
                 console.error("Failed to download PDF:", error);
             } finally {
@@ -40,7 +48,8 @@ export default function OrderConfirmationPage() {
         // Auto-download only once when the component mounts with an order
         if (completedOrder && !downloadTriggered.current) {
             downloadTriggered.current = true;
-            handleDownloadReceipt();
+            // Use a timeout to ensure the QR code is rendered before download
+            setTimeout(() => handleDownloadReceipt(), 500);
         }
     }, [completedOrder]);
 
@@ -72,12 +81,24 @@ export default function OrderConfirmationPage() {
                 <CardHeader className="bg-green-50 dark:bg-green-900/20 rounded-t-lg items-center py-6">
                     <CheckCircle className="h-16 w-16 text-green-600 mb-2" />
                     <CardTitle className="text-2xl md:text-3xl font-bold text-green-700 dark:text-green-400">Order Placed Successfully!</CardTitle>
-                    <CardDescription>Show this QR code to the tuckshop staff to collect your order.</CardDescription>
+                    <CardDescription>
+                        {isPosEnabled
+                            ? "Show this QR code to the tuckshop staff to collect your order."
+                            : "Your order is ready for pickup. Please state your name at the counter."
+                        }
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
-                    <div ref={qrCodeRef} className="p-4 bg-white rounded-lg my-4 flex items-center justify-center mx-auto max-w-xs">
-                        <QRCode value={completedOrder.id} size={256} />
-                    </div>
+                    {isPosEnabled ? (
+                        <div ref={qrCodeRef} className="p-4 bg-white rounded-lg my-4 flex items-center justify-center mx-auto max-w-xs">
+                            <QRCode value={completedOrder.id} size={256} />
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-muted rounded-lg my-4 flex flex-col items-center justify-center mx-auto max-w-xs">
+                           <QrCode className="h-24 w-24 text-muted-foreground opacity-30" />
+                           <p className="mt-2 text-sm text-muted-foreground">QR Code scanning is disabled.</p>
+                        </div>
+                    )}
                     <div className="text-sm text-muted-foreground">
                         <p>Transaction ID:</p>
                         <p className="font-mono">{completedOrder.id}</p>
