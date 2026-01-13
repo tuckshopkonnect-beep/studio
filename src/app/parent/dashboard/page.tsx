@@ -68,17 +68,7 @@ export default function ParentDashboard() {
                     </CardFooter>
                 </Card>
             ))}
-
-            <Card className="flex flex-col items-center justify-center border-2 border-dashed bg-muted/50 hover:border-primary/50 transition-colors">
-                <CardContent className="text-center p-6">
-                    <button className="flex flex-col items-center justify-center w-full h-full">
-                        <PlusCircle className="h-12 w-12 text-muted-foreground mb-2" />
-                        <span className="text-sm font-medium text-muted-foreground">Link Another Child</span>
-                    </button>
-                </CardContent>
-            </Card>
         </div>
     </div>
   );
 }
-
