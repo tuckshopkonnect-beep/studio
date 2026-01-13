@@ -34,7 +34,7 @@ export default function ParentLoginPage() {
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background">
       <Image
-        src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?q=80&w=2070&auto=format&fit=crop"
+        src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=2070&auto=format&fit=crop"
         alt="School background"
         fill
         className="object-cover -z-20"
