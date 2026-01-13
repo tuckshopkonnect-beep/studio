@@ -13,39 +13,48 @@ const OrderTimer = () => {
         isEnabled: false,
         isOpen: false,
         countdown: '',
+        openTimeStr: '8:00 AM',
+        closeTimeStr: '2:00 PM',
     });
-
-    // Shop hours (8 AM to 2 PM)
-    const openHour = 8;
-    const closeHour = 14;
 
     useEffect(() => {
         const timerEnabled = localStorage.getItem('orderTimerEnabled') === 'true';
 
         if (!timerEnabled) {
-            setTimerState({ isEnabled: false, isOpen: true, countdown: '' });
+            setTimerState(prev => ({ ...prev, isEnabled: false, isOpen: true }));
             return;
         }
 
+        const openTimeValue = localStorage.getItem('orderOpenTime') || '08:00';
+        const closeTimeValue = localStorage.getItem('orderCloseTime') || '14:00';
+        
+        const [openHour, openMinute] = openTimeValue.split(':').map(Number);
+        const [closeHour, closeMinute] = closeTimeValue.split(':').map(Number);
+
+        const formatTime = (h: number, m: number) => {
+            const period = h >= 12 ? 'PM' : 'AM';
+            const hour12 = h % 12 || 12;
+            return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+        };
+
         const calculateTimer = () => {
             const now = new Date();
-            const currentHour = now.getHours();
             
             const openTime = new Date();
-            openTime.setHours(openHour, 0, 0, 0);
+            openTime.setHours(openHour, openMinute, 0, 0);
             
             const closeTime = new Date();
-            closeTime.setHours(closeHour, 0, 0, 0);
+            closeTime.setHours(closeHour, closeMinute, 0, 0);
 
-            let isOpen = currentHour >= openHour && currentHour < closeHour;
+            let isOpen = now >= openTime && now < closeTime;
             let targetTime;
             let messagePrefix;
 
-            if (currentHour < openHour) {
+            if (now < openTime) {
                 // Before opening
                 targetTime = openTime;
                 messagePrefix = 'Opens in:';
-            } else if (currentHour >= closeHour) {
+            } else if (now >= closeTime) {
                 // After closing
                 targetTime = new Date(openTime.getTime() + 24 * 60 * 60 * 1000); // Tomorrow's opening
                 messagePrefix = 'Opens in:';
@@ -66,6 +75,8 @@ const OrderTimer = () => {
                 isEnabled: true,
                 isOpen,
                 countdown: `${messagePrefix} ${countdownStr}`,
+                openTimeStr: formatTime(openHour, openMinute),
+                closeTimeStr: formatTime(closeHour, closeMinute),
             });
         };
         
@@ -86,7 +97,7 @@ const OrderTimer = () => {
                 {timerState.isOpen ? 'Shop is Open!' : 'Shop is Currently Closed'}
             </AlertTitle>
             <AlertDescription>
-                Orders are accepted between {openHour}:00 AM and {closeHour}:00 PM. {timerState.countdown}
+                Orders are accepted between {timerState.openTimeStr} and {timerState.closeTimeStr}. {timerState.countdown}
             </AlertDescription>
         </Alert>
     );
@@ -100,9 +111,18 @@ export default function OrderPage() {
     const timerEnabled = localStorage.getItem('orderTimerEnabled') === 'true';
     if(timerEnabled) {
       const checkShopStatus = () => {
+        const openTimeValue = localStorage.getItem('orderOpenTime') || '08:00';
+        const closeTimeValue = localStorage.getItem('orderCloseTime') || '14:00';
+        const [openHour, openMinute] = openTimeValue.split(':').map(Number);
+        const [closeHour, closeMinute] = closeTimeValue.split(':').map(Number);
+
         const now = new Date();
-        const currentHour = now.getHours();
-        setShopOpen(currentHour >= 8 && currentHour < 14);
+        const openTime = new Date();
+        openTime.setHours(openHour, openMinute, 0, 0);
+        const closeTime = new Date();
+        closeTime.setHours(closeHour, closeMinute, 0, 0);
+
+        setShopOpen(now >= openTime && now < closeTime);
       };
       checkShopStatus();
       const interval = setInterval(checkShopStatus, 1000);
@@ -126,5 +146,3 @@ export default function OrderPage() {
     </div>
   );
 }
-
-    

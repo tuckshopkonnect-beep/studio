@@ -17,6 +17,8 @@ import { Switch } from "@/components/ui/switch"
 export default function SettingsPage() {
   const [posScannerEnabled, setPosScannerEnabled] = useState(true);
   const [orderTimerEnabled, setOrderTimerEnabled] = useState(false);
+  const [orderOpenTime, setOrderOpenTime] = useState("08:00");
+  const [orderCloseTime, setOrderCloseTime] = useState("14:00");
 
   useEffect(() => {
     const storedPosScanner = localStorage.getItem('posScannerEnabled');
@@ -24,6 +26,13 @@ export default function SettingsPage() {
     
     const storedOrderTimer = localStorage.getItem('orderTimerEnabled');
     setOrderTimerEnabled(storedOrderTimer === 'true');
+
+    const storedOpenTime = localStorage.getItem('orderOpenTime') || "08:00";
+    setOrderOpenTime(storedOpenTime);
+    
+    const storedCloseTime = localStorage.getItem('orderCloseTime') || "14:00";
+    setOrderCloseTime(storedCloseTime);
+
   }, []);
 
   const handlePosScannerToggle = (enabled: boolean) => {
@@ -36,6 +45,12 @@ export default function SettingsPage() {
   const handleOrderTimerToggle = (enabled: boolean) => {
     setOrderTimerEnabled(enabled);
     localStorage.setItem('orderTimerEnabled', String(enabled));
+  };
+  
+  const handleTimeChange = () => {
+    localStorage.setItem('orderOpenTime', orderOpenTime);
+    localStorage.setItem('orderCloseTime', orderCloseTime);
+    // Maybe show a toast notification here
   };
 
 
@@ -84,19 +99,45 @@ export default function SettingsPage() {
                 </div>
                 <Switch id="stop-orders" aria-label="Stop all orders" />
             </div>
-             <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-              <div className="flex-1">
-                <Label htmlFor="order-timer" className="font-semibold">Enable Order Timer</Label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically open and close the shop at specific times.
-                </p>
+             <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                    <Label htmlFor="order-timer" className="font-semibold">Enable Order Timer</Label>
+                    <p className="text-xs text-muted-foreground">
+                    Automatically open and close the shop at specific times.
+                    </p>
+                </div>
+                <Switch 
+                    id="order-timer" 
+                    aria-label="Enable order timer" 
+                    checked={orderTimerEnabled}
+                    onCheckedChange={handleOrderTimerToggle}
+                />
               </div>
-              <Switch 
-                id="order-timer" 
-                aria-label="Enable order timer" 
-                checked={orderTimerEnabled}
-                onCheckedChange={handleOrderTimerToggle}
-              />
+              {orderTimerEnabled && (
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="grid gap-2">
+                        <Label htmlFor="open-time">Open Time</Label>
+                        <Input 
+                            id="open-time" 
+                            type="time" 
+                            value={orderOpenTime}
+                            onChange={(e) => setOrderOpenTime(e.target.value)}
+                            onBlur={handleTimeChange}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="close-time">Close Time</Label>
+                        <Input 
+                            id="close-time" 
+                            type="time" 
+                            value={orderCloseTime}
+                            onChange={(e) => setOrderCloseTime(e.target.value)}
+                            onBlur={handleTimeChange}
+                        />
+                    </div>
+                </div>
+              )}
             </div>
              <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
               <div className="flex-1">
@@ -151,5 +192,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
