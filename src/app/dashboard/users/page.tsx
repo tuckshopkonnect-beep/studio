@@ -115,6 +115,15 @@ export default function UsersPage() {
 
   const handleSaveUser = (userToSave: User) => {
     if (isCreating) {
+      // Check for email uniqueness
+      if (users.some(user => user.email === userToSave.email)) {
+        toast({
+          variant: "destructive",
+          title: "Email Already Exists",
+          description: "A user with this email address is already registered.",
+        });
+        return;
+      }
       // Add new user
       const newUser = { 
         ...userToSave, 
