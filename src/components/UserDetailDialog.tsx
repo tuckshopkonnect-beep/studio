@@ -21,9 +21,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Edit, Save, X, Camera } from 'lucide-react';
+import { Edit, Save, X, Camera, Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,6 +77,7 @@ export default function UserDetailDialog({
   const [password, setPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [parentComboboxOpen, setParentComboboxOpen] = useState(false)
 
   const parentUsers = allUsers.filter(u => u.role === 'Parent');
 
@@ -89,7 +103,9 @@ export default function UserDetailDialog({
   };
 
   const handleParentLinkChange = (value: string) => {
-    setUserData(prev => ({ ...prev, parentId: Number(value) }));
+    setParentComboboxOpen(false);
+    const parentId = Number(value)
+    setUserData(prev => ({ ...prev, parentId: parentId > 0 ? parentId : undefined }));
   };
 
   const handleClassChange = (value: string) => {
@@ -234,16 +250,47 @@ export default function UserDetailDialog({
                     </div>
                     <div className="grid gap-2 col-span-2">
                         <Label htmlFor="parent">Link to Parent</Label>
-                         <Select onValueChange={handleParentLinkChange} disabled={!isEditing} value={String(userData.parentId || '')}>
-                            <SelectTrigger id="parent">
-                                <SelectValue placeholder="Select a parent..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {parentUsers.map(parent => (
-                                    <SelectItem key={parent.id} value={String(parent.id)}>{parent.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Popover open={parentComboboxOpen} onOpenChange={setParentComboboxOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={parentComboboxOpen}
+                                className="w-full justify-between"
+                                disabled={!isEditing}
+                                >
+                                {userData.parentId
+                                    ? parentUsers.find((parent) => parent.id === userData.parentId)?.name
+                                    : "Select parent..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                <CommandInput placeholder="Search parent..." />
+                                <CommandList>
+                                <CommandEmpty>No parent found.</CommandEmpty>
+                                <CommandGroup>
+                                    {parentUsers.map((parent) => (
+                                    <CommandItem
+                                        key={parent.id}
+                                        value={parent.name}
+                                        onSelect={() => handleParentLinkChange(String(parent.id))}
+                                    >
+                                        <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            userData.parentId === parent.id ? "opacity-100" : "opacity-0"
+                                        )}
+                                        />
+                                        {parent.name}
+                                    </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
             )}
@@ -280,4 +327,3 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
-
