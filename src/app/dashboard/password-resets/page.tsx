@@ -25,44 +25,67 @@ import { passwordResetRequests as initialRequests } from "@/lib/data";
 import type { PasswordResetRequest } from "@/lib/data";
 import { formatDistanceToNow } from 'date-fns';
 import ConfirmationDialog from "@/components/ConfirmationDialog";
+import ResetPasswordDialog from "@/components/ResetPasswordDialog";
 
 
 export default function PasswordResetsPage() {
     const { toast } = useToast();
     const [requests, setRequests] = React.useState<PasswordResetRequest[]>(initialRequests);
-    const [requestToProcess, setRequestToProcess] = React.useState<{request: PasswordResetRequest, action: 'approve' | 'deny'} | null>(null);
+    
+    const [requestToDeny, setRequestToDeny] = React.useState<PasswordResetRequest | null>(null);
+    const [requestToApprove, setRequestToApprove] = React.useState<PasswordResetRequest | null>(null);
 
-    const handleProcessRequest = () => {
-        if (!requestToProcess) return;
 
-        const { request, action } = requestToProcess;
+    const handleDenyRequest = () => {
+        if (!requestToDeny) return;
 
-        setRequests(prev => prev.filter(r => r.id !== request.id));
+        setRequests(prev => prev.filter(r => r.id !== requestToDeny.id));
         
         toast({
-            title: `Request ${action === 'approve' ? 'Approved' : 'Denied'}`,
-            description: `Password reset for ${request.userName} has been ${action === 'approve' ? 'approved' : 'denied'}.`,
+            title: "Request Denied",
+            description: `Password reset for ${requestToDeny.userName} has been denied.`,
         });
 
-        setRequestToProcess(null);
+        setRequestToDeny(null);
     }
-  
-    const openConfirmation = (request: PasswordResetRequest, action: 'approve' | 'deny') => {
-        setRequestToProcess({ request, action });
+
+    const handleApproveRequest = (newPassword: string) => {
+        if (!requestToApprove) return;
+
+        // In a real app, you would now update the user's password in the database.
+        console.log(`Password for ${requestToApprove.userName} reset to: ${newPassword}`);
+        
+        setRequests(prev => prev.filter(r => r.id !== requestToApprove.id));
+        
+        toast({
+            title: "Password Reset Successfully",
+            description: `A new temporary password has been set for ${requestToApprove.userName}.`,
+        });
+
+        setRequestToApprove(null);
     };
 
 
   return (
     <>
+    {/* --- Dialogs --- */}
     <ConfirmationDialog
-        open={!!requestToProcess}
-        onOpenChange={(isOpen) => !isOpen && setRequestToProcess(null)}
-        onConfirm={handleProcessRequest}
-        title={`${requestToProcess?.action === 'approve' ? 'Approve' : 'Deny'} Request?`}
-        description={`Are you sure you want to ${requestToProcess?.action} the password reset request for ${requestToProcess?.request.userName}?`}
-        confirmButtonVariant={requestToProcess?.action === 'approve' ? 'default' : 'destructive'}
-        confirmButtonText={`Yes, ${requestToProcess?.action === 'approve' ? 'Approve' : 'Deny'}`}
+        open={!!requestToDeny}
+        onOpenChange={(isOpen) => !isOpen && setRequestToDeny(null)}
+        onConfirm={handleDenyRequest}
+        title={`Deny Request?`}
+        description={`Are you sure you want to deny the password reset request for ${requestToDeny?.userName}?`}
+        confirmButtonVariant={'destructive'}
+        confirmButtonText={`Yes, Deny`}
     />
+    <ResetPasswordDialog
+        open={!!requestToApprove}
+        onOpenChange={(isOpen) => !isOpen && setRequestToApprove(null)}
+        onConfirm={handleApproveRequest}
+        userName={requestToApprove?.userName || ''}
+    />
+
+    {/* --- Page Content --- */}
     <Card>
       <CardHeader>
         <CardTitle>Password Resets</CardTitle>
@@ -102,10 +125,10 @@ export default function PasswordResetsPage() {
                         </TableCell>
                         <TableCell className="text-right">
                            <div className="flex gap-2 justify-end">
-                             <Button variant="outline" size="sm" onClick={() => openConfirmation(request, 'deny')}>
+                             <Button variant="outline" size="sm" onClick={() => setRequestToDeny(request)}>
                                 <XCircle className="mr-2 h-4 w-4" /> Deny
                             </Button>
-                             <Button size="sm" onClick={() => openConfirmation(request, 'approve')}>
+                             <Button size="sm" onClick={() => setRequestToApprove(request)}>
                                 <CheckCircle className="mr-2 h-4 w-4" /> Approve
                             </Button>
                            </div>
