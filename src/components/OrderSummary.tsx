@@ -5,25 +5,16 @@ import { useCart } from "@/hooks/use-cart.tsx";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
-import { Minus, Plus, Trash2, ShoppingCart, Download } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import QRCode from "react-qr-code";
+import { useRouter } from "next/navigation";
 import { initialUsers } from "@/lib/data";
 
 
 export default function OrderSummary() {
-  const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder } = useCart();
   const { toast } = useToast();
-  const [orderResult, setOrderResult] = useState<{ id: string; success: boolean, items: typeof cartItems, total: number } | null>(null);
-  const qrCodeRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
 
   // In a real app, this would come from an auth context
@@ -62,27 +53,12 @@ export default function OrderSummary() {
       return;
     }
     
-    // In a real app, this would be a call to the backend to create the order
-    // and would involve payment processing.
     const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     console.log("Order placed with transaction ID:", transactionId);
 
-    // For now, we'll just simulate a successful order.
-    setOrderResult({ id: transactionId, success: true, items: [...cartItems], total: totalPrice });
+    setCompletedOrder({ id: transactionId, items: [...cartItems], total: totalPrice });
     clearCart();
-  };
-
-  const closeDialog = () => {
-    setOrderResult(null);
-  }
-
-  const handleDownloadReceipt = async () => {
-    if (orderResult) {
-      const { default: jsPDF } = await import('jspdf');
-      const { default: autoTable } = await import('jspdf-autotable');
-      const { downloadReceiptPDF } = await import('@/lib/pdf-utils');
-      await downloadReceiptPDF(orderResult, student.name, qrCodeRef, jsPDF, autoTable);
-    }
+    router.push('/student/order/confirmation');
   };
 
 
@@ -90,7 +66,7 @@ export default function OrderSummary() {
     <>
       <ScrollArea className="flex-1">
         <div className="p-6">
-          {cartItems.length === 0 && !orderResult ? (
+          {cartItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
               <ShoppingCart className="h-16 w-16 mb-4" />
               <p className="text-lg font-semibold">Your cart is empty</p>
@@ -158,30 +134,6 @@ export default function OrderSummary() {
           </Button>
         </div>
       )}
-
-      <Dialog open={!!orderResult} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl">Order Placed Successfully!</DialogTitle>
-            <DialogDescription className="text-center">
-              Show this QR code to the tuckshop staff to collect your order.
-            </DialogDescription>
-          </DialogHeader>
-          <div ref={qrCodeRef} className="p-4 bg-white rounded-lg my-4 flex items-center justify-center">
-             {orderResult?.id && <QRCode value={orderResult.id} size={256} />}
-          </div>
-           <div className="text-center text-sm text-muted-foreground">
-              Transaction ID: {orderResult?.id}
-            </div>
-          <div className="flex flex-col gap-2 mt-4">
-             <Button variant="outline" onClick={handleDownloadReceipt}>
-                <Download className="mr-2 h-4 w-4" />
-                Download Receipt (PDF)
-            </Button>
-            <Button onClick={closeDialog}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

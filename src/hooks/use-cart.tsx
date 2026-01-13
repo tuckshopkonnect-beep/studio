@@ -9,9 +9,18 @@ export interface CartItem extends MenuItem {
   quantity: number;
 }
 
+interface CompletedOrder {
+  id: string;
+  items: CartItem[];
+  total: number;
+}
+
+
 interface CartContextType {
   cartItems: CartItem[];
   inventory: InventoryItem[];
+  completedOrder: CompletedOrder | null;
+  setCompletedOrder: (order: CompletedOrder | null) => void;
   getStock: (itemId: number) => number;
   addToCart: (item: MenuItem) => void;
   removeFromCart: (itemId: number) => void;
@@ -26,6 +35,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrder | null>(null);
+
 
   const getStock = useCallback((itemId: number): number => {
     return inventory.find(i => i.id === itemId)?.stock ?? 0;
@@ -106,6 +117,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     cartItems,
     inventory,
+    completedOrder,
+    setCompletedOrder,
     getStock,
     addToCart,
     removeFromCart,
@@ -113,7 +126,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clearCart,
     totalItems,
     totalPrice
-  }), [cartItems, inventory, getStock]);
+  }), [cartItems, inventory, completedOrder, getStock]);
 
   return (
     <CartContext.Provider value={value}>
