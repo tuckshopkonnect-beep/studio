@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CheckCircle, Download, Home, Loader2, AlertTriangle, QrCode } from "lucide-react";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function OrderConfirmationPage() {
     const router = useRouter();
@@ -18,6 +19,11 @@ export default function OrderConfirmationPage() {
     const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
     const [isPosEnabled, setIsPosEnabled] = useState(true);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     useEffect(() => {
         // Check if POS scanner is enabled from localStorage
@@ -56,19 +62,49 @@ export default function OrderConfirmationPage() {
 
     useEffect(() => {
         // Clean up completed order from context and sessionStorage when user navigates away
-        const handleRouteChange = () => {
-            if (pathname !== '/student/order/confirmation') {
+        const handleRouteChange = (url: string) => {
+            if (url !== '/student/order/confirmation') {
                  setCompletedOrder(null);
                  clearCart();
             }
         };
         
-        handleRouteChange();
+        // This is a simplified version. For a more robust solution,
+        // you might need Next.js's native router events if available in your version.
+        const originalPush = router.push;
+        router.push = (...args: Parameters<typeof originalPush>) => {
+            handleRouteChange(args[0] as string);
+            return originalPush(...args);
+        };
+        
+        // Handling browser back/forward buttons
+        const onPopState = () => handleRouteChange(window.location.pathname);
+        window.addEventListener('popstate', onPopState);
 
         return () => {
-           handleRouteChange();
+           window.removeEventListener('popstate', onPopState);
+           router.push = originalPush; // Restore original push method
         };
-    }, [pathname, setCompletedOrder, clearCart]);
+    }, [pathname, setCompletedOrder, clearCart, router]);
+
+    if (!isClient) {
+        return (
+            <div className="container mx-auto flex flex-col items-center justify-center p-4 md:p-6 min-h-[calc(100vh-8rem)]">
+                <Card className="w-full max-w-lg text-center shadow-2xl">
+                     <CardHeader className="bg-green-50 dark:bg-green-900/20 rounded-t-lg items-center py-6">
+                        <Skeleton className="h-16 w-16 rounded-full bg-gray-300" />
+                        <Skeleton className="h-8 w-3/4 mt-2 bg-gray-300" />
+                        <Skeleton className="h-4 w-1/2 mt-1 bg-gray-300" />
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                        <Skeleton className="h-48 w-48 mx-auto bg-gray-300"/>
+                        <Skeleton className="h-4 w-1/3 mx-auto bg-gray-300"/>
+                        <Skeleton className="h-4 w-2/3 mx-auto bg-gray-300"/>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
 
     if (!completedOrder) {
         return (
@@ -146,3 +182,5 @@ export default function OrderConfirmationPage() {
         </div>
     );
 }
+
+    
