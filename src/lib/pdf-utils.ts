@@ -1,4 +1,6 @@
 
+"use client";
+
 import type { Order, User, MenuItem, InventoryItem } from '@/lib/data';
 import { format } from 'date-fns';
 
