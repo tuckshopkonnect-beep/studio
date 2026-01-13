@@ -36,7 +36,7 @@ export default function PortalPage() {
         className="object-cover -z-20"
         priority
       />
-      <div className="absolute inset-0 bg-black/60 -z-10" />
+      <div className="absolute inset-0 bg-black/80 -z-10" />
 
       <div className="container flex flex-col items-center max-w-6xl text-center">
         <div className="mb-12 flex flex-col items-center gap-4">

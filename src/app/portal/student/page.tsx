@@ -41,7 +41,7 @@ export default function StudentLoginPage() {
         className="object-cover -z-20"
         priority
       />
-      <div className="absolute inset-0 bg-black/60 -z-10" />
+      <div className="absolute inset-0 bg-black/80 -z-10" />
 
       <Card className="mx-auto max-w-sm w-full bg-white/10 backdrop-blur-lg border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
