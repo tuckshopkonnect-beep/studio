@@ -158,51 +158,54 @@ export default function UserDetailDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                  <Avatar 
+                      className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
+                      onClick={handleAvatarClick}
+                  >
+                      <AvatarImage src={userData.avatarUrl} alt={userData.name} className="object-cover"/>
+                      <AvatarFallback className="text-3xl">{userData.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {isEditing && (
+                      <div 
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={handleAvatarClick}
+                      >
+                          <Camera className="h-8 w-8 text-white" />
+                      </div>
+                  )}
+                  <Input 
+                      ref={fileInputRef}
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange} 
+                  />
+              </div>
+               {isEditing ? (
+                  <div className="grid gap-2 w-full text-center">
+                      <Label htmlFor="name" className="sr-only">First & Last Name</Label>
+                      <Input 
+                        id="name" 
+                        name="name" 
+                        value={userData.name} 
+                        onChange={handleInputChange} 
+                        placeholder="First & Last Name"
+                        className="text-center text-xl font-semibold h-auto p-1 bg-transparent border-0 focus-visible:ring-1"
+                      />
+                  </div>
+              ) : (
+                  <div className="grid gap-1 text-center">
+                      <DialogTitle className="text-2xl">{userData.name}</DialogTitle>
+                      <DialogDescription>{userData.email}</DialogDescription>
+                      <Badge variant={userData.role === 'Admin' ? 'destructive' : userData.role === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{userData.role}</Badge>
+                  </div>
+              )}
+          </div>
         </DialogHeader>
 
         <div className="grid gap-6 py-4">
-            <div className="flex items-center gap-4">
-                <div className="relative">
-                    <Avatar 
-                        className={cn("h-16 w-16", isEditing && "cursor-pointer")}
-                        onClick={handleAvatarClick}
-                    >
-                        <AvatarImage src={userData.avatarUrl} alt={userData.name} />
-                        <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    {isEditing && (
-                        <div 
-                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
-                            onClick={handleAvatarClick}
-                        >
-                            <Camera className="h-6 w-6 text-white" />
-                        </div>
-                    )}
-                    <Input 
-                        ref={fileInputRef}
-                        type="file" 
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange} 
-                    />
-                </div>
-                <div className='flex-1'>
-                    {isEditing ? (
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">First & Last Name</Label>
-                            <Input id="name" name="name" value={userData.name} onChange={handleInputChange} />
-                        </div>
-                    ) : (
-                        <div className="grid gap-1">
-                            <h3 className="text-xl font-semibold">{userData.name}</h3>
-                            <p className="text-sm text-muted-foreground">{userData.email}</p>
-                            <Badge variant={userData.role === 'Admin' ? 'destructive' : userData.role === 'Parent' ? 'secondary' : 'outline'}>{userData.role}</Badge>
-                        </div>
-                    )}
-                </div>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
