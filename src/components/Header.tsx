@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Utensils } from "lucide-react";
+import { ShoppingCart, Utensils, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart.tsx";
 import {
@@ -25,11 +25,17 @@ export default function Header() {
             TuckshopKonnect
           </span>
         </Link>
-        <nav className="flex items-center space-x-4 lg:space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm font-medium">
           <Link href="/" className="transition-colors hover:text-primary">Menu</Link>
-          <Link href="/dashboard/orders" className="transition-colors hover:text-primary">Dashboard</Link>
+          <Link href="/portal" className="transition-colors hover:text-primary">User Portals</Link>
         </nav>
-        <div className="flex flex-1 items-center justify-end">
+        <div className="flex flex-1 items-center justify-end gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/portal">
+              <UserCircle className="h-5 w-5" />
+              <span className="sr-only">Portal Login</span>
+            </Link>
+          </Button>
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="relative rounded-full">

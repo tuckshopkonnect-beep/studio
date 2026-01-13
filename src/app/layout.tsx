@@ -3,7 +3,6 @@ import './globals.css';
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/hooks/use-cart.tsx";
-import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: 'TuckshopKonnect',
@@ -24,8 +23,7 @@ export default function RootLayout({
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
         <CartProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
+            {children}
             <Toaster />
         </CartProvider>
       </body>
