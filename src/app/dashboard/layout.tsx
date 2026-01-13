@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Home,
   ShoppingCart,
@@ -46,7 +46,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -58,7 +57,7 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
-    { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner" },
+    { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner", feature: "posScanner" },
     { href: "/dashboard/appearance", icon: Palette, label: "Appearance" },
     { href: "/dashboard/password-resets", icon: KeyRound, label: "Password Resets" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
@@ -71,8 +70,16 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [featureSettings, setFeatureSettings] = useState({ posScanner: true });
   
+  useEffect(() => {
+    const posScannerEnabled = localStorage.getItem('posScannerEnabled') === 'true';
+    setFeatureSettings({ posScanner: posScannerEnabled });
+  }, []);
+
   const breadcrumbItems = pathname.split('/').filter(Boolean);
+
+  const visibleSecondaryNavItems = secondaryNavItems.filter(item => !item.feature || featureSettings[item.feature as keyof typeof featureSettings]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -109,7 +116,7 @@ export default function DashboardLayout({
           </nav>
           <hr className="mx-4 border-t border-purple-400/30" />
            <nav className="flex flex-col items-center gap-2 px-2 py-4">
-            {secondaryNavItems.map((item) => (
+            {visibleSecondaryNavItems.map((item) => (
               <Tooltip key={item.href} delayDuration={0}>
                 <TooltipTrigger asChild>
                   <Link
@@ -164,7 +171,7 @@ export default function DashboardLayout({
                         <Package className="h-5 w-5 transition-all group-hover:scale-110" />
                         <span className="sr-only">TuckshopKonnect</span>
                     </Link>
-                    {[...navItems, ...secondaryNavItems].map(item => (
+                    {[...navItems, ...visibleSecondaryNavItems].map(item => (
                          <Link
                             key={item.href}
                             href={item.href}

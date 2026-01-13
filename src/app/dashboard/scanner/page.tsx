@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -12,13 +12,48 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { QrCode, Search } from "lucide-react";
+import { QrCode, Search, VideoOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ScannerPage() {
   const [transactionId, setTransactionId] = useState("");
   const [scannedOrder, setScannedOrder] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this feature.',
+        });
+      }
+    };
+
+    getCameraPermission();
+
+    return () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }
+  }, [toast]);
+
 
   const handleManualLookup = () => {
     setError(null);
@@ -29,7 +64,7 @@ export default function ScannerPage() {
     }
     // In a real application, you would fetch the order details from your backend.
     // For now, we'll simulate finding an order.
-    if (transactionId.includes("ORD")) {
+    if (transactionId.includes("ORD") || transactionId.includes("txn")) {
         setScannedOrder({
             id: transactionId,
             customerName: "Emma Brown",
@@ -55,12 +90,21 @@ export default function ScannerPage() {
         </CardHeader>
         <CardContent>
           <div className="mx-auto max-w-md space-y-6">
-            <div className="flex aspect-square w-full items-center justify-center rounded-lg border-2 border-dashed bg-muted">
-                <div className="text-center text-muted-foreground">
-                    <QrCode className="mx-auto h-16 w-16" />
-                    <p className="mt-2">Camera functionality coming soon.</p>
-                    <p className="text-sm">Use manual lookup for now.</p>
+            <div className="relative flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed bg-muted overflow-hidden">
+              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+              {hasCameraPermission === false && (
+                <div className="absolute text-center text-muted-foreground z-10">
+                    <VideoOff className="mx-auto h-16 w-16" />
+                    <p className="mt-2 font-semibold">Camera access denied</p>
+                    <p className="text-sm">Please enable camera permissions in your browser.</p>
                 </div>
+              )}
+               {hasCameraPermission === null && (
+                <div className="absolute text-center text-muted-foreground z-10">
+                    <QrCode className="mx-auto h-16 w-16" />
+                    <p className="mt-2 font-semibold">Requesting Camera...</p>
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="transaction-id">Manual Transaction ID Lookup</Label>
@@ -85,6 +129,14 @@ export default function ScannerPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+       {hasCameraPermission === false && (
+            <Alert variant="destructive">
+                <AlertTitle>Camera Access Required</AlertTitle>
+                <AlertDescription>
+                    Please allow camera access in your browser settings to use the QR scanner. You can still use the manual lookup.
+                </AlertDescription>
+            </Alert>
+        )}
       {scannedOrder && (
         <Card>
             <CardHeader>

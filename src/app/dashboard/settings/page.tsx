@@ -1,5 +1,6 @@
 
 "use client";
+import React, { useState, useEffect } from "react";
 
 import {
   Card,
@@ -11,16 +12,25 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 
 export default function SettingsPage() {
+  const [posScannerEnabled, setPosScannerEnabled] = useState(true);
+
+  useEffect(() => {
+    const storedValue = localStorage.getItem('posScannerEnabled');
+    // Set to true if not found in storage, making it enabled by default
+    setPosScannerEnabled(storedValue !== 'false');
+  }, []);
+
+  const handlePosScannerToggle = (enabled: boolean) => {
+    setPosScannerEnabled(enabled);
+    localStorage.setItem('posScannerEnabled', String(enabled));
+     // Optional: force a reload to reflect sidebar changes immediately, though not ideal.
+     // window.location.reload(); 
+  };
+
+
   return (
     <div className="grid gap-6">
       <Card>
@@ -47,6 +57,20 @@ export default function SettingsPage() {
                 </p>
               </div>
               <Switch id="order-timer" aria-label="Enable order timer" />
+            </div>
+             <div className="flex items-center justify-between rounded-lg border p-4">
+              <div>
+                <Label htmlFor="pos-scanner" className="text-base">Enable POS Scanner</Label>
+                <p className="text-sm text-muted-foreground">
+                  Allow staff to scan QR codes to verify orders.
+                </p>
+              </div>
+              <Switch 
+                id="pos-scanner" 
+                aria-label="Enable POS Scanner" 
+                checked={posScannerEnabled}
+                onCheckedChange={handlePosScannerToggle}
+              />
             </div>
           </form>
         </CardContent>
