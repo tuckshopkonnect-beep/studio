@@ -5,20 +5,22 @@ import { useCart } from "@/hooks/use-cart.tsx";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
-import { Minus, Plus, Trash2, ShoppingCart, CircleCheck } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import QRCode from "react-qr-code";
 
 export default function OrderSummary() {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const { toast } = useToast();
-  const [justOrdered, setJustOrdered] = useState(false);
-
-  useEffect(() => {
-    if (cartItems.length > 0) {
-      setJustOrdered(false);
-    }
-  }, [cartItems]);
+  const [orderResult, setOrderResult] = useState<{ id: string; success: boolean } | null>(null);
 
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
@@ -30,29 +32,30 @@ export default function OrderSummary() {
       return;
     }
     
-    // In a real app, this would trigger payment processing and order creation.
+    // In a real app, this would be a call to the backend to create the order
+    // and would involve payment processing.
+    const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    console.log("Order placed with transaction ID:", transactionId);
+
+    // For now, we'll just simulate a successful order.
     clearCart();
-    setJustOrdered(true);
+    setOrderResult({ id: transactionId, success: true });
   };
+
+  const closeDialog = () => {
+    setOrderResult(null);
+  }
 
   return (
     <>
       <ScrollArea className="flex-1">
         <div className="p-6">
-          {cartItems.length === 0 ? (
-            justOrdered ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
-                <CircleCheck className="h-16 w-16 mb-4 text-chart-2" />
-                <p className="text-lg font-semibold">Order Placed!</p>
-                <p>Thank you for your order.</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
-                <ShoppingCart className="h-16 w-16 mb-4" />
-                <p className="text-lg font-semibold">Your cart is empty</p>
-                <p>Add some tasty items from the menu!</p>
-              </div>
-            )
+          {cartItems.length === 0 && !orderResult ? (
+            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground pt-16">
+              <ShoppingCart className="h-16 w-16 mb-4" />
+              <p className="text-lg font-semibold">Your cart is empty</p>
+              <p>Add some tasty items from the menu!</p>
+            </div>
           ) : (
             <div className="space-y-4">
               {cartItems.map((item) => (
@@ -97,11 +100,35 @@ export default function OrderSummary() {
             <span>Total</span>
             <span>${totalPrice.toFixed(2)}</span>
           </div>
-          <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90" size="lg" onClick={handlePlaceOrder}>
+          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg" onClick={handlePlaceOrder}>
             Place Order
           </Button>
         </div>
       )}
+
+      <Dialog open={!!orderResult} onOpenChange={(isOpen) => !isOpen && closeDialog()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Order Placed Successfully!</DialogTitle>
+            <DialogDescription className="text-center">
+              Show this QR code to the tuckshop staff to collect your order.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 bg-white rounded-lg my-4 flex items-center justify-center">
+             {orderResult?.id && <QRCode value={orderResult.id} size={256} />}
+          </div>
+           <div className="text-center text-sm text-muted-foreground">
+              Transaction ID: {orderResult?.id}
+            </div>
+          <div className="flex flex-col gap-2 mt-4">
+             <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" />
+                Download Receipt
+            </Button>
+            <Button onClick={closeDialog}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
