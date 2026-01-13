@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useCart } from '@/hooks/use-cart.tsx';
 import type { MenuItem } from '@/lib/data';
 import { PlusCircle, Check, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -15,10 +16,14 @@ interface MenuItemCardProps {
 }
 
 export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardProps) {
-  const { addToCart } = useCart();
+  const { addToCart, getStock } = useCart();
   const [added, setAdded] = useState(false);
 
+  const stock = getStock(item.id);
+  const isInStock = stock > 0;
+
   const handleAddToCart = () => {
+    if (!isInStock) return;
     addToCart(item);
     setAdded(true);
     setTimeout(() => {
@@ -26,7 +31,7 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
     }, 2000);
   };
 
-  const isButtonDisabled = added || !isShopOpen;
+  const isButtonDisabled = added || !isShopOpen || !isInStock;
   
   let buttonContent;
   if (!isShopOpen) {
@@ -34,6 +39,13 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
       <>
         <XCircle className="mr-2 h-4 w-4" />
         Shop Closed
+      </>
+    );
+  } else if (!isInStock && isShopOpen) {
+    buttonContent = (
+      <>
+        <XCircle className="mr-2 h-4 w-4" />
+        Out of Stock
       </>
     );
   } else if (added) {
@@ -65,6 +77,14 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
             className="object-cover"
             data-ai-hint={item.image.imageHint}
           />
+          {isShopOpen && (
+            <Badge 
+              variant={stock < 10 ? 'destructive' : 'secondary'}
+              className="absolute top-2 right-2"
+            >
+              {stock} left
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-grow p-4">
@@ -80,5 +100,3 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
     </Card>
   );
 }
-
-    

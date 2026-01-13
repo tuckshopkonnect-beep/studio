@@ -166,7 +166,7 @@ export default function DashboardPage() {
                     <CardDescription>A log of recent events in the system.</CardDescription>
                 </div>
                 <Button asChild size="sm" className="ml-auto gap-1">
-                  <Link href="#">
+                  <Link href="/dashboard/reports">
                     View All
                     <Activity className="h-4 w-4" />
                   </Link>

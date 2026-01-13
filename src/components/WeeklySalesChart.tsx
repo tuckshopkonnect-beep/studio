@@ -1,7 +1,12 @@
 
 "use client"
 
-import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
+import {
+  ChartContainer,
+  ChartTooltip as ChartTooltipPrimitive,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 
 const data = [
   { name: "Mon", total: Math.floor(Math.random() * 30000) + 5000 },
@@ -15,12 +20,18 @@ const data = [
 
 export default function WeeklySalesChart() {
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <LineChart 
+    <ChartContainer config={{
+      total: {
+        label: "Sales",
+        color: "hsl(var(--chart-1))",
+      },
+    }} className="h-[300px] w-full">
+      <BarChart 
+        accessibilityLayer
         data={data}
         margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <CartesianGrid vertical={false} />
         <XAxis
           dataKey="name"
           stroke="hsl(var(--muted-foreground))"
@@ -35,27 +46,21 @@ export default function WeeklySalesChart() {
           axisLine={false}
           tickFormatter={(value) => `₦${value/1000}k`}
         />
-        <Tooltip
-          cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 2, strokeDasharray: '3 3' }}
-          contentStyle={{ 
-            background: 'hsl(var(--background))', 
-            border: '1px solid hsl(var(--border))', 
-            borderRadius: 'var(--radius)',
-            color: 'hsl(var(--foreground))'
-          }}
-          labelStyle={{ color: 'hsl(var(--foreground))' }}
-          formatter={(value: number) => [`₦${value.toFixed(2)}`, 'Sales']}
+        <ChartTooltipPrimitive
+          cursor={false}
+          content={
+            <ChartTooltipContent 
+              indicator="dot" 
+              formatter={(value: number) => [`₦${value.toFixed(2)}`]}
+            />
+          }
         />
-        <Legend />
-        <Line 
-          type="monotone" 
+        <Bar 
           dataKey="total" 
-          stroke="hsl(var(--primary))" 
-          strokeWidth={2}
-          activeDot={{ r: 8 }}
-          dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+          fill="var(--color-total)" 
+          radius={4}
         />
-      </LineChart>
-    </ResponsiveContainer>
+      </BarChart>
+    </ChartContainer>
   )
 }
