@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/popover"
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Edit, Save, X, Camera, Check, ChevronsUpDown } from 'lucide-react';
+import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -75,6 +75,7 @@ export default function UserDetailDialog({
 }: UserDetailDialogProps) {
   const [userData, setUserData] = useState<User>(user || emptyUser);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [parentComboboxOpen, setParentComboboxOpen] = useState(false)
@@ -159,16 +160,16 @@ export default function UserDetailDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className={cn(isEditing && 'sr-only')}>
-            {title}
-          </DialogTitle>
-           {isEditing && (
-            <DialogDescription className="sr-only">
-              {description}
-            </DialogDescription>
-          )}
+          {isEditing ? (
+             <DialogTitle className="sr-only">{title}</DialogTitle>
+           ) : (
+             <DialogTitle>{title}</DialogTitle>
+           )}
+           <DialogDescription className="sr-only">
+             {description}
+           </DialogDescription>
 
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-4 pt-4">
               <div className="relative">
                   <Avatar 
                       className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
@@ -236,9 +237,26 @@ export default function UserDetailDialog({
                 </div>
             </div>
             {isCreating && (
-                 <div className="grid gap-2">
+                 <div className="grid gap-2 relative">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <Input 
+                      id="password" 
+                      name="password" 
+                      type={showPassword ? "text" : "password"} 
+                      value={password} 
+                      onChange={(e) => setPassword(e.target.value)} 
+                      className="pr-10"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-[26px] h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowPassword(prev => !prev)}
+                    >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                        <span className="sr-only">Toggle password visibility</span>
+                    </Button>
                 </div>
             )}
             {userData.role === 'Student' && (

@@ -15,10 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function StudentLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
@@ -70,13 +71,25 @@ export default function StudentLoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
-                  defaultValue="password"
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
+                    defaultValue="password"
+                  />
+                  <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white hover:bg-white/20"
+                      onClick={() => setShowPassword(prev => !prev)}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                      <span className="sr-only">Toggle password visibility</span>
+                    </Button>
+                </div>
               </div>
               <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
                 {isLoading ? (
