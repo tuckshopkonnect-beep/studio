@@ -174,7 +174,7 @@ export default function ReportsPage() {
 
   // --- PDF Export Logic ---
   const handleExportSection = async (sectionTitle: string) => {
-    const { jsPDF } = await import('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportSectionPDF } = await import('@/lib/pdf-utils');
     
@@ -201,7 +201,6 @@ export default function ReportsPage() {
       case 'Business Intelligence':
         // This case is special as it creates two tables.
         const { exportSectionPDF: exportBiSection } = await import('@/lib/pdf-utils');
-        const { jsPDF: jsPDFBI, default: autoTableBI } = await import('jspdf').then(pdf => ({ jsPDF: pdf.jsPDF, default: import('jspdf-autotable')}));
         
         await exportBiSection('Student Spending', {
             head: [['Student', 'Total Spent']],
@@ -225,7 +224,7 @@ export default function ReportsPage() {
   };
 
   const handleGenerateReport = async () => {
-    const { jsPDF } = await import('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { generateFullReportPDF } = await import('@/lib/pdf-utils');
 
