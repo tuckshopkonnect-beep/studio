@@ -34,28 +34,47 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, File, Download } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Download, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 export default function UsersPage() {
   const { toast } = useToast();
   const [users, setUsers] = React.useState(initialUsers);
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
+  const [activeTab, setActiveTab] = React.useState("all");
+  const [searchTerm, setSearchTerm] = React.useState("");
+
+  const filteredUsers = React.useMemo(() => {
+    return users
+      .filter(user => {
+        if (activeTab === "all") return true;
+        return user.role.toLowerCase() === activeTab;
+      })
+      .filter(user => {
+        if (searchTerm === "") return true;
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          user.name.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower)
+        );
+      });
+  }, [users, activeTab, searchTerm]);
 
   const handleExportPDF = async () => {
-    const { default: jsPDF } = await import('jspdf');
+    const { jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportUsersPDF } = await import('@/lib/pdf-utils');
-    exportUsersPDF(users, jsPDF, autoTable);
+    exportUsersPDF(filteredUsers, jsPDF, autoTable);
   };
 
   const handleExportCSV = async () => {
     const { exportUsersCSV } = await import('@/lib/csv-utils');
-    exportUsersCSV(users);
+    exportUsersCSV(filteredUsers);
   };
 
   const handleDeleteUser = () => {
@@ -68,7 +87,6 @@ export default function UsersPage() {
     setUserToDelete(null);
   };
 
-
   return (
     <>
       <ConfirmationDialog
@@ -77,117 +95,138 @@ export default function UsersPage() {
         onConfirm={handleDeleteUser}
         title={`Delete ${userToDelete?.name}?`}
         description="This action cannot be undone. This will permanently delete the user's account and all associated data."
+        confirmButtonText="Yes, Delete User"
       />
-      <Tabs defaultValue="all">
-       <div className="flex items-center">
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="student">Students</TabsTrigger>
-          <TabsTrigger value="parent">Parents</TabsTrigger>
-          <TabsTrigger value="admin">Admins</TabsTrigger>
-        </TabsList>
-        <div className="ml-auto flex items-center gap-2">
-           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button size="sm">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
+      <Tabs defaultValue="all" onValueChange={setActiveTab}>
+        <div className="flex items-center gap-4">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="student">Students</TabsTrigger>
+            <TabsTrigger value="parent">Parents</TabsTrigger>
+            <TabsTrigger value="admin">Admins</TabsTrigger>
+          </TabsList>
+          <div className="relative ml-auto flex-1 md:grow-0">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by name or email..."
+              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button size="sm">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add User
+            </Button>
+          </div>
         </div>
-      </div>
-      <TabsContent value="all">
-        <Card>
-          <CardHeader>
-            <CardTitle>Users</CardTitle>
-            <CardDescription>Manage all user accounts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="hidden md:table-cell">Balance</TableHead>
-                <TableHead className="hidden md:table-cell">Daily Limit</TableHead>
-                <TableHead className="hidden md:table-cell">Class</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-4">
-                      <Avatar className="hidden h-9 w-9 sm:flex">
-                        <AvatarImage src={user.avatarUrl} alt="Avatar" />
-                        <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid gap-1">
-                        <p className="text-sm font-medium leading-none">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Parent' ? 'secondary' : 'outline'}>{user.role}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
-                  </TableCell>
-                   <TableCell className={cn("hidden md:table-cell font-medium", user.role === 'Student' && "text-primary")}>
-                    {user.role === 'Student' && user.dailyLimit ? `₦${user.dailyLimit.toFixed(2)}` : 'N/A'}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {user.class || 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => alert(`Editing ${user.name}`)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => alert(`Viewing details for ${user.name}`)}>View Details</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                            className="text-destructive"
-                            onSelect={() => setUserToDelete(user)}
-                        >
-                            Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+        <TabsContent value={activeTab}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Users</CardTitle>
+              <CardDescription>
+                Manage all user accounts. Showing {filteredUsers.length} of {users.length} users.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Balance</TableHead>
+                    <TableHead className="hidden md:table-cell">Daily Limit</TableHead>
+                    <TableHead className="hidden md:table-cell">Class</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-4">
+                            <Avatar className="hidden h-9 w-9 sm:flex">
+                              <AvatarImage src={user.avatarUrl} alt="Avatar" />
+                              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="grid gap-1">
+                              <p className="text-sm font-medium leading-none">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {user.email}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Parent' ? 'secondary' : 'outline'}>{user.role}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
+                        </TableCell>
+                        <TableCell className={cn("hidden md:table-cell font-medium", user.role === 'Student' && "text-primary")}>
+                          {user.role === 'Student' && user.dailyLimit ? `₦${user.dailyLimit.toFixed(2)}` : 'N/A'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {user.class || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                aria-haspopup="true"
+                                size="icon"
+                                variant="ghost"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => alert(`Editing ${user.name}`)}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => alert(`Viewing details for ${user.name}`)}>View Details</DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => setUserToDelete(user)}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
