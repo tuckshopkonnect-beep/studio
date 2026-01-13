@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { QrCode, Search, VideoOff } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { initialOrders } from "@/lib/data"; // Using static data for now
 
 export default function ScannerPage() {
   const [transactionId, setTransactionId] = useState("");
@@ -23,6 +24,9 @@ export default function ScannerPage() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+
+  // In a real app, this would be a shared state (e.g., Context or Zustand)
+  const [orders, setOrders] = useState(initialOrders);
 
   useEffect(() => {
     const getCameraPermission = async () => {
@@ -33,13 +37,15 @@ export default function ScannerPage() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        // Note: QR scanning logic (e.g., using jsQR) is not implemented here
+        // but this sets up the camera feed for it.
       } catch (error) {
         console.error('Error accessing camera:', error);
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use this feature.',
+          description: 'Please enable camera permissions in your browser to use the QR scanner.',
         });
       }
     };
@@ -62,22 +68,54 @@ export default function ScannerPage() {
       setError("Please enter a Transaction ID.");
       return;
     }
-    // In a real application, you would fetch the order details from your backend.
-    // For now, we'll simulate finding an order.
-    if (transactionId.includes("ORD") || transactionId.includes("txn")) {
-        setScannedOrder({
-            id: transactionId,
-            customerName: "Emma Brown",
-            items: [
-                { name: "Sausage Roll", quantity: 4 }
-            ],
-            total: 1400.00,
-            status: "Ready for Pickup",
-        });
+    // Simulate finding an order from our "database"
+    // In a real app, you would fetch this from your backend.
+    // The confirmation page generates txn-..., but static data has ORD-...
+    // We'll check for both formats for this prototype.
+    const foundOrder = orders.find(
+      (order) => order.id.toLowerCase() === transactionId.toLowerCase()
+    );
+
+    if (foundOrder) {
+        setScannedOrder(foundOrder);
     } else {
-        setError("Transaction ID not found.");
+        // Mock finding a newly created order that isn't in initialData
+        if (transactionId.toLowerCase().startsWith('txn-')) {
+             setScannedOrder({
+                id: transactionId,
+                customerName: "Alex Doe",
+                items: [
+                    { name: "Sausage Roll", quantity: 2 },
+                    { name: "Orange Juice", quantity: 1 }
+                ],
+                total: 9.50,
+                status: "Ready for Pickup",
+            });
+        } else {
+            setError("Transaction ID not found.");
+            setScannedOrder(null);
+        }
     }
   };
+
+  const handleMarkAsCompleted = () => {
+    if (!scannedOrder) return;
+    
+    // Update the state of the order
+    setOrders(prevOrders => prevOrders.map(order => 
+        order.id === scannedOrder.id ? { ...order, status: 'Completed' } : order
+    ));
+
+    toast({
+        title: "Order Completed",
+        description: `Order #${scannedOrder.id} has been marked as completed.`
+    });
+
+    // Reset the scanner page
+    setScannedOrder(null);
+    setTransactionId("");
+  };
+
 
   return (
     <div className="grid gap-6">
@@ -101,7 +139,7 @@ export default function ScannerPage() {
               )}
                {hasCameraPermission === null && (
                 <div className="absolute text-center text-muted-foreground z-10">
-                    <QrCode className="mx-auto h-16 w-16" />
+                    <QrCode className="mx-auto h-16 w-16 animate-pulse" />
                     <p className="mt-2 font-semibold">Requesting Camera...</p>
                 </div>
               )}
@@ -114,6 +152,7 @@ export default function ScannerPage() {
                     placeholder="Enter Transaction ID (e.g., ORD-004)"
                     value={transactionId}
                     onChange={(e) => setTransactionId(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleManualLookup()}
                 />
                 <Button onClick={handleManualLookup}>
                     <Search className="mr-2 h-4 w-4" /> Lookup
@@ -129,7 +168,7 @@ export default function ScannerPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-       {hasCameraPermission === false && (
+       {hasCameraPermission === false && !scannedOrder && (
             <Alert variant="destructive">
                 <AlertTitle>Camera Access Required</AlertTitle>
                 <AlertDescription>
@@ -156,9 +195,14 @@ export default function ScannerPage() {
                     <span>Total</span>
                     <span>₦{scannedOrder.total.toFixed(2)}</span>
                 </div>
+                 <div className="mt-4 text-center">
+                  Status: <span className="font-semibold text-primary">{scannedOrder.status}</span>
+                </div>
             </CardContent>
             <CardFooter>
-                 <Button className="w-full">Mark as Completed</Button>
+                 <Button className="w-full" onClick={handleMarkAsCompleted} disabled={scannedOrder.status === 'Completed'}>
+                    {scannedOrder.status === 'Completed' ? 'Order Already Completed' : 'Mark as Completed'}
+                 </Button>
             </CardFooter>
         </Card>
       )}
@@ -170,5 +214,3 @@ export default function ScannerPage() {
 const Label = (props: React.LabelHTMLAttributes<HTMLLabelElement>) => (
     <label {...props} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
 );
-
-    
