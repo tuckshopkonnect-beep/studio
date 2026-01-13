@@ -55,6 +55,9 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   const filteredUsers = React.useMemo(() => {
     return users
       .filter(user => {
@@ -205,7 +208,8 @@ export default function UsersPage() {
             <CardHeader>
               <CardTitle>Users</CardTitle>
               <CardDescription>
-                Manage all user accounts. Showing {filteredUsers.length} of {users.length} users.
+                Manage all user accounts. 
+                {mounted && ` Showing ${filteredUsers.length} of ${users.length} users.`}
               </CardDescription>
             </CardHeader>
             <CardContent>
