@@ -72,7 +72,7 @@ export default function UsersPage() {
   }, [users, activeTab, searchTerm]);
 
   const handleExportPDF = async () => {
-    const { jsPDF } = await import('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportUsersPDF } = await import('@/lib/pdf-utils');
     exportUsersPDF(filteredUsers, jsPDF, autoTable);
@@ -116,7 +116,11 @@ export default function UsersPage() {
   const handleSaveUser = (userToSave: User) => {
     if (isCreating) {
       // Add new user
-      const newUser = { ...userToSave, id: Date.now(), avatarUrl: `https://i.pravatar.cc/150?u=${Date.now()}` };
+      const newUser = { 
+        ...userToSave, 
+        id: Date.now(), 
+        avatarUrl: userToSave.avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}` 
+      };
       setUsers(prev => [...prev, newUser]);
       toast({ title: "User Created", description: `${newUser.name} has been added.` });
     } else {

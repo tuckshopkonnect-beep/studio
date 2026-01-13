@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '@/lib/data';
 import {
   Dialog,
@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Edit, Save, X } from 'lucide-react';
+import { Edit, Save, X, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserDetailDialogProps {
@@ -57,6 +57,7 @@ export default function UserDetailDialog({
   isCreating,
 }: UserDetailDialogProps) {
   const [userData, setUserData] = useState<User>(user || emptyUser);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setUserData(user || emptyUser);
@@ -77,6 +78,23 @@ export default function UserDetailDialog({
   const handleSaveClick = () => {
     onSave(userData);
   };
+
+  const handleAvatarClick = () => {
+    if (isEditing) {
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const title = isCreating ? "Create New User" : isEditing ? `Edit ${user?.name}` : `User Details`;
   const description = isCreating ? "Fill in the details to add a new user." : `Viewing details for ${user?.name}`;
@@ -91,10 +109,30 @@ export default function UserDetailDialog({
 
         <div className="grid gap-6 py-4">
             <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                    <AvatarImage src={userData.avatarUrl} alt={userData.name} />
-                    <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                    <Avatar 
+                        className={cn("h-16 w-16", isEditing && "cursor-pointer")}
+                        onClick={handleAvatarClick}
+                    >
+                        <AvatarImage src={userData.avatarUrl} alt={userData.name} />
+                        <AvatarFallback>{userData.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    {isEditing && (
+                        <div 
+                            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+                            onClick={handleAvatarClick}
+                        >
+                            <Camera className="h-6 w-6 text-white" />
+                        </div>
+                    )}
+                    <Input 
+                        ref={fileInputRef}
+                        type="file" 
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileChange} 
+                    />
+                </div>
                 <div className='flex-1'>
                     {isEditing ? (
                         <div className="grid gap-2">
