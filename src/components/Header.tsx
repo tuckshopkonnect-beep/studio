@@ -25,6 +25,7 @@ export default function Header() {
   const { totalItems } = useCart();
 
   useEffect(() => {
+    // This code runs on the client, after the component mounts
     const storedTheme = localStorage.getItem("theme") || "light";
     if (storedTheme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -103,3 +104,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

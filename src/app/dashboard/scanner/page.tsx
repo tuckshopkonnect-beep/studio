@@ -170,3 +170,5 @@ export default function ScannerPage() {
 const Label = (props: React.LabelHTMLAttributes<HTMLLabelElement>) => (
     <label {...props} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" />
 );
+
+    

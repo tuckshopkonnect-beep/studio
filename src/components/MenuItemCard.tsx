@@ -27,22 +27,31 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
   };
 
   const isButtonDisabled = added || !isShopOpen;
-  const buttonText = !isShopOpen ? (
-    <>
-      <XCircle className="mr-2 h-4 w-4" />
-      Shop Closed
-    </>
-  ) : added ? (
-    <>
-      <Check className="mr-2 h-4 w-4" />
-      Added!
-    </>
-  ) : (
-    <>
-      <PlusCircle className="mr-2 h-4 w-4" />
-      Add to Order
-    </>
-  );
+  
+  let buttonContent;
+  if (!isShopOpen) {
+    buttonContent = (
+      <>
+        <XCircle className="mr-2 h-4 w-4" />
+        Shop Closed
+      </>
+    );
+  } else if (added) {
+    buttonContent = (
+      <>
+        <Check className="mr-2 h-4 w-4" />
+        Added!
+      </>
+    );
+  } else {
+    buttonContent = (
+      <>
+        <PlusCircle className="mr-2 h-4 w-4" />
+        Add to Order
+      </>
+    );
+  }
+
 
   return (
     <Card className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
@@ -65,9 +74,11 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
       <CardFooter className="flex items-center justify-between p-4 bg-muted/50">
         <p className="text-xl font-bold text-primary">₦{item.price.toFixed(2)}</p>
         <Button onClick={handleAddToCart} size="sm" disabled={isButtonDisabled} variant={added ? "secondary" : "default"}>
-           {buttonText}
+           {buttonContent}
         </Button>
       </CardFooter>
     </Card>
   );
 }
+
+    

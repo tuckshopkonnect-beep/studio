@@ -73,6 +73,17 @@ export default function DashboardLayout({
   const [featureSettings, setFeatureSettings] = useState({ posScanner: true });
   
   useEffect(() => {
+    // Ensure this code runs only on the client
+    const storedTheme = localStorage.getItem("theme") || "light";
+    const storedColor = localStorage.getItem("primaryColor") || "262 52% 47%";
+
+    if (storedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    document.documentElement.style.setProperty("--primary", storedColor);
+    
     const posScannerEnabled = localStorage.getItem('posScannerEnabled') === 'true';
     setFeatureSettings({ posScanner: posScannerEnabled });
   }, []);
@@ -287,3 +298,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+
+    

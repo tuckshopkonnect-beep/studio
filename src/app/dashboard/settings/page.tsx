@@ -30,7 +30,7 @@ export default function SettingsPage() {
     setPosScannerEnabled(enabled);
     localStorage.setItem('posScannerEnabled', String(enabled));
      // Optional: force a reload to reflect sidebar changes immediately, though not ideal.
-     // window.location.reload(); 
+     window.location.reload(); 
   };
 
   const handleOrderTimerToggle = (enabled: boolean) => {
@@ -151,3 +151,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
