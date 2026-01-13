@@ -9,15 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function InventoryPage() {
+export default function ReportsPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Menu Management</CardTitle>
-        <CardDescription>Create, update, and manage all tuck shop items.</CardDescription>
+        <CardTitle>Reports</CardTitle>
+        <CardDescription>Generate financial and operational reports.</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Menu management page content will go here.</p>
+        <p>Reports page content will go here.</p>
       </CardContent>
     </Card>
   );
