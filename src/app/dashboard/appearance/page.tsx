@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Palette, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const colors = [
@@ -28,17 +28,20 @@ export default function AppearancePage() {
   const [primaryColor, setPrimaryColor] = useState("262 52% 47%");
 
   useEffect(() => {
-    setMounted(true);
     const storedTheme = localStorage.getItem("theme") || "light";
     const storedColor = localStorage.getItem("primaryColor") || "262 52% 47%";
+    
     setTheme(storedTheme);
     setPrimaryColor(storedColor);
-    document.documentElement.style.setProperty("--primary", storedColor);
+    
     if (storedTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
+    document.documentElement.style.setProperty("--primary", storedColor);
+
+    setMounted(true);
   }, []);
 
   const handleThemeChange = (newTheme: "light" | "dark") => {

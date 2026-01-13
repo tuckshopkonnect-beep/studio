@@ -77,6 +77,15 @@ export default function DashboardLayout({
     setFeatureSettings({ posScanner: posScannerEnabled });
   }, []);
 
+  const setTheme = (theme: "light" | "dark") => {
+    localStorage.setItem("theme", theme);
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+
   const breadcrumbItems = pathname.split('/').filter(Boolean);
 
   const visibleSecondaryNavItems = secondaryNavItems.filter(item => !item.feature || featureSettings[item.feature as keyof typeof featureSettings]);
@@ -246,10 +255,10 @@ export default function DashboardLayout({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                 <DropdownMenuItem onClick={() => {}}>
+                 <DropdownMenuItem onClick={() => setTheme("light")}>
                     Light
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
                     Dark
                 </DropdownMenuItem>
             </DropdownMenuContent>
