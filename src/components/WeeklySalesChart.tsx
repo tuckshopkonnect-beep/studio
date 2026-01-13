@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts"
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import {
   ChartContainer,
   ChartTooltip as ChartTooltipPrimitive,
@@ -26,7 +26,7 @@ export default function WeeklySalesChart() {
         color: "hsl(var(--chart-1))",
       },
     }} className="h-[300px] w-full">
-      <BarChart 
+      <LineChart 
         accessibilityLayer
         data={data}
         margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
@@ -47,20 +47,27 @@ export default function WeeklySalesChart() {
           tickFormatter={(value) => `₦${value/1000}k`}
         />
         <ChartTooltipPrimitive
-          cursor={false}
+          cursor={true}
           content={
             <ChartTooltipContent 
               indicator="dot" 
-              formatter={(value: number) => [`₦${value.toFixed(2)}`]}
+              formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(value)}
             />
           }
         />
-        <Bar 
+        <Line 
           dataKey="total" 
-          fill="var(--color-total)" 
-          radius={4}
+          stroke="var(--color-total)" 
+          strokeWidth={2}
+          dot={{
+            fill: "var(--color-total)",
+            r: 4
+          }}
+          activeDot={{
+            r: 6
+          }}
         />
-      </BarChart>
+      </LineChart>
     </ChartContainer>
   )
 }
