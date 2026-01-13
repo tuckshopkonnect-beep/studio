@@ -16,15 +16,18 @@ import Link from "next/link";
 import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInput, PersonalizedFoodRecommendationsOutput } from "@/app/actions";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { initialUsers } from "@/lib/data";
 
 
 export default function StudentDashboard() {
-  const student = {
+  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe') || {
     name: "Alex Doe",
     balance: 2550.00,
     dailyLimit: 1000.00,
     spentToday: 450.00,
   };
+
+  const spentToday = 450.00; // This would typically come from transaction data
 
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,8 +74,8 @@ export default function StudentDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{student.spentToday.toFixed(2)} / ₦{student.dailyLimit.toFixed(2)}</div>
-            <Progress value={(student.spentToday / student.dailyLimit) * 100} className="mt-2" />
+            <div className="text-2xl font-bold">₦{spentToday.toFixed(2)} / ₦{(student.dailyLimit || 0).toFixed(2)}</div>
+            <Progress value={(spentToday / (student.dailyLimit || 1)) * 100} className="mt-2" />
           </CardContent>
         </Card>
       </div>
