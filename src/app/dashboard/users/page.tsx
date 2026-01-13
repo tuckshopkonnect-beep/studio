@@ -73,6 +73,7 @@ export default function UsersPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead className="hidden md:table-cell">Balance</TableHead>
+                <TableHead className="hidden md:table-cell">Daily Limit</TableHead>
                 <TableHead className="hidden md:table-cell">Class</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -101,6 +102,9 @@ export default function UsersPage() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
+                  </TableCell>
+                   <TableCell className="hidden md:table-cell">
+                    {user.role === 'Student' && user.dailyLimit ? `₦${user.dailyLimit.toFixed(2)}` : 'N/A'}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {user.class || 'N/A'}

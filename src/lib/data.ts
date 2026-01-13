@@ -35,6 +35,7 @@ export interface User {
   avatarUrl: string;
   balance: number;
   class?: string;
+  dailyLimit?: number;
 }
 
 
@@ -68,10 +69,10 @@ export const initialInventory: InventoryItem[] = menuItems.map(item => ({
 }));
 
 export const initialUsers: User[] = [
-    { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0, class: 'N/A' },
-    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 25.50, class: 'JSS 2' },
-    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 15.00, class: 'SSS 1' },
-    { id: 4, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 0, class: 'N/A' },
+    { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
+    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 25.50, class: 'JSS 2', dailyLimit: 15.00 },
+    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 15.00, class: 'SSS 1', dailyLimit: 20.00 },
+    { id: 4, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 0 },
     { id: 5, name: 'Emma Brown', email: 'emma.b@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a092581f4e29026703d', balance: 50.25, class: 'JSS 3' },
-    { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0, class: 'N/A' },
+    { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0 },
 ];

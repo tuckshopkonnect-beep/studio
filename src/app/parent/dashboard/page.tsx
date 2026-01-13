@@ -11,18 +11,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, History, Edit } from "lucide-react";
+import { PlusCircle, History } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { initialUsers } from "@/lib/data";
 
 export default function ParentDashboard() {
-  // Placeholder data
-  const children = [
-    { name: "Alex Doe", balance: 2550.00, limit: 1500.00, spent: 450, avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-    { name: "Jamie Doe", balance: 1500.00, limit: 1000.00, spent: 800, avatar: 'https://i.pravatar.cc/150?u=a04258114e29026702d' },
-  ];
-
+  // Placeholder data - in a real app, this would be fetched based on the logged-in parent
+  const childrenOfParent = initialUsers.filter(u => u.name === 'Emma Brown'); // Example
+  
   const parent = {
-    name: "Jane Doe"
+    name: "Mrs. Brown"
+  };
+
+  // Mocked spending data
+  const spending = {
+    "Emma Brown": 450.00
   };
 
   return (
@@ -33,11 +36,16 @@ export default function ParentDashboard() {
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {children.map((child, index) => (
-                <Card key={index} className="flex flex-col transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+            {childrenOfParent.map((child) => {
+              const spent = spending[child.name as keyof typeof spending] || 0;
+              const limit = child.dailyLimit || 0;
+              const progress = limit > 0 ? (spent / limit) * 100 : 0;
+
+              return (
+                <Card key={child.id} className="flex flex-col transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
                     <CardHeader className="flex flex-row items-center gap-4">
                         <Avatar className="h-16 w-16 border-2 border-primary/20">
-                            <AvatarImage src={child.avatar} alt={child.name} />
+                            <AvatarImage src={child.avatarUrl} alt={child.name} />
                             <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
@@ -53,9 +61,9 @@ export default function ParentDashboard() {
                         <div>
                             <div className="flex justify-between text-sm text-muted-foreground mb-1">
                                 <span>Daily Spending</span>
-                                <span>₦{child.spent.toFixed(2)} / ₦{child.limit.toFixed(2)}</span>
+                                <span>₦{spent.toFixed(2)} / ₦{limit.toFixed(2)}</span>
                             </div>
-                            <Progress value={(child.spent / child.limit) * 100} />
+                            <Progress value={progress} />
                         </div>
                     </CardContent>
                     <CardFooter className="grid grid-cols-2 gap-2">
@@ -67,7 +75,8 @@ export default function ParentDashboard() {
                         </Button>
                     </CardFooter>
                 </Card>
-            ))}
+              )
+            })}
         </div>
     </div>
   );
