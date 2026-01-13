@@ -152,12 +152,22 @@ export default function UserDetailDialog({
   };
   
   const title = isCreating ? "Create New User" : isEditing ? `Edit ${user?.name}` : `User Details`;
-  const description = isCreating ? "Fill in the details to add a new user." : `Viewing details for ${user?.name}`;
+  const description = isCreating ? "Fill in the details to add a new user." : isEditing ? `Editing details for ${user?.name}` : `Viewing details for ${user?.name}`;
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
+          <DialogTitle className={cn(isEditing && 'sr-only')}>
+            {title}
+          </DialogTitle>
+           {isEditing && (
+            <DialogDescription className="sr-only">
+              {description}
+            </DialogDescription>
+          )}
+
           <div className="flex flex-col items-center gap-4">
               <div className="relative">
                   <Avatar 
@@ -197,8 +207,7 @@ export default function UserDetailDialog({
                   </div>
               ) : (
                   <div className="grid gap-1 text-center">
-                      <DialogTitle className="text-2xl">{userData.name}</DialogTitle>
-                      <DialogDescription>{userData.email}</DialogDescription>
+                      <DialogDescription className="mt-[-1rem]">{userData.email}</DialogDescription>
                       <Badge variant={userData.role === 'Admin' ? 'destructive' : userData.role === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{userData.role}</Badge>
                   </div>
               )}
