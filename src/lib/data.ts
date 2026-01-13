@@ -40,6 +40,15 @@ export interface User {
   parentId?: number;
 }
 
+export interface PasswordResetRequest {
+  id: number;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  userAvatar: string;
+  requestDate: string;
+}
+
 
 export const menuItems: MenuItem[] = [
   { id: 1, name: 'Classic Sandwich', description: 'A delicious ham and cheese sandwich.', price: 5.50, image: PlaceHolderImages[0], category: 'Meals' },
@@ -72,11 +81,21 @@ export const initialInventory: InventoryItem[] = menuItems.map(item => ({
 
 export const initialUsers: User[] = [
     { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
-    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 25.50, class: 'JSS 2', dailyLimit: 15.00 },
-    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 15.00, class: 'SSS 1', dailyLimit: 20.00 },
-    { id: 4, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 0 },
-    { id: 5, name: 'Emma Brown', email: 'emma.b@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a092581f4e29026703d', balance: 50.25, class: 'JSS 3', dailyLimit: 10.00, parentId: 6 },
+    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 25.50, class: 'JSS2', dailyLimit: 15.00, parentId: 8 },
+    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 15.00, class: 'SS1', dailyLimit: 20.00, parentId: 9 },
+    { id: 4, name: 'Noah Williams', email: 'noah.w@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 100.00, class: 'JSS1', parentId: 10 },
+    { id: 5, name: 'Emma Brown', email: 'emma.b@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a092581f4e29026703d', balance: 50.25, class: 'JSS3', dailyLimit: 10.00, parentId: 6 },
     { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0 },
-    { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 2550.00, class: 'SSS 2', dailyLimit: 10.00 },
+    { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 2550.00, class: 'SS2', dailyLimit: 10.00 },
+    { id: 8, name: 'Mr. Johnson', email: 'liam.johnson.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026707d', balance: 0 },
+    { id: 9, name: 'Ms. Smith', email: 'olivia.smith.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026708d', balance: 0 },
+    { id: 10, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026709d', balance: 0 },
+    { id: 11, name: 'Principal Ade', email: 'principal@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026710d', balance: 0 },
 
+];
+
+export const passwordResetRequests: PasswordResetRequest[] = [
+  { id: 1, userId: 2, userName: 'Liam Johnson', userEmail: 'liam.j@school.com', userAvatar: initialUsers.find(u => u.id === 2)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 15).toISOString() }, // 15 mins ago
+  { id: 2, userId: 10, userName: 'Mr. Williams', userEmail: 'noah.williams.p@parent.com', userAvatar: initialUsers.find(u => u.id === 10)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() }, // 2 hours ago
+  { id: 3, userId: 9, userName: 'Ms. Smith', userEmail: 'olivia.smith.p@parent.com', userAvatar: initialUsers.find(u => u.id === 9)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() }, // 1 day ago
 ];
