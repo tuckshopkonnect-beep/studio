@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import UserDetailDialog from "@/components/UserDetailDialog";
 
 export default function UsersPage() {
   const { toast } = useToast();
@@ -48,6 +49,11 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
   const [searchTerm, setSearchTerm] = React.useState("");
+
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [isUserDetailOpen, setIsUserDetailOpen] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
 
   const filteredUsers = React.useMemo(() => {
     return users
@@ -87,6 +93,40 @@ export default function UsersPage() {
     setUserToDelete(null);
   };
 
+  const handleOpenDialog = (user: User | null, mode: 'view' | 'edit' | 'create') => {
+    if (mode === 'create') {
+      setSelectedUser(null);
+      setIsCreating(true);
+      setIsEditing(true);
+    } else {
+      setSelectedUser(user);
+      setIsCreating(false);
+      setIsEditing(mode === 'edit');
+    }
+    setIsUserDetailOpen(true);
+  };
+  
+  const handleCloseDialog = () => {
+    setIsUserDetailOpen(false);
+    setSelectedUser(null);
+    setIsEditing(false);
+    setIsCreating(false);
+  };
+
+  const handleSaveUser = (userToSave: User) => {
+    if (isCreating) {
+      // Add new user
+      const newUser = { ...userToSave, id: Date.now(), avatarUrl: `https://i.pravatar.cc/150?u=${Date.now()}` };
+      setUsers(prev => [...prev, newUser]);
+      toast({ title: "User Created", description: `${newUser.name} has been added.` });
+    } else {
+      // Update existing user
+      setUsers(prev => prev.map(u => u.id === userToSave.id ? userToSave : u));
+      toast({ title: "User Updated", description: `${userToSave.name}'s details have been saved.` });
+    }
+    handleCloseDialog();
+  };
+
   return (
     <>
       <ConfirmationDialog
@@ -97,6 +137,18 @@ export default function UsersPage() {
         description="This action cannot be undone. This will permanently delete the user's account and all associated data."
         confirmButtonText="Yes, Delete User"
       />
+      {isUserDetailOpen && (
+        <UserDetailDialog
+            user={selectedUser}
+            isOpen={isUserDetailOpen}
+            onOpenChange={handleCloseDialog}
+            onSave={handleSaveUser}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            isCreating={isCreating}
+        />
+      )}
+
       <Tabs defaultValue="all" onValueChange={setActiveTab}>
         <div className="flex items-center gap-4">
           <TabsList>
@@ -128,7 +180,7 @@ export default function UsersPage() {
                 <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="sm">
+            <Button size="sm" onClick={() => handleOpenDialog(null, 'create')}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add User
             </Button>
@@ -149,7 +201,7 @@ export default function UsersPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="hidden md:table-cell">Balance</TableHead>
-                    <TableHead className="hidden md:table-cell">Daily Limit</TableHead>
+                    <TableHead className="hidden md:table-cell font-semibold text-primary">Daily Limit</TableHead>
                     <TableHead className="hidden md:table-cell">Class</TableHead>
                     <TableHead>
                       <span className="sr-only">Actions</span>
@@ -200,8 +252,8 @@ export default function UsersPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onSelect={() => alert(`Editing ${user.name}`)}>Edit</DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => alert(`Viewing details for ${user.name}`)}>View Details</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => handleOpenDialog(user, 'edit')}>Edit</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => handleOpenDialog(user, 'view')}>View Details</DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"

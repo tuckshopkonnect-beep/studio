@@ -77,6 +77,7 @@ export default function InventoryPage() {
         onConfirm={handleDeleteItem}
         title={`Delete "${itemToDelete?.name}"?`}
         description="This action cannot be undone. This will permanently delete the menu item and its inventory record."
+        confirmButtonText="Yes, Delete Item"
     />
     <Tabs defaultValue="all">
       <div className="flex items-center">
@@ -172,9 +173,9 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={() => alert(`Editing ${item.name}`)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem>Edit</DropdownMenuItem>
                             <DropdownMenuItem
-                              className="text-destructive"
+                              className="text-destructive focus:text-destructive"
                               onSelect={() => setItemToDelete(item)}
                             >
                               Delete
