@@ -36,10 +36,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function InventoryPage() {
   const inventory = initialInventory;
   const menu = menuItems;
+
+  const handleExport = () => {
+    const doc = new jsPDF();
+    doc.text("Menu & Inventory Report", 14, 16);
+    
+    const tableData = menu.map(item => {
+        const stockItem = inventory.find(inv => inv.id === item.id);
+        const stock = stockItem?.stock ?? 0;
+        const stockStatus = stock === 0 ? "Out of Stock" : stock < (stockItem?.lowStockThreshold ?? 15) ? "Low Stock" : "In Stock";
+        return [
+            item.name,
+            stockStatus,
+            `₦${item.price.toFixed(2)}`,
+            stock.toString()
+        ];
+    });
+
+    autoTable(doc, {
+        head: [['Name', 'Status', 'Price', 'Stock']],
+        body: tableData,
+        startY: 20,
+    });
+
+    doc.save('inventory-report.pdf');
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -51,7 +78,7 @@ export default function InventoryPage() {
           <TabsTrigger value="draft">Out of Stock</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>

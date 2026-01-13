@@ -51,6 +51,8 @@ import {
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { initialOrders, initialUsers, menuItems, initialInventory } from "@/lib/data";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const chartConfig = {
   revenue: {
@@ -89,16 +91,6 @@ export default function ReportsPage() {
     from: subDays(new Date(), 29),
     to: new Date(),
   });
-
-  const handleGenerateReport = () => {
-    // In a real app, this would generate a multi-page PDF
-    alert("Generating full PDF report (feature in development).");
-  };
-
-  const handleExportSection = (sectionTitle: string) => {
-    // In a real app, this would generate a PDF for the specific section
-    alert(`Exporting ${sectionTitle} to PDF (feature in development).`);
-  };
 
   // Filter data based on date range
   const filteredOrders = initialOrders.filter(order => {
@@ -182,6 +174,140 @@ export default function ReportsPage() {
     .map(([name, data]) => ({ name, ...data }))
     .sort((a,b) => b.revenue - a.revenue);
 
+  // --- PDF Export Logic ---
+  const handleExportSection = (sectionTitle: string) => {
+    const doc = new jsPDF();
+    doc.text(sectionTitle, 14, 16);
+    
+    let body: (string|number)[][] = [];
+    let head: string[][] = [];
+
+    switch (sectionTitle) {
+      case 'Activity Log':
+        head = [['Date', 'Type', 'Description', 'Amount']];
+        body = activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`]);
+        break;
+      case 'Sales Report':
+        head = [['Date', 'Revenue']];
+        body = salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`]);
+        break;
+      case 'Sales by Category':
+        head = [['Category', 'Revenue']];
+        body = pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`]);
+        break;
+      case 'Business Intelligence':
+        autoTable(doc, {
+            head: [['Student', 'Total Spent']],
+            body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`]),
+            startY: 20,
+            didDrawPage: (data) => { data.doc.text('Student Spending', 14, 15); }
+        });
+        autoTable(doc, {
+            head: [['Product', 'Units Sold', 'Revenue']],
+            body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`]),
+            didDrawPage: (data) => { data.doc.text('Product Performance', 14, data.cursor?.y ? data.cursor.y - 10 : 15); }
+        });
+        doc.save('business-intelligence.pdf');
+        return; // Early return for this special case
+      case 'Inventory Report':
+        head = [['Product', 'Current Stock']];
+        body = initialInventory.map(i => [i.name, i.stock]);
+        break;
+    }
+
+    autoTable(doc, { head, body, startY: 20 });
+    doc.save(`${sectionTitle.toLowerCase().replace(/ /g, '-')}-report.pdf`);
+  };
+
+  const handleGenerateReport = () => {
+    const doc = new jsPDF();
+    const finalY = (doc.internal.pageSize.height - 10);
+    const pageMargin = 14;
+
+    doc.setFontSize(20);
+    doc.text("Tuckshop Full Report", pageMargin, 22);
+    doc.setFontSize(12);
+    const fromDate = date?.from ? format(date.from, "LLL dd, y") : 'N/A';
+    const toDate = date?.to ? format(date.to, "LLL dd, y") : 'N/A';
+    doc.text(`Date Range: ${fromDate} - ${toDate}`, pageMargin, 30);
+    let startY = 40;
+
+    // Helper to add a new page if content overflows
+    const checkPageBreak = (currentY: number) => {
+        if (currentY > finalY - 30) { // 30 is a buffer
+            doc.addPage();
+            return 20;
+        }
+        return currentY;
+    }
+
+    // Activity Log
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Activity Log", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Date', 'Type', 'Description', 'Amount']],
+        body: activityLog.map(a => [format(a.date, 'Pp'), a.type, a.description, `₦${a.amount.toFixed(2)}`]),
+        startY: startY + 5,
+    });
+    startY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Sales Report
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Sales Report", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Date', 'Revenue']],
+        body: salesChartData.map(s => [s.date, `₦${s.revenue.toFixed(2)}`]),
+        startY: startY + 5,
+    });
+    startY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Sales by Category
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Sales by Category", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Category', 'Revenue']],
+        body: pieChartData.map(p => [p.name, `₦${p.value.toFixed(2)}`]),
+        startY: startY + 5,
+    });
+    startY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Student Spending
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Student Spending", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Student', 'Total Spent']],
+        body: topStudents.map(s => [s.name, `₦${s.total.toFixed(2)}`]),
+        startY: startY + 5,
+    });
+    startY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Product Performance
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Product Performance", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Product', 'Units Sold', 'Revenue']],
+        body: topProducts.map(p => [p.name, p.unitsSold, `₦${p.revenue.toFixed(2)}`]),
+        startY: startY + 5,
+    });
+    startY = (doc as any).lastAutoTable.finalY + 15;
+
+    // Inventory Report
+    startY = checkPageBreak(startY);
+    doc.setFontSize(16);
+    doc.text("Inventory Report (Current State)", pageMargin, startY);
+    autoTable(doc, {
+        head: [['Product', 'Current Stock']],
+        body: initialInventory.map(i => [i.name, i.stock]),
+        startY: startY + 5,
+    });
+    
+    doc.save(`full-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
 
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8">
@@ -431,5 +557,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    

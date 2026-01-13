@@ -35,10 +35,33 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, PlusCircle, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 
 export default function UsersPage() {
   const users = initialUsers;
+
+  const handleExport = () => {
+    const doc = new jsPDF();
+    doc.text("Users Report", 14, 16);
+
+    const tableData = users.map(user => [
+        user.name,
+        user.email,
+        user.role,
+        user.class || "N/A",
+        user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : "N/A"
+    ]);
+
+    autoTable(doc, {
+        head: [['Name', 'Email', 'Role', 'Class', 'Balance']],
+        body: tableData,
+        startY: 20,
+    });
+
+    doc.save('users-report.pdf');
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -50,7 +73,7 @@ export default function UsersPage() {
           <TabsTrigger value="admin">Admins</TabsTrigger>
         </TabsList>
         <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>

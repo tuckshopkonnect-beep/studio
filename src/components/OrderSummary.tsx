@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingCart, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,15 @@ import {
 } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { initialUsers } from "@/lib/data";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function OrderSummary() {
   const { cartItems, removeFromCart, updateQuantity, clearCart, totalPrice } = useCart();
   const { toast } = useToast();
-  const [orderResult, setOrderResult] = useState<{ id: string; success: boolean } | null>(null);
+  const [orderResult, setOrderResult] = useState<{ id: string; success: boolean, items: typeof cartItems, total: number } | null>(null);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+
 
   // In a real app, this would come from an auth context
   const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
@@ -65,13 +69,65 @@ export default function OrderSummary() {
     console.log("Order placed with transaction ID:", transactionId);
 
     // For now, we'll just simulate a successful order.
+    setOrderResult({ id: transactionId, success: true, items: [...cartItems], total: totalPrice });
     clearCart();
-    setOrderResult({ id: transactionId, success: true });
   };
 
   const closeDialog = () => {
     setOrderResult(null);
   }
+
+  const downloadReceipt = () => {
+    if (!orderResult) return;
+    const doc = new jsPDF();
+
+    doc.text("Order Receipt", 14, 20);
+    doc.text(`Transaction ID: ${orderResult.id}`, 14, 30);
+    doc.text(`Student: ${student.name}`, 14, 36);
+    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 42);
+
+    autoTable(doc, {
+        head: [['Item', 'Quantity', 'Price', 'Total']],
+        body: orderResult.items.map(item => [
+            item.name,
+            item.quantity,
+            `₦${item.price.toFixed(2)}`,
+            `₦${(item.price * item.quantity).toFixed(2)}`
+        ]),
+        startY: 50,
+    });
+    
+    let finalY = (doc as any).lastAutoTable.finalY || 70;
+
+    doc.setFontSize(14);
+    doc.text(`Total: ₦${orderResult.total.toFixed(2)}`, 14, finalY + 10);
+    
+    // Add QR code
+    if (qrCodeRef.current) {
+        const svgElement = qrCodeRef.current.querySelector('svg');
+        if (svgElement) {
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const canvas = document.createElement("canvas");
+            const svgSize = svgElement.getBoundingClientRect();
+            canvas.width = svgSize.width;
+            canvas.height = svgSize.height;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+                const img = document.createElement("img");
+                img.setAttribute("src", "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData))));
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    const dataUrl = canvas.toDataURL("image/png");
+                    doc.addImage(dataUrl, 'PNG', 14, finalY + 20, 50, 50);
+                    doc.save(`receipt-${orderResult.id}.pdf`);
+                };
+            }
+        }
+    } else {
+        doc.save(`receipt-${orderResult.id}.pdf`);
+    }
+  };
+
 
   return (
     <>
@@ -154,14 +210,14 @@ export default function OrderSummary() {
               Show this QR code to the tuckshop staff to collect your order.
             </DialogDescription>
           </DialogHeader>
-          <div className="p-4 bg-white rounded-lg my-4 flex items-center justify-center">
+          <div ref={qrCodeRef} className="p-4 bg-white rounded-lg my-4 flex items-center justify-center">
              {orderResult?.id && <QRCode value={orderResult.id} size={256} />}
           </div>
            <div className="text-center text-sm text-muted-foreground">
               Transaction ID: {orderResult?.id}
             </div>
           <div className="flex flex-col gap-2 mt-4">
-             <Button variant="outline">
+             <Button variant="outline" onClick={downloadReceipt}>
                 <Download className="mr-2 h-4 w-4" />
                 Download Receipt
             </Button>

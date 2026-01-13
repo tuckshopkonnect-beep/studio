@@ -35,9 +35,31 @@ import {
 import { Button } from "@/components/ui/button";
 import { ListFilter, MoreHorizontal, File } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function OrdersPage() {
   const orders = initialOrders;
+
+  const handleExport = () => {
+    const doc = new jsPDF();
+    doc.text("Orders Report", 14, 16);
+
+    const tableData = orders.map(order => [
+      order.customerName,
+      order.status,
+      new Date(order.orderDate).toLocaleDateString(),
+      `₦${order.total.toFixed(2)}`
+    ]);
+
+    autoTable(doc, {
+      head: [['Customer', 'Status', 'Date', 'Amount']],
+      body: tableData,
+      startY: 20,
+    });
+
+    doc.save('orders-report.pdf');
+  };
 
   return (
     <Tabs defaultValue="all">
@@ -66,7 +88,7 @@ export default function OrdersPage() {
               <DropdownMenuCheckboxItem>Completed</DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={handleExport}>
             <File className="mr-2 h-4 w-4" />
             Export
           </Button>
