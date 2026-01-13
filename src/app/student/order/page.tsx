@@ -4,8 +4,22 @@
 import { menuItems } from '@/lib/data';
 import MenuItemCard from '@/components/MenuItemCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Timer } from 'lucide-react';
+import { Timer, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+// --- StopOrdersAlert Component ---
+const StopOrdersAlert = () => {
+    return (
+        <Alert variant="destructive" className="mb-8">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>All Ordering is Temporarily Disabled</AlertTitle>
+            <AlertDescription>
+                The tuck shop is not accepting any new orders at this time. Please check back later.
+            </AlertDescription>
+        </Alert>
+    );
+};
+
 
 // --- OrderTimer Component ---
 const OrderTimer = () => {
@@ -106,8 +120,19 @@ const OrderTimer = () => {
 
 export default function OrderPage() {
   const [shopOpen, setShopOpen] = useState(true);
+  const [ordersStopped, setOrdersStopped] = useState(false);
 
   useEffect(() => {
+    // Check for master override first
+    const stopOrders = localStorage.getItem('stopOrders') === 'true';
+    setOrdersStopped(stopOrders);
+    
+    if (stopOrders) {
+      setShopOpen(false);
+      return; // No need to check timer if orders are stopped globally
+    }
+
+    // If not globally stopped, check the timer
     const timerEnabled = localStorage.getItem('orderTimerEnabled') === 'true';
     if(timerEnabled) {
       const checkShopStatus = () => {
@@ -125,7 +150,7 @@ export default function OrderPage() {
         setShopOpen(now >= openTime && now < closeTime);
       };
       checkShopStatus();
-      const interval = setInterval(checkShopStatus, 1000);
+      const interval = setInterval(checkShopStatus, 1000 * 60); // Check every minute
       return () => clearInterval(interval);
     } else {
       setShopOpen(true);
@@ -136,7 +161,7 @@ export default function OrderPage() {
     <div>
       <section>
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
-        <OrderTimer />
+        {ordersStopped ? <StopOrdersAlert /> : <OrderTimer />}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
           {menuItems.map(item => (
             <MenuItemCard key={item.id} item={item} isShopOpen={shopOpen} />

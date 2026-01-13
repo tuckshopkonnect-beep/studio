@@ -13,12 +13,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
+  const { toast } = useToast();
   const [posScannerEnabled, setPosScannerEnabled] = useState(true);
   const [orderTimerEnabled, setOrderTimerEnabled] = useState(false);
   const [orderOpenTime, setOrderOpenTime] = useState("08:00");
   const [orderCloseTime, setOrderCloseTime] = useState("14:00");
+  const [stopOrders, setStopOrders] = useState(false);
 
   useEffect(() => {
     const storedPosScanner = localStorage.getItem('posScannerEnabled');
@@ -32,6 +35,9 @@ export default function SettingsPage() {
     
     const storedCloseTime = localStorage.getItem('orderCloseTime') || "14:00";
     setOrderCloseTime(storedCloseTime);
+
+    const storedStopOrders = localStorage.getItem('stopOrders');
+    setStopOrders(storedStopOrders === 'true');
 
   }, []);
 
@@ -50,7 +56,19 @@ export default function SettingsPage() {
   const handleTimeChange = () => {
     localStorage.setItem('orderOpenTime', orderOpenTime);
     localStorage.setItem('orderCloseTime', orderCloseTime);
-    // Maybe show a toast notification here
+    toast({
+        title: "Order times saved",
+        description: "The shop open and close times have been updated."
+    });
+  };
+
+  const handleStopOrdersToggle = (enabled: boolean) => {
+    setStopOrders(enabled);
+    localStorage.setItem('stopOrders', String(enabled));
+    toast({
+        title: enabled ? "All orders have been stopped" : "Ordering has been re-enabled",
+        variant: enabled ? "destructive" : "default"
+    });
   };
 
 
@@ -90,14 +108,19 @@ export default function SettingsPage() {
             <CardDescription>Manage the operational status of the tuck shop.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
+            <div className="flex items-center justify-between space-x-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                 <div className="flex-1">
-                    <Label htmlFor="stop-orders" className="font-semibold">Stop All Orders</Label>
+                    <Label htmlFor="stop-orders" className="font-semibold text-destructive">Stop All Orders (Override)</Label>
                     <p className="text-xs text-muted-foreground">
-                    Temporarily disable all new orders from being placed.
+                    Temporarily disable all new orders from being placed. This will override the timer.
                     </p>
                 </div>
-                <Switch id="stop-orders" aria-label="Stop all orders" />
+                <Switch 
+                    id="stop-orders" 
+                    aria-label="Stop all orders" 
+                    checked={stopOrders}
+                    onCheckedChange={handleStopOrdersToggle}
+                />
             </div>
              <div className="space-y-4 rounded-lg border p-4">
               <div className="flex items-center justify-between space-x-2">
@@ -112,6 +135,7 @@ export default function SettingsPage() {
                     aria-label="Enable order timer" 
                     checked={orderTimerEnabled}
                     onCheckedChange={handleOrderTimerToggle}
+                    disabled={stopOrders}
                 />
               </div>
               {orderTimerEnabled && (
@@ -124,6 +148,7 @@ export default function SettingsPage() {
                             value={orderOpenTime}
                             onChange={(e) => setOrderOpenTime(e.target.value)}
                             onBlur={handleTimeChange}
+                            disabled={stopOrders}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -134,6 +159,7 @@ export default function SettingsPage() {
                             value={orderCloseTime}
                             onChange={(e) => setOrderCloseTime(e.target.value)}
                             onBlur={handleTimeChange}
+                            disabled={stopOrders}
                         />
                     </div>
                 </div>
