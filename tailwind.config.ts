@@ -116,8 +116,26 @@ export default {
         'accordion-up': 'accordion-up 0.2s ease-out',
         'blob': 'blob 8s infinite ease-in-out',
         'tilt': 'tilt 10s infinite linear',
+        'spin-slow': 'spin 3s linear infinite',
+      },
+      textShadow: {
+        sm: '0 1px 2px var(--tw-shadow-color)',
+        DEFAULT: '0 2px 4px var(--tw-shadow-color)',
+        lg: '0 8px 16px var(--tw-shadow-color)',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    function ({ matchUtilities, theme }: { matchUtilities: any, theme: any }) {
+      matchUtilities(
+        {
+          'text-shadow': (value: any) => ({
+            textShadow: value,
+          }),
+        },
+        { values: theme('textShadow') }
+      )
+    },
+  ],
 } satisfies Config;
