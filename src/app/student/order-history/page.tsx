@@ -74,7 +74,7 @@ export default function OrderHistoryPage() {
               {orderHistory.length > 0 ? (
                 orderHistory.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-mono text-sm">{order.id.split('-')[1]}</TableCell>
+                    <TableCell className="font-mono text-sm">{order.id.substring(4, 11)}</TableCell>
                     <TableCell>{format(new Date(order.orderDate), "PPp")}</TableCell>
                     <TableCell>
                       <Badge variant={

@@ -42,8 +42,17 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
   const { toast } = useToast();
-  const [orders, setOrders] = React.useState(initialOrders);
+  const [orders, setOrders] = React.useState<Order[]>(initialOrders);
   const [orderToCancel, setOrderToCancel] = React.useState<Order | null>(null);
+
+  React.useEffect(() => {
+    // In a real app, you'd fetch this from a server. Here we use localStorage.
+    if (typeof window !== 'undefined') {
+        const storedOrders = localStorage.getItem('allOrders');
+        const allOrders = storedOrders ? JSON.parse(storedOrders) : initialOrders;
+        setOrders(allOrders);
+    }
+  }, []);
 
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
@@ -60,8 +69,9 @@ export default function OrdersPage() {
   const handleCancelOrder = () => {
     if (!orderToCancel) return;
     
-    // In a real app, you'd also update the backend and handle refunds
-    setOrders(orders.filter(order => order.id !== orderToCancel.id));
+    const updatedOrders = orders.filter(order => order.id !== orderToCancel.id);
+    setOrders(updatedOrders);
+    localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
     
     toast({
       title: "Order Cancelled",

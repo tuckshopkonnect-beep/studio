@@ -65,6 +65,7 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       total: totalPrice,
       status: 'Ready for Pickup', // New orders are ready for pickup
       orderDate: new Date().toISOString(),
+      customerName: student.name,
     };
 
     setCompletedOrder(newOrder);

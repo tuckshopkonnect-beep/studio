@@ -1,4 +1,7 @@
 
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -8,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingBag, Users, Activity, Star } from "lucide-react";
 import { initialOrders, initialUsers, initialInventory, menuItems } from "@/lib/data";
+import type { Order } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,36 +26,48 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const totalRevenue = initialOrders.reduce((acc, order) => acc + order.total, 0);
-const totalOrders = initialOrders.length;
-const totalUsers = initialUsers.length;
-const totalItemsSold = initialOrders.flatMap(o => o.items).reduce((acc, item) => acc + item.quantity, 0);
-
-// Calculate top selling items
-const itemSales = initialOrders.flatMap(o => o.items).reduce((acc, item) => {
-  acc[item.name] = (acc[item.name] || 0) + item.quantity;
-  return acc;
-}, {} as Record<string, number>);
-
-const topSellingItems = Object.entries(itemSales)
-  .sort(([, a], [, b]) => b - a)
-  .slice(0, 5)
-  .map(([name, quantity]) => ({
-    name,
-    quantity,
-    image: menuItems.find(mi => mi.name === name)?.image.imageUrl || 'https://placehold.co/100x100'
-  }));
-
-const recentActivities = [
-  { type: "New Order", description: "Order #ORD-005 placed by James Jones.", time: "5 minutes ago" },
-  { type: "New User", description: "A new parent account was created for Mrs. Brown.", time: "1 hour ago" },
-  { type: "Low Stock", description: "Stock for 'Meat Pie' is running low.", time: "3 hours ago" },
-  { type: "New Order", description: "Order #ORD-004 placed by Emma Brown.", time: "Yesterday" },
-  { type: "User Update", description: "Admin User updated settings for spending limits.", time: "Yesterday" },
-];
-
 export default function DashboardPage() {
-  const recentOrders = initialOrders.slice(0, 5);
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+
+  useEffect(() => {
+    // In a real app, you'd fetch this from a server. Here we use localStorage.
+    if (typeof window !== 'undefined') {
+        const storedOrders = localStorage.getItem('allOrders');
+        const allOrders = storedOrders ? JSON.parse(storedOrders) : initialOrders;
+        setOrders(allOrders);
+    }
+  }, []);
+
+  const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
+  const totalOrders = orders.length;
+  const totalUsers = initialUsers.length;
+  const totalItemsSold = orders.flatMap(o => o.items).reduce((acc, item) => acc + item.quantity, 0);
+
+  // Calculate top selling items
+  const itemSales = orders.flatMap(o => o.items).reduce((acc, item) => {
+    acc[item.name] = (acc[item.name] || 0) + item.quantity;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const topSellingItems = Object.entries(itemSales)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([name, quantity]) => ({
+      name,
+      quantity,
+      image: menuItems.find(mi => mi.name === name)?.image.imageUrl || 'https://placehold.co/100x100'
+    }));
+
+  const recentActivities = [
+    { type: "New Order", description: "Order #ORD-005 placed by James Jones.", time: "5 minutes ago" },
+    { type: "New User", description: "A new parent account was created for Mrs. Brown.", time: "1 hour ago" },
+    { type: "Low Stock", description: "Stock for 'Meat Pie' is running low.", time: "3 hours ago" },
+    { type: "New Order", description: "Order #ORD-004 placed by Emma Brown.", time: "Yesterday" },
+    { type: "User Update", description: "Admin User updated settings for spending limits.", time: "Yesterday" },
+  ];
+
+  const recentOrders = orders.slice(0, 5);
+  
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">

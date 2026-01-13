@@ -3,7 +3,7 @@
 
 import { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import type { MenuItem, InventoryItem } from '@/lib/data';
-import { initialInventory, menuItems } from '@/lib/data';
+import { initialInventory, menuItems, initialOrders } from '@/lib/data';
 
 export interface CartItem extends MenuItem {
   quantity: number;
@@ -15,6 +15,7 @@ export interface CompletedOrder {
   total: number;
   status: 'Pending' | 'Preparing' | 'Ready for Pickup' | 'Completed';
   orderDate: string;
+  customerName: string;
 }
 
 
@@ -56,6 +57,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Generate inventory with random stock only on the client-side after mount
     setClientInventory(generateInitialInventory());
+
+    if (typeof window !== 'undefined') {
+        const allOrders = localStorage.getItem('allOrders');
+        if (!allOrders) {
+            localStorage.setItem('allOrders', JSON.stringify(initialOrders));
+        }
+    }
   }, []);
 
   const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(() => {
@@ -75,9 +83,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addOrderToHistory = (order: CompletedOrder) => {
     if (typeof window === 'undefined') return;
+    // Add to student's personal history
     const history = JSON.parse(localStorage.getItem('orderHistory') || '[]') as CompletedOrder[];
     const updatedHistory = [order, ...history];
     localStorage.setItem('orderHistory', JSON.stringify(updatedHistory));
+
+    // Add to global list of all orders
+    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') as CompletedOrder[];
+    const updatedAllOrders = [order, ...allOrders];
+    localStorage.setItem('allOrders', JSON.stringify(updatedAllOrders));
   };
 
 
@@ -171,7 +185,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clearCart,
     totalItems,
     totalPrice
-  }), [cart, inventory, clientInventory, completedOrder, getStock]);
+  }), [cart, inventory, clientInventory, completedOrder, getStock, addOrderToHistory, setCompletedOrder, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice]);
 
   return (
     <CartContext.Provider value={value}>
