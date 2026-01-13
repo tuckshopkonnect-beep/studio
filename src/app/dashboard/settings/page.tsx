@@ -1,19 +1,21 @@
 
 "use client";
 import React, { useState, useEffect } from "react";
-
+import Link from "next/link";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
+import { ArrowRight } from "lucide-react";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -74,33 +76,55 @@ export default function SettingsPage() {
 
   return (
     <div className="grid gap-6">
-       <Card>
-        <CardHeader>
-          <CardTitle>Spending Limits</CardTitle>
-          <CardDescription>Set the default daily spending limits for students.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-6 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                <Input id="jss-limit" type="number" defaultValue="1000.00" className="pl-6" />
+       <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Default Spending Limits</CardTitle>
+            <CardDescription>Set the default daily spending limits for all students by class level.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                  <Input id="jss-limit" type="number" defaultValue="1000.00" className="pl-6" />
+                </div>
               </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                <Input id="sss-limit" type="number" defaultValue="1500.00" className="pl-6" />
+              <div className="grid gap-2">
+                <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                  <Input id="sss-limit" type="number" defaultValue="1500.00" className="pl-6" />
+                </div>
               </div>
-            </div>
-            <div className="md:col-span-2">
-              <Button>Save Limits</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+           <CardFooter className="border-t px-6 py-4">
+            <Button>Save Defaults</Button>
+          </CardFooter>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Individual Spending Limits</CardTitle>
+            <CardDescription>
+                To override the default limits for a specific student, find the user and edit their profile.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+                You can set a custom daily spending limit for any individual student from the main user management page.
+            </p>
+          </CardContent>
+           <CardFooter className="border-t px-6 py-4">
+             <Button asChild variant="outline">
+                <Link href="/dashboard/users">
+                  Manage Users <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+             </Button>
+          </CardFooter>
+        </Card>
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -217,4 +241,5 @@ export default function SettingsPage() {
       </Card>
     </div>
   );
-}
+
+    
