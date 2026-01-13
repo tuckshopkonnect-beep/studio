@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { initialOrders } from "@/lib/data";
+import type { Order } from "@/lib/data";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,9 +37,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { ListFilter, MoreHorizontal, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrdersPage() {
-  const orders = initialOrders;
+  const { toast } = useToast();
+  const [orders, setOrders] = React.useState(initialOrders);
+  const [orderToCancel, setOrderToCancel] = React.useState<Order | null>(null);
 
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
@@ -50,8 +56,31 @@ export default function OrdersPage() {
     const { exportOrdersCSV } = await import('@/lib/csv-utils');
     exportOrdersCSV(orders);
   };
+  
+  const handleCancelOrder = () => {
+    if (!orderToCancel) return;
+    
+    // In a real app, you'd also update the backend and handle refunds
+    setOrders(orders.filter(order => order.id !== orderToCancel.id));
+    
+    toast({
+      title: "Order Cancelled",
+      description: `Order #${orderToCancel.id} has been cancelled.`,
+    });
+    setOrderToCancel(null);
+  };
 
   return (
+    <>
+    <ConfirmationDialog
+        open={!!orderToCancel}
+        onOpenChange={(isOpen) => !isOpen && setOrderToCancel(null)}
+        onConfirm={handleCancelOrder}
+        title={`Cancel Order #${orderToCancel?.id}?`}
+        description="This will remove the order from the active list. This action may require manual refund processing."
+        confirmButtonVariant="destructive"
+        confirmButtonText="Yes, Cancel Order"
+    />
     <Tabs defaultValue="all">
       <div className="flex items-center">
         <TabsList>
@@ -146,10 +175,13 @@ export default function OrdersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem>View Student</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => alert(`Viewing details for order #${order.id}`)}>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => alert(`Viewing student ${order.customerName}`)}>View Student</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">
+                        <DropdownMenuItem 
+                            className="text-destructive"
+                            onSelect={() => setOrderToCancel(order)}
+                        >
                           Cancel Order
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -163,5 +195,6 @@ export default function OrdersPage() {
       </Card>
       </TabsContent>
     </Tabs>
+    </>
   );
 }

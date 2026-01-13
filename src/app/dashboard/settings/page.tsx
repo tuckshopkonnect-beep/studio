@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const [orderOpenTime, setOrderOpenTime] = useState("08:00");
   const [orderCloseTime, setOrderCloseTime] = useState("14:00");
   const [stopOrders, setStopOrders] = useState(false);
+  const [isPromoteConfirmOpen, setIsPromoteConfirmOpen] = useState(false);
 
   useEffect(() => {
     const storedPosScanner = localStorage.getItem('posScannerEnabled');
@@ -73,8 +75,36 @@ export default function SettingsPage() {
     });
   };
 
+  const handleSaveDefaults = () => {
+    // In a real app, this would save to a backend.
+    toast({
+        title: "Default limits saved",
+        description: "The default spending limits have been updated."
+    });
+  };
+  
+  const handlePromoteStudents = () => {
+    // In a real app, this would be a complex backend operation.
+    console.log("Promoting all students...");
+    toast({
+        title: "Students Promoted",
+        description: "All students have been moved to their next class level."
+    });
+    setIsPromoteConfirmOpen(false);
+  };
+
 
   return (
+    <>
+    <ConfirmationDialog
+        open={isPromoteConfirmOpen}
+        onOpenChange={setIsPromoteConfirmOpen}
+        onConfirm={handlePromoteStudents}
+        title="Promote All Students?"
+        description="This action will move all students to their next class level (e.g., JSS1 to JSS2). This action cannot be undone."
+        confirmButtonVariant="destructive"
+        confirmButtonText="Yes, Promote All Students"
+    />
     <div className="grid gap-6">
        <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -101,7 +131,7 @@ export default function SettingsPage() {
             </form>
           </CardContent>
            <CardFooter className="border-t px-6 py-4">
-            <Button>Save Defaults</Button>
+            <Button onClick={handleSaveDefaults}>Save Defaults</Button>
           </CardFooter>
         </Card>
         <Card>
@@ -235,11 +265,12 @@ export default function SettingsPage() {
                 Move all students to their next class level (e.g., JSS1 to JSS2). This action cannot be undone.
               </p>
             </div>
-            <Button variant="destructive">Promote Students</Button>
+            <Button variant="destructive" onClick={() => setIsPromoteConfirmOpen(true)}>Promote Students</Button>
           </div>
         </CardContent>
       </Card>
     </div>
+    </>
   );
-
+}
     

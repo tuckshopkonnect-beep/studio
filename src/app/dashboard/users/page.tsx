@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { initialUsers } from "@/lib/data";
+import type { User } from "@/lib/data";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,9 +38,13 @@ import { MoreHorizontal, PlusCircle, File, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UsersPage() {
-  const users = initialUsers;
+  const { toast } = useToast();
+  const [users, setUsers] = React.useState(initialUsers);
+  const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
 
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
@@ -52,8 +58,27 @@ export default function UsersPage() {
     exportUsersCSV(users);
   };
 
+  const handleDeleteUser = () => {
+    if (!userToDelete) return;
+    setUsers(users.filter(user => user.id !== userToDelete.id));
+    toast({
+      title: "User Deleted",
+      description: `${userToDelete.name} has been successfully deleted.`,
+    });
+    setUserToDelete(null);
+  };
+
+
   return (
-    <Tabs defaultValue="all">
+    <>
+      <ConfirmationDialog
+        open={!!userToDelete}
+        onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}
+        onConfirm={handleDeleteUser}
+        title={`Delete ${userToDelete?.name}?`}
+        description="This action cannot be undone. This will permanently delete the user's account and all associated data."
+      />
+      <Tabs defaultValue="all">
        <div className="flex items-center">
         <TabsList>
           <TabsTrigger value="all">All</TabsTrigger>
@@ -143,10 +168,15 @@ export default function UsersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => alert(`Editing ${user.name}`)}>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => alert(`Viewing details for ${user.name}`)}>View Details</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuItem
+                            className="text-destructive"
+                            onSelect={() => setUserToDelete(user)}
+                        >
+                            Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -158,5 +188,6 @@ export default function UsersPage() {
         </Card>
       </TabsContent>
     </Tabs>
+    </>
   );
 }

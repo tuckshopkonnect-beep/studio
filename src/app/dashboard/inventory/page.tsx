@@ -15,7 +15,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { initialInventory, menuItems } from "@/lib/data";
+import { menuItems as initialMenu, initialInventory } from "@/lib/data";
+import type { MenuItem as MenuItemType, InventoryItem } from "@/lib/data";
 import {
   Table,
   TableBody,
@@ -36,10 +37,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import ConfirmationDialog from "@/components/ConfirmationDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function InventoryPage() {
-  const inventory = initialInventory;
-  const menu = menuItems;
+  const { toast } = useToast();
+  const [menu, setMenu] = React.useState(initialMenu);
+  const [inventory, setInventoryState] = React.useState(initialInventory);
+  const [itemToDelete, setItemToDelete] = React.useState<MenuItemType | null>(null);
 
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
@@ -52,8 +57,27 @@ export default function InventoryPage() {
     const { exportInventoryCSV } = await import('@/lib/csv-utils');
     exportInventoryCSV(menu, inventory);
   };
+  
+  const handleDeleteItem = () => {
+    if (!itemToDelete) return;
+    setMenu(menu.filter(item => item.id !== itemToDelete.id));
+    setInventoryState(inventory.filter(inv => inv.id !== itemToDelete.id));
+    toast({
+      title: "Menu Item Deleted",
+      description: `${itemToDelete.name} has been removed from the menu.`,
+    });
+    setItemToDelete(null);
+  };
 
   return (
+    <>
+    <ConfirmationDialog
+        open={!!itemToDelete}
+        onOpenChange={(isOpen) => !isOpen && setItemToDelete(null)}
+        onConfirm={handleDeleteItem}
+        title={`Delete "${itemToDelete?.name}"?`}
+        description="This action cannot be undone. This will permanently delete the menu item and its inventory record."
+    />
     <Tabs defaultValue="all">
       <div className="flex items-center">
         <TabsList>
@@ -148,8 +172,13 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => alert(`Editing ${item.name}`)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onSelect={() => setItemToDelete(item)}
+                            >
+                              Delete
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -162,5 +191,6 @@ export default function InventoryPage() {
         </Card>
       </TabsContent>
     </Tabs>
+    </>
   );
 }
