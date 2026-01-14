@@ -75,7 +75,7 @@ service cloud.firestore {
     function isCreatingFirstUser() {
       // This rule allows the creation of the first user document by checking if the users collection is empty.
       // `existsAfter` is used in create operations to inspect the document that *will* exist after the operation succeeds.
-      return isSignedIn() && request.auth.uid == request.resource.data.id && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && request.auth.uid == request.resource.data.id && !existsAfter(/databases/$(database)/documents/users/$(request.resource.data.id));
     }
 
 
