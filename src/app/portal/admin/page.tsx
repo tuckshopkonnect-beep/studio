@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,21 +16,61 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { useAuth, useUser } from "@/firebase";
+import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLoginPage() {
+  const [email, setEmail] = useState("admin@school.com");
+  const [password, setPassword] = useState("password");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // If user is logged in, redirect to dashboard.
+    // This prevents logged-in users from seeing the login page.
+    if (!isUserLoading && user) {
+        router.push("/dashboard");
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate an API call for authentication
+    // Use the non-blocking sign-in function
+    initiateEmailSignIn(auth, email, password);
+
+    // We don't need to wait for the result here. The `useEffect` above
+    // will handle the redirect when the user state changes.
+    // We can show a loading state for a better UX.
     setTimeout(() => {
-      router.push("/dashboard");
-    }, 2000);
+        // Check if we are still on this page after a delay.
+        // If the user object hasn't changed, it means login failed.
+        if (router.asPath.includes('/portal/admin')) {
+             setIsLoading(false);
+             toast({
+                variant: 'destructive',
+                title: 'Authentication Failed',
+                description: 'Please check your email and password. Note: The default admin user may not exist yet.',
+            });
+        }
+    }, 3000); // 3-second timeout for feedback
   };
+
+  // Prevent flash of login page if user is already logged in and being redirected
+  if (isUserLoading || user) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center bg-background">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      );
+  }
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background">
@@ -61,7 +101,8 @@ export default function AdminLoginPage() {
                   placeholder="admin@example.com"
                   required
                   className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
-                  defaultValue="admin@school.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -77,7 +118,8 @@ export default function AdminLoginPage() {
                     type={showPassword ? "text" : "password"} 
                     required 
                     className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
-                    defaultValue="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                   <Button
                     type="button"
