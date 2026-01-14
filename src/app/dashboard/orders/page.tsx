@@ -35,7 +35,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ListFilter, MoreHorizontal, File, Download } from "lucide-react";
+import { ListFilter, MoreHorizontal, File, Download, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -119,7 +119,7 @@ export default function OrdersPage() {
           </DropdownMenu>
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" disabled={orders.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -151,54 +151,64 @@ export default function OrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    <div className="font-medium">{order.customerName}</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                      {/* In a real app, this would be the customer's email */}
-                      {order.customerName.toLowerCase().replace(" ", ".")}@school.com
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      order.status === 'Ready for Pickup' ? 'outline' :
-                      order.status === 'Completed' ? 'default' :
-                      order.status === 'Preparing' ? 'secondary' : 'destructive'
-                    }>{order.status}</Badge>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {new Date(order.orderDate).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">₦{order.total.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => alert(`Viewing details for order #${order.id}`)}>View Details</DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => alert(`Viewing student ${order.customerName}`)}>View Student</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                            className="text-destructive"
-                            onSelect={() => setOrderToCancel(order)}
-                        >
-                          Cancel Order
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+              {orders.length > 0 ? (
+                orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>
+                      <div className="font-medium">{order.customerName}</div>
+                      <div className="hidden text-sm text-muted-foreground md:inline">
+                        {/* In a real app, this would be the customer's email */}
+                        {order.customerName.toLowerCase().replace(" ", ".")}@school.com
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        order.status === 'Ready for Pickup' ? 'outline' :
+                        order.status === 'Completed' ? 'default' :
+                        order.status === 'Preparing' ? 'secondary' : 'destructive'
+                      }>{order.status}</Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {new Date(order.orderDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">₦{order.total.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            aria-haspopup="true"
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => alert(`Viewing details for order #${order.id}`)}>View Details</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => alert(`Viewing student ${order.customerName}`)}>View Student</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                              className="text-destructive"
+                              onSelect={() => setOrderToCancel(order)}
+                          >
+                            Cancel Order
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                    <TableCell colSpan={5} className="h-48 text-center">
+                        <ShoppingBag className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-semibold">No Orders Yet</h3>
+                        <p className="text-muted-foreground">When new orders are placed, they will appear here.</p>
+                    </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Package, ShoppingBag, Users, Activity, Star } from "lucide-react";
+import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart } from "lucide-react";
 import { initialOrders, initialUsers, initialInventory, menuItems } from "@/lib/data";
 import type { Order } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [users, setUsers] = useState(initialUsers);
 
   useEffect(() => {
     // In a real app, you'd fetch this from a server. Here we use localStorage.
@@ -35,12 +36,16 @@ export default function DashboardPage() {
         const storedOrders = localStorage.getItem('allOrders');
         const allOrders = storedOrders ? JSON.parse(storedOrders) : initialOrders;
         setOrders(allOrders);
+
+        const storedUsers = localStorage.getItem('allUsers');
+        const allUsers = storedUsers ? JSON.parse(storedUsers) : initialUsers;
+        setUsers(allUsers);
     }
   }, []);
 
   const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
   const totalOrders = orders.length;
-  const totalUsers = initialUsers.length;
+  const totalUsers = users.length;
   const totalItemsSold = orders.flatMap(o => o.items).reduce((acc, item) => acc + item.quantity, 0);
 
   // Calculate top selling items
@@ -59,11 +64,7 @@ export default function DashboardPage() {
     }));
 
   const recentActivities = [
-    { type: "New Order", description: "Order #ORD-005 placed by James Jones.", time: "5 minutes ago" },
-    { type: "New User", description: "A new parent account was created for Mrs. Brown.", time: "1 hour ago" },
-    { type: "Low Stock", description: "Stock for 'Meat Pie' is running low.", time: "3 hours ago" },
-    { type: "New Order", description: "Order #ORD-004 placed by Emma Brown.", time: "Yesterday" },
-    { type: "User Update", description: "Admin User updated settings for spending limits.", time: "Yesterday" },
+    // This will now be empty by default
   ];
 
   const recentOrders = orders.slice(0, 5);
@@ -81,7 +82,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+              {/* +20.1% from last month */}
             </p>
           </CardContent>
         </Card>
@@ -94,8 +95,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{totalOrders}</div>
-            <p className="text-xs text-muted-foreground">
-              +12.2% from last week
+             <p className="text-xs text-muted-foreground">
+              Total orders placed
             </p>
           </CardContent>
         </Card>
@@ -106,7 +107,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{totalItemsSold}</div>
-            <p className="text-xs text-muted-foreground">+31 since yesterday</p>
+            <p className="text-xs text-muted-foreground">Total items from all orders</p>
           </CardContent>
         </Card>
         <Card>
@@ -148,7 +149,8 @@ export default function DashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentOrders.map((order) => (
+              {recentOrders.length > 0 ? (
+                recentOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell>
                     <div className="font-medium">{order.customerName}</div>
@@ -168,7 +170,13 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell className="text-right">₦{order.total.toFixed(2)}</TableCell>
                 </TableRow>
-              ))}
+              ))) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        No recent orders.
+                    </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
           </CardContent>
@@ -189,7 +197,7 @@ export default function DashboardPage() {
                 </Button>
             </CardHeader>
             <CardContent className="grid gap-6">
-              {recentActivities.map((activity, index) => (
+              {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
                  <div key={index} className="flex items-center gap-4">
                     <div className="grid gap-1">
                         <p className="text-sm font-medium leading-none">{activity.type}</p>
@@ -197,7 +205,11 @@ export default function DashboardPage() {
                     </div>
                     <div className="ml-auto text-xs text-muted-foreground">{activity.time}</div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center text-muted-foreground py-10">
+                    <p>No recent activity.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card className="lg:col-span-4">
@@ -214,7 +226,8 @@ export default function DashboardPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {topSellingItems.map((item) => (
+                        {topSellingItems.length > 0 ? (
+                          topSellingItems.map((item) => (
                           <TableRow key={item.name}>
                               <TableCell>
                                 <div className="flex items-center gap-4">
@@ -227,7 +240,14 @@ export default function DashboardPage() {
                               </TableCell>
                               <TableCell className="text-right font-medium">{item.quantity}</TableCell>
                           </TableRow>
-                        ))}
+                        ))
+                        ) : (
+                          <TableRow>
+                              <TableCell colSpan={2} className="h-24 text-center">
+                                  No items sold yet.
+                              </TableCell>
+                          </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </CardContent>

@@ -65,13 +65,7 @@ export const menuItems: MenuItem[] = [
   { id: 11, name: 'Can of Soda', description: 'A can of your favorite soda.', price: 300, image: PlaceHolderImages[10], category: 'Drinks' },
 ];
 
-export const initialOrders: Order[] = [
-  { id: 'ORD-001', customerName: 'Liam Johnson', items: [{ name: 'Meat Pie', quantity: 2 }, { name: 'Can of Soda', quantity: 1 }], total: 1900, status: 'Ready for Pickup', orderDate: '2023-10-27T10:00:00Z' },
-  { id: 'ORD-002', customerName: 'Olivia Smith', items: [{ name: 'Garden Salad', quantity: 1 }], total: 1800, status: 'Preparing', orderDate: '2023-10-27T10:05:00Z' },
-  { id: 'ORD-003', customerName: 'Noah Williams', items: [{ name: 'Classic Sandwich', quantity: 1 }, { name: 'Bottled Water', quantity: 1 }], total: 1700, status: 'Pending', orderDate: '2023-10-27T10:10:00Z' },
-  { id: 'ORD-004', customerName: 'Emma Brown', items: [{ name: 'Sausage Roll', quantity: 4 }], total: 2000, status: 'Completed', orderDate: '2023-10-26T12:30:00Z' },
-  { id: 'ORD-005', customerName: 'James Jones', items: [{ name: 'Choc Chip Cookie', quantity: 5 }], total: 1750, status: 'Completed', orderDate: '2023-10-26T12:35:00Z' },
-];
+export const initialOrders: Order[] = [];
 
 export const initialInventory: InventoryItem[] = menuItems.map(item => ({
     id: item.id,
@@ -82,21 +76,8 @@ export const initialInventory: InventoryItem[] = menuItems.map(item => ({
 
 export const initialUsers: User[] = [
     { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
-    { id: 2, name: 'Liam Johnson', email: 'liam.j@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026704d', balance: 5500.50, class: 'JSS2', dailyLimit: 3000.00, parentId: 8 },
-    { id: 3, name: 'Olivia Smith', email: 'olivia.s@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a04258114e29026702d', balance: 3000.00, class: 'SS1', dailyLimit: 4000.00, parentId: 9 },
-    { id: 4, name: 'Noah Williams', email: 'noah.w@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a048581f4e29026701d', balance: 10000.00, class: 'JSS1', parentId: 10 },
-    { id: 5, name: 'Emma Brown', email: 'emma.b@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a092581f4e29026703d', balance: 8500.25, class: 'JSS3', dailyLimit: 2500.00, parentId: 6 },
     { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0 },
-    { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 7500.00, class: 'SS2', dailyLimit: 3000.00 },
-    { id: 8, name: 'Mr. Johnson', email: 'liam.johnson.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026707d', balance: 0 },
-    { id: 9, name: 'Ms. Smith', email: 'olivia.smith.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026708d', balance: 0 },
-    { id: 10, name: 'Mr. Williams', email: 'noah.williams.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026709d', balance: 0 },
-    { id: 11, name: 'Principal Ade', email: 'principal@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026710d', balance: 0 },
-
+    { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 7500.00, class: 'SS2', dailyLimit: 3000.00, parentId: 6 },
 ];
 
-export const passwordResetRequests: PasswordResetRequest[] = [
-  { id: 1, userId: 2, userName: 'Liam Johnson', userEmail: 'liam.j@school.com', userAvatar: initialUsers.find(u => u.id === 2)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 15).toISOString() }, // 15 mins ago
-  { id: 2, userId: 10, userName: 'Mr. Williams', userEmail: 'noah.williams.p@parent.com', userAvatar: initialUsers.find(u => u.id === 10)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() }, // 2 hours ago
-  { id: 3, userId: 9, userName: 'Ms. Smith', userEmail: 'olivia.smith.p@parent.com', userAvatar: initialUsers.find(u => u.id === 9)!.avatarUrl, requestDate: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() }, // 1 day ago
-];
+export const passwordResetRequests: PasswordResetRequest[] = [];
