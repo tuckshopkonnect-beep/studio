@@ -90,7 +90,7 @@ export default function UserDetailDialog({
 
   const userSchema = z.object({
       name: z.string().min(1, "Name is required."),
-      email: z.string().email("Invalid email address."),
+      email: z.string().email("Invalid email address.").min(1, "Email is required."),
       password: isCreating ? z.string().min(1, "Password is required.") : z.string().optional(),
       role: z.enum(['Student', 'Parent', 'Admin']),
       class: z.string().optional(),
@@ -116,7 +116,7 @@ export default function UserDetailDialog({
   const handleSaveClick = (values: z.infer<typeof userSchema>) => {
     const success = onSave(values as User);
     if (success) {
-      form.reset();
+      // The parent component will handle closing the dialog
     }
   };
 
@@ -131,20 +131,20 @@ export default function UserDetailDialog({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        form.setValue('avatarUrl', reader.result as string);
+        form.setValue('avatarUrl', reader.result as string, { shouldDirty: true });
       };
       reader.readAsDataURL(file);
     }
   };
   
-  const title = isCreating ? "Create New User" : isEditing ? `Edit ${user?.name}` : `User Details`;
-  const description = isCreating ? "Fill in the details to add a new user." : isEditing ? `Editing details for ${user?.name}` : `Viewing details for ${user?.name}`;
-
+  const title = isCreating ? "Create New User" : isEditing ? `Edit User` : `User Details`;
+  
   const watchRole = form.watch('role');
   const avatarUrl = form.watch('avatarUrl');
   const name = form.watch('name');
   const email = form.watch('email');
-  const parentId = form.watch('parentId');
+  
+  const selectedParent = parentUsers.find((parent) => parent.id === form.watch('parentId'));
 
 
   return (
@@ -153,7 +153,10 @@ export default function UserDetailDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSaveClick)}>
             <DialogHeader>
-              <div className="flex flex-col items-center gap-4 pt-4">
+                <DialogTitle>{title}</DialogTitle>
+                {!isCreating && <DialogDescription>{user?.name}</DialogDescription>}
+
+                <div className="flex flex-col items-center gap-4 pt-4">
                   <div className="relative">
                       <Avatar 
                           className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
@@ -178,37 +181,23 @@ export default function UserDetailDialog({
                           onChange={handleFileChange} 
                       />
                   </div>
-                   {isEditing ? (
-                      <div className="grid gap-2 w-full text-center">
-                          <FormField
-                              control={form.control}
-                              name="name"
-                              render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel htmlFor="name" className="sr-only">First & Last Name</FormLabel>
-                                    <FormControl>
-                                      <Input 
-                                        {...field}
-                                        id="name"
-                                        placeholder="First & Last Name"
-                                        className="text-center text-xl font-semibold h-auto p-1 bg-transparent border-0 focus-visible:ring-1"
-                                      />
-                                    </FormControl>
-                                  </FormItem>
-                              )}
-                          />
-                      </div>
-                  ) : (
-                      <div className="grid gap-1 text-center">
-                          <DialogTitle>{name}</DialogTitle>
-                          <DialogDescription className="mt-[-1rem]">{email}</DialogDescription>
-                          <Badge variant={watchRole === 'Admin' ? 'destructive' : watchRole === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{watchRole}</Badge>
-                      </div>
-                  )}
               </div>
             </DialogHeader>
 
             <div className="grid gap-6 py-4">
+                <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled={!isEditing} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -278,7 +267,7 @@ export default function UserDetailDialog({
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Class</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isEditing}>
+                              <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing}>
                                 <FormControl>
                                     <SelectTrigger><SelectValue placeholder="Select a class..." /></SelectTrigger>
                                 </FormControl>
@@ -299,7 +288,7 @@ export default function UserDetailDialog({
                             <FormItem>
                               <FormLabel>Initial Balance</FormLabel>
                               <FormControl>
-                                <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} disabled={!isEditing} />
+                                <Input type="number" {...field} value={field.value || ''} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} disabled={!isEditing} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -321,9 +310,7 @@ export default function UserDetailDialog({
                                           className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                                           disabled={!isEditing}
                                         >
-                                          {field.value
-                                            ? parentUsers.find((parent) => parent.id === field.value)?.name
-                                            : "Select parent..."}
+                                          {selectedParent ? selectedParent.name : "Select parent..."}
                                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                       </FormControl>
@@ -376,7 +363,7 @@ export default function UserDetailDialog({
                   }}>
                     <X className="mr-2 h-4 w-4" /> Cancel
                   </Button>
-                  <Button type="submit" disabled={!form.formState.isDirty}>
+                  <Button type="submit" disabled={!form.formState.isDirty && !isCreating}>
                     <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create User" : "Save Changes"}
                   </Button>
                 </>
