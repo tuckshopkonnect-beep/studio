@@ -73,7 +73,7 @@ service cloud.firestore {
      * first user document, which should be an admin.
      */
     function isCreatingFirstUser() {
-        return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && size(get(/databases/$(database)/documents/users).data) == 0;
+        return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
 
@@ -132,7 +132,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      // Allow list only for admins. A special case for initial setup is handled in the UI.
+      // Allow list only for admins.
       allow list: if isAdmin();
       // Allow creation if it's a valid user, an admin is doing it, OR if it's the very first user being created.
       allow create: if isCreatingValidUser(userId) || isAdmin() || isCreatingFirstUser();
