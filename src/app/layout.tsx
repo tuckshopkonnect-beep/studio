@@ -7,7 +7,7 @@ import RootLayoutClient from './layout.client';
 
 
 export const metadata: Metadata = {
-  title: 'Tuckshop Konnect',
+  title: 'TuckshopKonnect',
   description: 'Online tuckshop app for schools',
 };
 
@@ -35,3 +35,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

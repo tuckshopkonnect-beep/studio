@@ -44,7 +44,7 @@ export default function PortalPage() {
                 <Package className="h-8 w-8 text-primary" />
             </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
-            Welcome to Tuckshop Konnect
+            Welcome to TuckshopKonnect
           </h1>
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
             Please select your role to continue. Each portal is tailored for a seamless experience.
@@ -86,3 +86,5 @@ export default function PortalPage() {
     </div>
   );
 }
+
+    

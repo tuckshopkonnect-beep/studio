@@ -110,7 +110,7 @@ export default function DashboardLayout({
           <div className="flex h-16 items-center gap-2 border-b border-purple-400/30 px-4 justify-center">
             <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
                 <Package />
-                <span className={cn(isSidebarCollapsed && "hidden")}>Tuckshop</span>
+                <span className={cn(isSidebarCollapsed && "hidden")}>TuckshopKonnect</span>
             </Link>
           </div>
         <TooltipProvider>
@@ -189,7 +189,7 @@ export default function DashboardLayout({
                         className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                     >
                         <Package className="h-5 w-5 transition-all group-hover:scale-110" />
-                        <span className="sr-only">Tuckshop Konnect</span>
+                        <span className="sr-only">TuckshopKonnect</span>
                     </Link>
                     {[...navItems, ...visibleSecondaryNavItems].map(item => (
                          <Link
@@ -303,4 +303,6 @@ export default function DashboardLayout({
   );
 }
     
+    
+
     
