@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import jsQR from "jsqr";
 import {
   Card,
   CardContent,
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { QrCode, Search, VideoOff } from "lucide-react";
+import { QrCode, Search, VideoOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { initialOrders } from "@/lib/data"; // Using static data for now
@@ -22,68 +23,131 @@ export default function ScannerPage() {
   const [scannedOrder, setScannedOrder] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameId = useRef<number>();
+  const streamRef = useRef<MediaStream | null>(null);
+
   const { toast } = useToast();
 
   // In a real app, this would be a shared state (e.g., Context or Zustand)
   const [orders, setOrders] = useState(initialOrders);
-
+  
   useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        setHasCameraPermission(true);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-        // Note: QR scanning logic (e.g., using jsQR) is not implemented here
-        // but this sets up the camera feed for it.
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
-        toast({
-          variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser to use the QR scanner.',
-        });
+    // When the component unmounts, stop the camera and scanning loop
+    return () => {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
+  }, []);
 
-    getCameraPermission();
+  const startScan = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera not available on this browser");
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      streamRef.current = stream;
+      setHasCameraPermission(true);
 
-    return () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true"); // Required for iOS
+        videoRef.current.play();
+        setIsScanning(true);
+        animationFrameId.current = requestAnimationFrame(tick);
+      }
+
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setHasCameraPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Camera Access Denied',
+        description: 'Please enable camera permissions in your browser to use the QR scanner.',
+      });
     }
+  };
+
+  useEffect(() => {
+    // Start scanning when component mounts
+    startScan();
   }, [toast]);
+  
+
+  const tick = () => {
+    if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: "dontInvert",
+          });
+
+          if (code) {
+            setTransactionId(code.data);
+            handleManualLookup(code.data); // Automatically look up after scan
+            
+            // Stop scanning
+            setIsScanning(false);
+            if (animationFrameId.current) {
+               cancelAnimationFrame(animationFrameId.current);
+            }
+            if (streamRef.current) {
+              streamRef.current.getTracks().forEach(track => track.stop());
+            }
+
+            toast({
+                title: "QR Code Scanned!",
+                description: `Transaction ID: ${code.data}`,
+            })
+            return; // Exit the loop
+          }
+      }
+    }
+    // Continue scanning if no code is found
+    animationFrameId.current = requestAnimationFrame(tick);
+  };
 
 
-  const handleManualLookup = () => {
+  const handleManualLookup = (idToLookup?: string) => {
+    const lookupId = idToLookup || transactionId;
     setError(null);
     setScannedOrder(null);
-    if (!transactionId) {
-      setError("Please enter a Transaction ID.");
+    if (!lookupId) {
+      setError("Please enter or scan a Transaction ID.");
       return;
     }
-    // Simulate finding an order from our "database"
-    // In a real app, you would fetch this from your backend.
-    // The confirmation page generates txn-..., but static data has ORD-...
-    // We'll check for both formats for this prototype.
-    const foundOrder = orders.find(
-      (order) => order.id.toLowerCase() === transactionId.toLowerCase()
+    
+    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') || initialOrders;
+    
+    const foundOrder = allOrders.find(
+      (order: any) => order.id.toLowerCase() === lookupId.toLowerCase()
     );
 
     if (foundOrder) {
         setScannedOrder(foundOrder);
     } else {
         // Mock finding a newly created order that isn't in initialData
-        if (transactionId.toLowerCase().startsWith('txn-')) {
+        if (lookupId.toLowerCase().startsWith('txn-')) {
              setScannedOrder({
-                id: transactionId,
-                customerName: "Alex Doe",
+                id: lookupId,
+                customerName: "Alex Doe", // This part is mocked
                 items: [
                     { name: "Sausage Roll", quantity: 2 },
                     { name: "Orange Juice", quantity: 1 }
@@ -102,9 +166,11 @@ export default function ScannerPage() {
     if (!scannedOrder) return;
     
     // Update the state of the order
-    setOrders(prevOrders => prevOrders.map(order => 
+    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+    const updatedOrders = allOrders.map((order: any) => 
         order.id === scannedOrder.id ? { ...order, status: 'Completed' } : order
-    ));
+    );
+    localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
 
     toast({
         title: "Order Completed",
@@ -114,6 +180,7 @@ export default function ScannerPage() {
     // Reset the scanner page
     setScannedOrder(null);
     setTransactionId("");
+    startScan(); // Restart scanning for the next order
   };
 
 
@@ -129,19 +196,25 @@ export default function ScannerPage() {
         <CardContent>
           <div className="mx-auto max-w-md space-y-6">
             <div className="relative flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed bg-muted overflow-hidden">
-              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+              <video ref={videoRef} className="w-full h-full object-cover" />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
               {hasCameraPermission === false && (
-                <div className="absolute text-center text-muted-foreground z-10">
+                <div className="absolute text-center text-muted-foreground z-10 p-4">
                     <VideoOff className="mx-auto h-16 w-16" />
                     <p className="mt-2 font-semibold">Camera access denied</p>
-                    <p className="text-sm">Please enable camera permissions in your browser.</p>
+                    <p className="text-sm">Please enable camera permissions in your browser settings and refresh the page.</p>
                 </div>
               )}
                {hasCameraPermission === null && (
                 <div className="absolute text-center text-muted-foreground z-10">
-                    <QrCode className="mx-auto h-16 w-16 animate-pulse" />
+                    <Loader2 className="mx-auto h-16 w-16 animate-spin" />
                     <p className="mt-2 font-semibold">Requesting Camera...</p>
                 </div>
+              )}
+              {isScanning && hasCameraPermission && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-2/3 h-2/3 border-4 border-primary/50 rounded-lg animate-pulse" />
+                  </div>
               )}
             </div>
             <div className="grid gap-2">
@@ -149,12 +222,12 @@ export default function ScannerPage() {
                 <div className="flex gap-2">
                 <Input
                     id="transaction-id"
-                    placeholder="Enter Transaction ID (e.g., ORD-004)"
+                    placeholder="Enter or scan a Transaction ID"
                     value={transactionId}
                     onChange={(e) => setTransactionId(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleManualLookup()}
                 />
-                <Button onClick={handleManualLookup}>
+                <Button onClick={() => handleManualLookup()}>
                     <Search className="mr-2 h-4 w-4" /> Lookup
                 </Button>
                 </div>
@@ -168,14 +241,6 @@ export default function ScannerPage() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-       {hasCameraPermission === false && !scannedOrder && (
-            <Alert variant="destructive">
-                <AlertTitle>Camera Access Required</AlertTitle>
-                <AlertDescription>
-                    Please allow camera access in your browser settings to use the QR scanner. You can still use the manual lookup.
-                </AlertDescription>
-            </Alert>
-        )}
       {scannedOrder && (
         <Card>
             <CardHeader>
@@ -199,10 +264,13 @@ export default function ScannerPage() {
                   Status: <span className="font-semibold text-primary">{scannedOrder.status}</span>
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-2">
                  <Button className="w-full" onClick={handleMarkAsCompleted} disabled={scannedOrder.status === 'Completed'}>
-                    {scannedOrder.status === 'Completed' ? 'Order Already Completed' : 'Mark as Completed'}
+                    {scannedOrder.status === 'Completed' ? 'Order Already Completed' : 'Mark as Completed & Collect'}
                  </Button>
+                 <Button variant="outline" className="w-full" onClick={() => { setScannedOrder(null); setTransactionId(''); startScan(); }}>
+                    Scan Next
+                </Button>
             </CardFooter>
         </Card>
       )}
