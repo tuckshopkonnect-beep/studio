@@ -15,7 +15,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { menuItems as initialMenu, initialInventory } from "@/lib/data";
 import type { MenuItem as MenuItemType, InventoryItem } from "@/lib/data";
 import {
   Table,
@@ -27,7 +26,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { File, PlusCircle, MoreHorizontal, Download } from "lucide-react";
+import { File, PlusCircle, MoreHorizontal, Download, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,14 +38,41 @@ import {
 import Image from "next/image";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
+import MenuItemDetailDialog from "@/components/MenuItemDetailDialog";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function InventoryPage() {
   const { toast } = useToast();
-  const [menu, setMenu] = React.useState(initialMenu);
-  const [inventory, setInventoryState] = React.useState(initialInventory);
+  const firestore = useFirestore();
+
+  const menuItemsCollection = useMemoFirebase(() => collection(firestore, "menuItems"), [firestore]);
+  const { data: menu, isLoading } = useCollection<MenuItemType>(menuItemsCollection);
+  
+  // NOTE: Inventory is not in Firestore yet, so we'll use a mock for now.
+  const [inventory, setInventoryState] = React.useState<InventoryItem[]>([]);
+  
+  React.useEffect(() => {
+    if (menu) {
+      // Create mock inventory based on menu items. In a real app, this would also come from Firestore.
+      setInventoryState(menu.map(item => ({
+        id: item.id,
+        name: item.name,
+        stock: (item as any).stock ?? 100, // Assuming stock is a property for now
+        lowStockThreshold: 15,
+      })));
+    }
+  }, [menu]);
+
   const [itemToDelete, setItemToDelete] = React.useState<MenuItemType | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<MenuItemType | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+
 
   const handleExportPDF = async () => {
+    if (!menu) return;
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportInventoryPDF } = await import('@/lib/pdf-utils');
@@ -54,20 +80,49 @@ export default function InventoryPage() {
   };
 
   const handleExportCSV = async () => {
+    if (!menu) return;
     const { exportInventoryCSV } = await import('@/lib/csv-utils');
     exportInventoryCSV(menu, inventory);
   };
   
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!itemToDelete) return;
-    setMenu(menu.filter(item => item.id !== itemToDelete.id));
-    setInventoryState(inventory.filter(inv => inv.id !== itemToDelete.id));
+
+    deleteDocumentNonBlocking(doc(firestore, "menuItems", itemToDelete.id.toString()));
+
     toast({
       title: "Menu Item Deleted",
       description: `${itemToDelete.name} has been removed from the menu.`,
     });
     setItemToDelete(null);
   };
+
+  const handleOpenDialog = (item: MenuItemType | null, mode: 'create' | 'edit') => {
+    setIsCreating(mode === 'create');
+    setSelectedItem(item);
+    setIsDetailOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDetailOpen(false);
+    setSelectedItem(null);
+    setIsCreating(false);
+  }
+
+  const handleSaveItem = async (itemData: MenuItemType) => {
+    const docRef = doc(firestore, "menuItems", itemData.id.toString());
+    
+    // Using the non-blocking update to prevent UI freezes
+    setDocumentNonBlocking(docRef, itemData, { merge: true });
+
+    toast({
+      title: isCreating ? "Item Added" : "Item Updated",
+      description: `${itemData.name} has been saved successfully.`
+    });
+    handleCloseDialog();
+    return true; // Indicate success
+  };
+
 
   return (
     <>
@@ -79,6 +134,16 @@ export default function InventoryPage() {
         description="This action cannot be undone. This will permanently delete the menu item and its inventory record."
         confirmButtonText="Yes, Delete Item"
     />
+
+    <MenuItemDetailDialog
+      isOpen={isDetailOpen}
+      onOpenChange={handleCloseDialog}
+      onSave={handleSaveItem}
+      item={selectedItem}
+      isCreating={isCreating}
+      menuItems={menu || []}
+    />
+
     <Tabs defaultValue="all">
       <div className="flex items-center">
         <TabsList>
@@ -96,11 +161,11 @@ export default function InventoryPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleExportPDF}>Export to PDF</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCSV}>Export to CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} disabled={!menu || menu.length === 0}>Export to PDF</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} disabled={!menu || menu.length === 0}>Export to CSV</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm">
+          <Button size="sm" onClick={() => handleOpenDialog(null, 'create')}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Item
           </Button>
@@ -133,7 +198,14 @@ export default function InventoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {menu.map((item) => {
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-48 text-center">
+                      <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                      <p className="mt-2 text-muted-foreground">Loading menu...</p>
+                    </TableCell>
+                  </TableRow>
+                ) : menu && menu.map((item) => {
                   const stockItem = inventory.find(inv => inv.id === item.id);
                   const stock = stockItem?.stock ?? 0;
                   const stockStatus = stock === 0 ? "Out of Stock" : stock < (stockItem?.lowStockThreshold ?? 15) ? "Low Stock" : "In Stock";
@@ -173,7 +245,7 @@ export default function InventoryPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleOpenDialog(item, 'edit')}>Edit</DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onSelect={() => setItemToDelete(item)}
