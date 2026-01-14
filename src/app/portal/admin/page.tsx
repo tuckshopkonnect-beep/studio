@@ -21,8 +21,8 @@ import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState("admin@school.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("admin@campusconnect.hub");
+  const [password, setPassword] = useState("AdminPassword123");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
