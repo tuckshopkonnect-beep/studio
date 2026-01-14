@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart, ArrowDown, ArrowUp, Archive, BarChart } from "lucide-react";
+import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart, ArrowDown, ArrowUp, Archive, BarChart, Loader2 } from "lucide-react";
 import { menuItems as staticMenuItems } from "@/lib/data";
 import type { Order, User, MenuItem } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
@@ -26,30 +26,31 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query } from 'firebase/firestore';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Wait for user to be authenticated before creating query
+    if (!firestore || !user) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore]);
-  const { data: orders } = useCollection<Order>(ordersQuery);
+  }, [firestore, user]);
+  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
   const usersCollection = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !user) return null;
       return collection(firestore, "users")
-    }, [firestore]);
-  const { data: users } = useCollection<User>(usersCollection);
+    }, [firestore, user]);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
   
-  // Changed from /inventory to /menuItems to respect security rules
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore) return null;
+      if (!firestore || !user) return null;
       return collection(firestore, "menuItems");
-    }, [firestore]);
-  const { data: menuItems } = useCollection<MenuItem>(menuItemsCollection);
+    }, [firestore, user]);
+  const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 
   const now = new Date();
@@ -121,6 +122,14 @@ export default function DashboardPage() {
   ];
 
   const recentOrders = safeOrders.slice(0, 5);
+
+  if (isUserLoading || isLoadingOrders || isLoadingUsers || isLoadingMenuItems) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
@@ -338,5 +347,6 @@ export default function DashboardPage() {
        </div>
     </div>
   )
+}
 
     
