@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +18,7 @@ import { initialUsers } from "@/lib/data";
 import FundWalletDialog from "@/components/FundWalletDialog";
 import type { User } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
+import { usePathname } from "next/navigation";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -39,15 +40,26 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function ParentDashboard() {
   const { toast } = useToast();
-  // In a real app, this would come from an auth context
-  const parent = initialUsers.find(u => u.email === "emma.brown.p@parent.com")!;
+  const pathname = usePathname();
   const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
   
-  const childrenOfParent = allUsers.filter(u => u.parentId === parent.id);
+  // In a real app, this would come from an auth context
+  const parent = allUsers.find(u => u.email === "emma.brown.p@parent.com")!;
+  const childrenOfParent = allUsers.filter(u => u.parentId === parent?.id);
 
-  // State for the funding dialog
   const [fundingChild, setFundingChild] = useState<User | null>(null);
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);
+
+  useEffect(() => {
+    // This effect ensures the component re-renders with the latest data from localStorage
+    // when the user navigates back to this page.
+    if (typeof window !== 'undefined') {
+        const storedUsers = localStorage.getItem('allUsers');
+        if (storedUsers) {
+            setAllUsers(JSON.parse(storedUsers));
+        }
+    }
+  }, [pathname]);
 
   // Mocked spending data
   const spending = {
@@ -61,12 +73,12 @@ export default function ParentDashboard() {
   };
   
   const handleFundingSuccess = (amount: number, childId: number) => {
-    // This is a client-side simulation of updating the balance
-    setAllUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === childId ? { ...user, balance: user.balance + amount } : user
-      )
-    );
+    const updatedUsers = allUsers.map(user => 
+      user.id === childId ? { ...user, balance: user.balance + amount } : user
+    )
+    setAllUsers(updatedUsers);
+    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
+
     toast({
         title: "Funding Successful",
         description: `₦${amount.toFixed(2)} has been added to ${fundingChild?.name}'s account.`,
@@ -76,6 +88,10 @@ export default function ParentDashboard() {
   };
 
 
+  if (!parent) {
+      return <div>Loading...</div>
+  }
+  
   return (
     <>
     {fundingChild && (

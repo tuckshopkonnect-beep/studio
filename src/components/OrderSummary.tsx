@@ -23,7 +23,6 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
   const router = useRouter();
 
   if (!student) {
-      // Handle case where student is not found or not logged in
       return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
   }
 
@@ -59,11 +58,24 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return;
     }
     
+    // --- Deduct balance and save ---
+    if (typeof window !== 'undefined') {
+        const storedUsers = localStorage.getItem('allUsers');
+        let allUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        allUsers = allUsers.map((u: User) => 
+            u.id === student.id 
+                ? { ...u, balance: u.balance - totalPrice } 
+                : u
+        );
+        localStorage.setItem('allUsers', JSON.stringify(allUsers));
+    }
+
+
     const newOrder: CompletedOrder = {
       id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       items: [...cartItems],
       total: totalPrice,
-      status: 'Ready for Pickup', // New orders are ready for pickup
+      status: 'Ready for Pickup',
       orderDate: new Date().toISOString(),
       customerName: student.name,
     };

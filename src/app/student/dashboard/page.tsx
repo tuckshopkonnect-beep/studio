@@ -16,14 +16,29 @@ import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInpu
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initialUsers, initialOrders } from "@/lib/data";
+import { usePathname } from "next/navigation";
 
 
 export default function StudentDashboard() {
-  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe') || {
+    const pathname = usePathname();
+    const [allUsers, setAllUsers] = useState(initialUsers);
+
+    useEffect(() => {
+        // This effect ensures the component re-renders with the latest data from localStorage
+        if (typeof window !== 'undefined') {
+            const storedUsers = localStorage.getItem('allUsers');
+            if (storedUsers) {
+                setAllUsers(JSON.parse(storedUsers));
+            }
+        }
+    }, [pathname]);
+
+
+  const student = allUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe') || {
     name: "Alex Doe",
-    balance: 7500.00,
+    balance: 0,
     dailyLimit: 3000.00,
-    spentToday: 450.00,
+    spentToday: 0.00,
   };
 
   const spentToday = initialOrders

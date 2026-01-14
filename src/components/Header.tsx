@@ -22,41 +22,48 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
-import { initialUsers, initialOrders } from "@/lib/data";
+import type { User } from "@/lib/data";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { totalItems } = useCart();
   const pathname = usePathname();
   const [spentToday, setSpentToday] = useState(0);
-  
-  // In a real app, this would come from an auth context
-  const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe');
+  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   useEffect(() => {
     // This code runs on the client, after the component mounts
-    const storedTheme = localStorage.getItem("theme") || "light";
-    if (storedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (typeof window !== 'undefined') {
+        const storedTheme = localStorage.getItem("theme") || "light";
+        if (storedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
 
-    if(student && typeof window !== "undefined") {
-      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-      const todaySpent = allOrders
-        .filter((o: any) => {
-          const orderDate = new Date(o.orderDate);
-          const today = new Date();
-          return o.customerName === student.name &&
-                 orderDate.getDate() === today.getDate() &&
-                 orderDate.getMonth() === today.getMonth() &&
-                 orderDate.getFullYear() === today.getFullYear();
-        })
-        .reduce((acc: number, order: any) => acc + order.total, 0);
-      setSpentToday(todaySpent);
+        const storedUsers = localStorage.getItem('allUsers');
+        const users = storedUsers ? JSON.parse(storedUsers) : [];
+        setAllUsers(users);
+        
+        const student = users.find((u: User) => u.role === 'Student' && u.name === 'Alex Doe');
+        if(student) {
+          const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+          const todaySpent = allOrders
+            .filter((o: any) => {
+              const orderDate = new Date(o.orderDate);
+              const today = new Date();
+              return o.customerName === student.name &&
+                     orderDate.getDate() === today.getDate() &&
+                     orderDate.getMonth() === today.getMonth() &&
+                     orderDate.getFullYear() === today.getFullYear();
+            })
+            .reduce((acc: number, order: any) => acc + order.total, 0);
+          setSpentToday(todaySpent);
+        }
     }
-  }, [student, pathname]); // Rerun when path changes to update totals
+  }, [pathname]); // Rerun when path changes to update totals
+
+  const student = allUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe');
 
   const setTheme = (theme: "light" | "dark") => {
     localStorage.setItem("theme", theme);
@@ -81,7 +88,7 @@ export default function Header() {
           </span>
         </Link>
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm font-medium">
-          <Link href="/" className="transition-colors hover:text-primary">Menu</Link>
+          <Link href="/student/order" className="transition-colors hover:text-primary">Menu</Link>
           <Link href="/portal" className="transition-colors hover:text-primary">User Portals</Link>
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2">

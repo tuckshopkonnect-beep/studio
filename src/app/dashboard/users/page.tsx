@@ -45,7 +45,7 @@ import UserDetailDialog from "@/components/UserDetailDialog";
 
 export default function UsersPage() {
   const { toast } = useToast();
-  const [users, setUsers] = React.useState(initialUsers);
+  const [users, setUsers] = React.useState<User[]>(initialUsers);
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -56,7 +56,23 @@ export default function UsersPage() {
   const [isCreating, setIsCreating] = React.useState(false);
 
   const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+        const storedUsers = localStorage.getItem('allUsers');
+        if (storedUsers) {
+            setUsers(JSON.parse(storedUsers));
+        } else {
+            localStorage.setItem('allUsers', JSON.stringify(initialUsers));
+        }
+    }
+    setMounted(true)
+  }, []);
+
+  const updateUsers = (updatedUsers: User[]) => {
+    setUsers(updatedUsers);
+    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
+  };
+
 
   const filteredUsers = React.useMemo(() => {
     return users
@@ -88,7 +104,8 @@ export default function UsersPage() {
 
   const handleDeleteUser = () => {
     if (!userToDelete) return;
-    setUsers(users.filter(user => user.id !== userToDelete.id));
+    const updatedUsers = users.filter(user => user.id !== userToDelete.id)
+    updateUsers(updatedUsers);
     toast({
       title: "User Deleted",
       description: `${userToDelete.name} has been successfully deleted.`,
@@ -118,30 +135,28 @@ export default function UsersPage() {
 
   const handleSaveUser = (userToSave: User): boolean => {
     if (isCreating) {
-      // Check for email uniqueness
       if (users.some(user => user.email === userToSave.email)) {
         toast({
           variant: "destructive",
           title: "Email Already Exists",
           description: "A user with this email address is already registered.",
         });
-        return false; // Indicate failure
+        return false;
       }
-      // Add new user
       const newUser = { 
         ...userToSave, 
         id: Date.now(), 
         avatarUrl: userToSave.avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}` 
       };
-      setUsers(prev => [...prev, newUser]);
+      updateUsers([...users, newUser]);
       toast({ title: "User Created", description: `${newUser.name} has been added.` });
     } else {
-      // Update existing user
-      setUsers(prev => prev.map(u => u.id === userToSave.id ? userToSave : u));
+      const updatedUsers = users.map(u => u.id === userToSave.id ? userToSave : u)
+      updateUsers(updatedUsers);
       toast({ title: "User Updated", description: `${userToSave.name}'s details have been saved.` });
     }
     handleCloseDialog();
-    return true; // Indicate success
+    return true;
   };
 
   return (
