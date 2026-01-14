@@ -16,11 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff, UserPlus } from "lucide-react";
-import { useAuth, useUser, setDocumentNonBlocking } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
-import { doc, getFirestore } from "firebase/firestore";
+import { doc, getFirestore, setDoc } from "firebase/firestore";
 
 export default function AdminLoginPage() {
   const [email] = useState("admin@campusconnect.hub");
@@ -72,7 +72,7 @@ export default function AdminLoginPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newAdmin = userCredential.user;
 
-      // 2. Create the user document in Firestore
+      // 2. Create the user document in Firestore with the 'Admin' role
       const userDocRef = doc(firestore, "users", newAdmin.uid);
       const adminUserData = {
         id: newAdmin.uid,
@@ -83,8 +83,8 @@ export default function AdminLoginPage() {
         balance: 0,
       };
       
-      // Use setDoc directly here because we need to wait for this to complete
-      // before redirecting. The security rule is what protects this action.
+      // Use setDoc to create the user profile document.
+      // The security rule is what protects this one-time action.
       await setDoc(userDocRef, adminUserData);
 
       toast({
@@ -101,7 +101,7 @@ export default function AdminLoginPage() {
         if (error.code === 'auth/email-already-in-use') {
             description = "This admin account already exists. Please use the login form.";
         } else if (error.code === 'permission-denied') {
-            description = "Permission denied. An admin account may already exist.";
+            description = "Permission denied. An admin account may already exist. This can happen if a user document exists but the auth user was deleted.";
         } else {
             description = error.message;
         }
@@ -136,78 +136,16 @@ export default function AdminLoginPage() {
 
       <Card className="mx-auto max-w-sm w-full bg-black/30 backdrop-blur-xl border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Admin Portal</CardTitle>
+          <CardTitle className="text-3xl font-bold">Admin Portal Setup</CardTitle>
           <CardDescription className="text-white/80 pt-2">
-            Log in or create the first admin account.
+            Click to create the default administrator account.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-             {/* Login Form */}
-            <form onSubmit={handleLogin} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Admin Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
-                    value={email}
-                    readOnly
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Admin Password</Label>
-                  </div>
-                  <div className="relative">
-                    <Input 
-                      id="password" 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
-                      value={password}
-                      readOnly
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white hover:bg-white/20"
-                      onClick={() => setShowPassword(prev => !prev)}
-                    >
-                      {showPassword ? <EyeOff /> : <Eye />}
-                      <span className="sr-only">Toggle password visibility</span>
-                    </Button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && isLoggingIn ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Logging In...
-                    </>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
-            </form>
-            
-            {/* Separator */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                  First time?
-                  </span>
-              </div>
-            </div>
-
-            {/* Create Admin Button */}
-            <Button variant="secondary" onClick={handleCreateFirstAdmin} disabled={isLoading}>
-              {isLoading && !isLoggingIn ? (
+             {/* Create Admin Button */}
+            <Button variant="secondary" onClick={handleCreateFirstAdmin} disabled={isLoading} className="w-full text-lg py-6">
+              {isLoading ? (
                  <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Creating Account...
@@ -219,6 +157,32 @@ export default function AdminLoginPage() {
                 </>
               )}
             </Button>
+            
+            {/* Separator */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                  Already have an account?
+                  </span>
+              </div>
+            </div>
+            
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="grid gap-4">
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && isLoggingIn ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Logging In...
+                    </>
+                  ) : (
+                    "Login as Admin"
+                  )}
+                </Button>
+            </form>
           </div>
           
           <div className="mt-6 text-center text-sm">
