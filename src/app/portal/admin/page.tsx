@@ -17,8 +17,9 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth, useUser } from "@/firebase";
-import { initiateEmailSignIn } from "@/firebase/non-blocking-login";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { FirebaseError } from "firebase/app";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("admin@campusconnect.hub");
@@ -33,35 +34,50 @@ export default function AdminLoginPage() {
 
   useEffect(() => {
     // If user is logged in, redirect to dashboard.
-    // This prevents logged-in users from seeing the login page.
     if (!isUserLoading && user) {
         router.push("/dashboard");
     }
   }, [user, isUserLoading, router]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoading(true);
 
-    // Use the non-blocking sign-in function
-    initiateEmailSignIn(auth, email, password);
-
-    // We don't need to wait for the result here. The `useEffect` above
-    // will handle the redirect when the user state changes.
-    // We can show a loading state for a better UX and handle potential errors.
-    setTimeout(() => {
-        // This is a failsafe. If after 3 seconds, the user object hasn't changed
-        // and we are still on the login page, it likely means the login failed.
-        if (router.asPath.includes('/portal/admin') && !auth.currentUser) {
-             setIsLoading(false);
-             toast({
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // Successful login will be handled by the useEffect hook, which redirects to /dashboard
+    } catch (error) {
+        if (error instanceof FirebaseError && error.code === 'auth/user-not-found') {
+            // User doesn't exist, so create them
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                // After creation, the onAuthStateChanged listener in useUser will update the state,
+                // and the useEffect will trigger the redirect.
+                toast({
+                    title: "Admin Account Created",
+                    description: "Default admin account has been set up successfully.",
+                });
+            } catch (creationError: any) {
+                setIsLoading(false);
+                toast({
+                    variant: 'destructive',
+                    title: 'Admin Creation Failed',
+                    description: creationError.message,
+                });
+            }
+        } else {
+            // Handle other login errors (e.g., wrong password)
+            setIsLoading(false);
+            toast({
                 variant: 'destructive',
                 title: 'Authentication Failed',
-                description: 'Please check your email and password. Note: The default admin user may not exist yet.',
+                description: (error as FirebaseError).message || 'Please check your credentials.',
             });
         }
-    }, 3000); // 3-second timeout for feedback
+    }
+    // No need to set isLoading to false here, as the redirect will happen on success.
+    // We only set it to false on explicit failure.
   };
 
   // Prevent flash of login page if user is already logged in and being redirected
@@ -134,8 +150,8 @@ export default function AdminLoginPage() {
                   </Button>
                 </div>
               </div>
-              <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
-                {isLoading ? (
+              <Button type="submit" className="w-full text-lg py-6" disabled={isLoading || isUserLoading}>
+                {isLoading || isUserLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Authenticating...
