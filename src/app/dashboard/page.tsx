@@ -63,7 +63,7 @@ export default function DashboardPage() {
       image: menuItems.find(mi => mi.name === name)?.image.imageUrl || 'https://placehold.co/100x100'
     }));
 
-  const recentActivities = [
+  const recentActivities: any[] = [
     // This will now be empty by default
   ];
 

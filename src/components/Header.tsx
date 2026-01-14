@@ -21,30 +21,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { initialUsers, initialOrders } from "@/lib/data";
 import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { totalItems } = useCart();
   const pathname = usePathname();
+  const [spentToday, setSpentToday] = useState(0);
   
   // In a real app, this would come from an auth context
   const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe');
-
-  const spentToday = student
-    ? initialOrders
-        .filter(o => {
-          const orderDate = new Date(o.orderDate);
-          const today = new Date();
-          return o.customerName === student.name &&
-                 orderDate.getDate() === today.getDate() &&
-                 orderDate.getMonth() === today.getMonth() &&
-                 orderDate.getFullYear() === today.getFullYear() &&
-                 o.status === 'Completed';
-        })
-        .reduce((acc, order) => acc + order.total, 0)
-    : 0;
 
   useEffect(() => {
     // This code runs on the client, after the component mounts
@@ -54,7 +41,22 @@ export default function Header() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, []);
+
+    if(student && typeof window !== "undefined") {
+      const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+      const todaySpent = allOrders
+        .filter((o: any) => {
+          const orderDate = new Date(o.orderDate);
+          const today = new Date();
+          return o.customerName === student.name &&
+                 orderDate.getDate() === today.getDate() &&
+                 orderDate.getMonth() === today.getMonth() &&
+                 orderDate.getFullYear() === today.getFullYear();
+        })
+        .reduce((acc: number, order: any) => acc + order.total, 0);
+      setSpentToday(todaySpent);
+    }
+  }, [student, pathname]); // Rerun when path changes to update totals
 
   const setTheme = (theme: "light" | "dark") => {
     localStorage.setItem("theme", theme);
@@ -153,5 +155,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

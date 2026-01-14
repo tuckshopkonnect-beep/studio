@@ -47,7 +47,7 @@ export default function StudentDashboard() {
       setIsLoading(true);
       setError(null);
       const input: PersonalizedFoodRecommendationsInput = {
-        orderHistory: ["Meat Pie", "Sausage Roll"], // Placeholder
+        orderHistory: [], // Placeholder, no history initially
         dietaryRestrictions: ""
       };
       try {
