@@ -51,9 +51,9 @@ export default function InventoryPage() {
   const { user, isUserLoading } = useUser();
 
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || isUserLoading || !user) return null;
     return collection(firestore, "menuItems");
-  }, [firestore, user]);
+  }, [firestore, isUserLoading, user]);
 
   const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
@@ -116,9 +116,18 @@ export default function InventoryPage() {
   }
 
   const handleSaveItem = async (itemData: MenuItemType) => {
+    if (isUserLoading || !user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication in progress",
+        description: "Please wait a moment before saving.",
+      });
+      return false;
+    }
+
     if (!firestore) return false;
-    const docRef = doc(firestore, "menuItems", String(itemData.id));
     
+    const docRef = doc(firestore, "menuItems", String(itemData.id));
     setDocumentNonBlocking(docRef, itemData, { merge: true });
 
     toast({
