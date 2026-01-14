@@ -84,16 +84,18 @@ const baseUserSchema = z.object({
   id: z.number().optional(),
 });
 
-const refineStudent = (schema: z.ZodObject<any, any>) => schema.refine(data => !(data.role === 'Student' && !data.class), {
+const userSchemaWithRefinement = baseUserSchema.refine(data => !(data.role === 'Student' && !data.class), {
     message: "Class is required for students.",
     path: ["class"],
 });
 
-const userSchema = refineStudent(baseUserSchema);
-
-const createUserSchema = refineStudent(baseUserSchema.extend({
+const createUserSchemaWithRefinement = baseUserSchema.extend({
     password: z.string().min(1, "Password is required."),
-}));
+}).refine(data => !(data.role === 'Student' && !data.class), {
+    message: "Class is required for students.",
+    path: ["class"],
+});
+
 
 export default function UserDetailDialog({
   user,
@@ -112,7 +114,7 @@ export default function UserDetailDialog({
   const parentUsers = allUsers.filter(u => u.role === 'Parent');
   
   const form = useForm<z.infer<typeof baseUserSchema>>({
-    resolver: zodResolver(isCreating ? createUserSchema : userSchema),
+    resolver: zodResolver(isCreating ? createUserSchemaWithRefinement : userSchemaWithRefinement),
   });
 
   useEffect(() => {
@@ -332,8 +334,8 @@ export default function UserDetailDialog({
                                               <CommandItem
                                                 value={parent.name}
                                                 key={parent.id}
-                                                onSelect={() => {
-                                                  field.onChange(parent.id);
+                                                onSelect={(currentValue) => {
+                                                  form.setValue("parentId", parent.id, { shouldValidate: true });
                                                   setParentComboboxOpen(false);
                                                 }}
                                               >
@@ -389,5 +391,3 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
-
-    
