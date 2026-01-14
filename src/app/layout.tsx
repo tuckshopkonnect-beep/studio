@@ -7,7 +7,7 @@ import RootLayoutClient from './layout.client';
 
 
 export const metadata: Metadata = {
-  title: 'TuckshopKonnect',
+  title: 'Tuckshop Konnect',
   description: 'Online tuckshop app for schools',
 };
 

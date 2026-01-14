@@ -75,7 +75,7 @@ export default function Header() {
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <Utensils className="h-6 w-6 text-primary" />
           <span className="font-bold font-headline sm:inline-block text-lg">
-            TuckshopKonnect
+            Tuckshop Konnect
           </span>
         </Link>
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm font-medium">

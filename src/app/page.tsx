@@ -32,7 +32,7 @@ export default function Home() {
         name: "Mrs. Adebayo",
         role: "Parent",
         avatar: "https://i.pravatar.cc/150?u=a042581f4e29026705d",
-        quote: "TuckshopKonnect has been a lifesaver! I can easily fund my son's account and I love the ability to set daily spending limits. No more lost lunch money!"
+        quote: "Tuckshop Konnect has been a lifesaver! I can easily fund my son's account and I love the ability to set daily spending limits. No more lost lunch money!"
       },
       {
         name: "Alex Doe",
@@ -180,5 +180,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

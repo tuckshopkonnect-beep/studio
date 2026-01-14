@@ -10,7 +10,7 @@ const Footer = () => {
             <div className="space-y-4">
               <Link href="/" className="flex items-center space-x-2">
                 <Utensils className="h-6 w-6 text-primary" />
-                <span className="font-bold text-lg">TuckshopKonnect</span>
+                <span className="font-bold text-lg">Tuckshop Konnect</span>
               </Link>
               <p className="text-muted-foreground text-sm">
                 The modern, cashless solution for school tuckshops.
@@ -49,7 +49,7 @@ const Footer = () => {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} TuckshopKonnect. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Tuckshop Konnect. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -57,5 +57,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
-    
