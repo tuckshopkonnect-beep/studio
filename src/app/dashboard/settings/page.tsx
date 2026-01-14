@@ -168,14 +168,14 @@ export default function SettingsPage() {
                 <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                  <Input id="jss-limit" type="number" defaultValue="1000.00" className="pl-6" />
+                  <Input id="jss-limit" type="number" defaultValue="2500" className="pl-6" />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                  <Input id="sss-limit" type="number" defaultValue="1500.00" className="pl-6" />
+                  <Input id="sss-limit" type="number" defaultValue="4000" className="pl-6" />
                 </div>
               </div>
             </form>
@@ -346,7 +346,3 @@ export default function SettingsPage() {
     </div>
     </>
   );
-}
-    
-
-    

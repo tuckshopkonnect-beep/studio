@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,8 @@ import { initialUsers, initialOrders } from "@/lib/data";
 export default function StudentDashboard() {
   const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe') || {
     name: "Alex Doe",
-    balance: 2550.00,
-    dailyLimit: 1000.00,
+    balance: 7500.00,
+    dailyLimit: 3000.00,
     spentToday: 450.00,
   };
 
@@ -159,4 +158,3 @@ export default function StudentDashboard() {
         </div>
     </div>
   );
-}

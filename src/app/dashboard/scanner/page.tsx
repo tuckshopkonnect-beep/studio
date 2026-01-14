@@ -152,7 +152,7 @@ export default function ScannerPage() {
                     { name: "Sausage Roll", quantity: 2 },
                     { name: "Orange Juice", quantity: 1 }
                 ],
-                total: 9.50,
+                total: 1400,
                 status: "Ready for Pickup",
             });
         } else {

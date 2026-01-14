@@ -58,7 +58,7 @@ export default function OrderConfirmationPage() {
             // Use a timeout to ensure the QR code is rendered before download
             setTimeout(() => handleDownloadReceipt(), 500);
         }
-    }, [completedOrder]);
+    }, [completedOrder, handleDownloadReceipt]);
 
     useEffect(() => {
         // Clean up completed order from context and sessionStorage when user navigates away
@@ -182,5 +182,3 @@ export default function OrderConfirmationPage() {
         </div>
     );
 }
-
-    

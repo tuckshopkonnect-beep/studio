@@ -51,7 +51,7 @@ export default function ParentDashboard() {
 
   // Mocked spending data
   const spending = {
-    "Emma Brown": 450.00,
+    "Emma Brown": 2000.00,
     // Add other children's spending here if needed
   };
 
@@ -162,4 +162,3 @@ export default function ParentDashboard() {
     </div>
     </>
   );
-}
