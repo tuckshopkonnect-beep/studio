@@ -104,7 +104,7 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <aside className={cn(
-            "fixed inset-y-0 left-0 z-10 flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300",
+            "fixed inset-y-0 left-0 z-10 hidden flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-300 sm:flex",
             isSidebarCollapsed ? "w-16" : "w-60"
         )}>
           <div className="flex h-16 items-center gap-2 border-b border-purple-400/30 px-4 justify-center">
@@ -309,3 +309,4 @@ export default function DashboardLayout({
     
 
     
+
