@@ -34,7 +34,6 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
   const ordersQuery = useMemoFirebase(() => {
-    // Wait for user to be authenticated before creating query
     if (!firestore || !user) return null;
     return query(collection(firestore, "orders"));
   }, [firestore, user]);

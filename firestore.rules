@@ -1,3 +1,4 @@
+
 /**
  * Core Philosophy: This ruleset enforces a hybrid security model. It provides public,
  * read-only access to shared data like the tuckshop menu (/menuItems), while
