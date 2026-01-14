@@ -31,22 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff } from 'lucide-react';
+import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserDetailDialogProps {
@@ -90,7 +79,7 @@ const userSchemaWithRefinement = baseUserSchema.refine(data => !(data.role === '
 });
 
 const createUserSchemaWithRefinement = baseUserSchema.extend({
-    password: z.string().min(1, "Password is required."),
+    password: z.string().min(1, "Password is required for new users."),
 }).refine(data => !(data.role === 'Student' && !data.class), {
     message: "Class is required for students.",
     path: ["class"],
@@ -109,24 +98,28 @@ export default function UserDetailDialog({
 }: UserDetailDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [parentComboboxOpen, setParentComboboxOpen] = useState(false)
+  const [parentSearchTerm, setParentSearchTerm] = useState('');
 
-  const parentUsers = allUsers.filter(u => u.role === 'Parent');
+  const parentUsers = allUsers.filter(u => u.role === 'Parent' && u.name.toLowerCase().includes(parentSearchTerm.toLowerCase()));
   
   const form = useForm<z.infer<typeof baseUserSchema>>({
     resolver: zodResolver(isCreating ? createUserSchemaWithRefinement : userSchemaWithRefinement),
+    defaultValues: isCreating ? { ...emptyUser, password: '' } : user || emptyUser,
   });
 
   useEffect(() => {
     if (isOpen) {
       form.reset(isCreating ? { ...emptyUser, password: '' } : { ...user, password: '' });
+      setParentSearchTerm('');
     }
   }, [isOpen, isCreating, user, form]);
 
 
   const handleSaveClick = (values: z.infer<typeof baseUserSchema>) => {
     const success = onSave(values as User);
-    // Parent component handles closing dialog
+    if (!success) {
+      // Don't close the dialog if save failed (e.g., duplicate email)
+    }
   };
 
   const handleAvatarClick = () => {
@@ -158,7 +151,7 @@ export default function UserDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSaveClick)}>
             <DialogHeader>
@@ -269,8 +262,9 @@ export default function UserDetailDialog({
                     />
                 )}
                 {watchRole === 'Student' && (
-                    <div className={cn("grid grid-cols-2 gap-4 transition-all duration-300", watchRole === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden')}>
-                       <FormField
+                    <div className={cn("grid gap-4 transition-all duration-300", watchRole === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden pointer-events-none')}>
+                       <div className="grid grid-cols-2 gap-4">
+                         <FormField
                           control={form.control}
                           name="class"
                           render={({ field }) => (
@@ -303,58 +297,55 @@ export default function UserDetailDialog({
                             </FormItem>
                           )}
                         />
-                        <div className="grid gap-2 col-span-2">
-                             <FormField
-                              control={form.control}
-                              name="parentId"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                  <FormLabel>Link to Parent</FormLabel>
-                                  <Popover open={parentComboboxOpen} onOpenChange={setParentComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                      <FormControl>
-                                        <Button
-                                          variant="outline"
-                                          role="combobox"
-                                          className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
-                                          disabled={!isEditing}
-                                        >
-                                          {selectedParent ? selectedParent.name : "Select parent..."}
-                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                      </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                      <Command>
-                                        <CommandInput placeholder="Search parent..." />
-                                        <CommandList>
-                                          <CommandEmpty>No parent found.</CommandEmpty>
-                                          <CommandGroup>
-                                            {parentUsers.map((parent) => (
-                                              <CommandItem
-                                                value={parent.name}
-                                                key={parent.id}
-                                                onSelect={(currentValue) => {
-                                                  form.setValue("parentId", parent.id, { shouldValidate: true });
-                                                  setParentComboboxOpen(false);
-                                                }}
-                                              >
-                                                <Check
-                                                  className={cn("mr-2 h-4 w-4", parent.id === field.value ? "opacity-100" : "opacity-0")}
-                                                />
-                                                {parent.name}
-                                              </CommandItem>
-                                            ))}
-                                          </CommandGroup>
-                                        </CommandList>
-                                      </Command>
-                                    </PopoverContent>
-                                  </Popover>
-                                  <FormMessage />
+                       </div>
+                        <FormField
+                            control={form.control}
+                            name="parentId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Link to Parent</FormLabel>
+                                    <div className="rounded-md border">
+                                        <div className="p-2 border-b">
+                                          <div className="relative">
+                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input 
+                                              placeholder="Search parents..." 
+                                              className="pl-8"
+                                              value={parentSearchTerm}
+                                              onChange={(e) => setParentSearchTerm(e.target.value)}
+                                              disabled={!isEditing}
+                                            />
+                                          </div>
+                                        </div>
+                                        <ScrollArea className="h-32">
+                                            <div className="p-2 space-y-1">
+                                                {parentUsers.map(parent => (
+                                                    <div key={parent.id} className="flex items-center space-x-2 rounded-md hover:bg-accent p-2">
+                                                        <Checkbox
+                                                            id={`parent-${parent.id}`}
+                                                            checked={field.value === parent.id}
+                                                            disabled={!isEditing}
+                                                            onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange(parent.id)
+                                                                    : field.onChange(undefined);
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor={`parent-${parent.id}`}
+                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+                                                        >
+                                                            {parent.name}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                    <FormMessage />
                                 </FormItem>
-                              )}
-                            />
-                        </div>
+                            )}
+                        />
                     </div>
                 )}
             </div>
