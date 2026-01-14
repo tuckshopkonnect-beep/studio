@@ -12,10 +12,9 @@
  *   like 'orders', are nested under this path.
  *
  * Key Security Decisions:
- * - Admin-Managed Content: The menu (/menuItems) and inventory data are considered
- *   admin-managed. These rules completely block all client-side write operations
- *   to these collections, assuming they will be managed through a secure admin
- *   panel or backend service using the Admin SDK.
+ * - Admin-Managed Content: The menu (/menuItems) and inventory data are now managed
+ *   by authenticated admins directly from the client. The rules ensure only users
+ *   with the 'Admin' role can perform write operations.
  * - Strict Ownership: A user can only access the data tree located under their
  *   own user ID path (/users/{userId}/**). This prevents users from reading or
  *   writing another user's profile information or order history.
@@ -55,6 +54,14 @@ service cloud.firestore {
      */
     function isExistingDoc() {
       return resource != null;
+    }
+    
+    /**
+     * Checks if the currently authenticated user has the 'Admin' role.
+     * It reads the user's profile from the /users collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
     /**
@@ -111,11 +118,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // To protect user privacy, listing all users is disallowed.
-      allow create: if isCreatingValidUser(userId);
-      allow update: if isUpdatingValidUser(userId);
-      allow delete: if isOwnerOfExistingDoc(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isCreatingValidUser(userId) || isAdmin();
+      allow update: if isUpdatingValidUser(userId) || isAdmin();
+      allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
       /**
        * @description Manages a user's orders.
@@ -170,16 +177,16 @@ service cloud.firestore {
     /**
      * @description Manages the publicly viewable tuckshop menu items.
      * @path /menuItems/{menuItemId}
-     * @allow Any user, signed-in or not, can (get) or (list) all menu items.
-     * @deny Any client, signed-in or not, cannot (create), (update), or (delete) a menu item.
-     * @principle Provides public read access for catalog-style data while prohibiting all client-side writes, reserving modification for a trusted backend.
+     * @allow Any user can read. Only admins can write.
+     * @deny Any non-admin client cannot (create), (update), or (delete) a menu item.
+     * @principle Provides public read access while reserving modification for trusted admins.
      */
     match /menuItems/{menuItemId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
 
       /**
        * @description Manages inventory stock levels for menu items. THIS IS ADMIN-ONLY.
@@ -189,14 +196,9 @@ service cloud.firestore {
        * @principle Enforces a "deny-all" policy for sensitive data that must only be managed by a secure backend environment (e.g., Cloud Functions with Admin SDK).
        */
       match /inventory/{inventoryId} {
-        allow get: if false;
-        allow list: if false;
-        allow create: if false;
-        allow update: if false;
-        allow delete: if false;
+        allow read: if isAdmin();
+        allow write: if isAdmin();
       }
     }
   }
 }
-
-    
