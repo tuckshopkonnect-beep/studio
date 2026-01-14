@@ -19,7 +19,7 @@
  *   own user ID path (/users/{userId}/**). This prevents users from reading or
  *   writing another user's profile information or order history.
  * - No User Listing: To protect user privacy, listing the entire /users
- *   collection is disallowed.
+ *   collection is disallowed for non-admins.
  * - Authorization Independence: User-specific documents (like Orders) contain a
  *   denormalized `userId` field. This allows rules to validate ownership directly
  *   from the document's data without needing costly or complex lookups, making
@@ -61,8 +61,21 @@ service cloud.firestore {
      * It reads the user's profile from the /users collection.
      */
     function isAdmin() {
+      // It is critical that we check for sign in first, otherwise this rule will
+      // throw a null pointer exception if an unauthenticated user tries to access.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
+    
+    /**
+     * Checks if this is the very first user being created in the system.
+     * This is a special rule for bootstrapping the first admin user.
+     * It allows any authenticated session (including anonymous) to create the
+     * first user document, which should be an admin.
+     */
+    function isCreatingFirstUser() {
+        return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && size(get(/databases/$(database)/documents/users).data) == 0;
+    }
+
 
     /**
      * A composite check for state-changing operations (update, delete), ensuring
@@ -120,7 +133,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isCreatingValidUser(userId) || isAdmin();
+      // Allow creation if it's a valid user, an admin is doing it, OR if it's the very first user being created.
+      allow create: if isCreatingValidUser(userId) || isAdmin() || isCreatingFirstUser();
       allow update: if isUpdatingValidUser(userId) || isAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
@@ -162,13 +176,13 @@ service cloud.firestore {
     /**
      * @description Top-level orders collection for admin dashboard.
      * @path /orders/{orderId}
-     * @allow Any signed-in user (admin) can read this collection.
+     * @allow Any signed-in admin can read this collection.
      * @deny All client-side writes are denied. This should be written to by a backend function.
      */
     match /orders/{orderId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if false;
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if false; // Should be created via user-specific path
       allow update: if false;
       allow delete: if false;
     }

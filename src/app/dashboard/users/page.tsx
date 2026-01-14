@@ -41,13 +41,16 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, deleteDoc, doc } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth } from "@/firebase";
+import { collection, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 
 export default function UsersPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
 
   const usersCollection = useMemoFirebase(() => {
@@ -99,12 +102,15 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async () => {
-    if (!userToDelete) return;
+    if (!userToDelete || !firestore) return;
     try {
+      // Note: Deleting a user from Auth requires a recent sign-in.
+      // This will often fail on the client and is better handled by a server function.
+      // For this client-side demo, we'll focus on deleting the Firestore record.
       await deleteDoc(doc(firestore, "users", userToDelete.id.toString()));
       toast({
         title: "User Deleted",
-        description: `${userToDelete.name} has been successfully deleted.`,
+        description: `${userToDelete.name}'s profile has been deleted. Auth record may still exist.`,
       });
     } catch (error: any) {
       toast({
@@ -136,12 +142,69 @@ export default function UsersPage() {
     setIsCreating(false);
   };
 
-  const handleSaveUser = (userToSave: User): boolean => {
-    // This will be replaced with Firestore logic
-    console.log("Saving user:", userToSave);
-    handleCloseDialog();
-    return true;
+  const handleSaveUser = async (userToSave: User & {password?: string}): Promise<boolean> => {
+     if (!auth || !firestore) return false;
+    
+    if (isCreating) {
+        // --- Create a new user ---
+        try {
+            // 1. Create user in Firebase Authentication
+            const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
+            const newUserId = userCredential.user.uid;
+
+            // 2. Prepare user data for Firestore
+            const userDataForFirestore = {
+                ...userToSave,
+                id: newUserId, // Use the UID from Auth as the document ID
+            };
+            delete (userDataForFirestore as any).password; // Don't store the password in Firestore
+
+            // 3. Create user document in Firestore
+            const userDocRef = doc(firestore, 'users', newUserId);
+            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: false });
+            
+            toast({
+                title: "User Created",
+                description: `${userToSave.name} has been added successfully.`,
+            });
+            handleCloseDialog();
+            return true;
+
+        } catch (error: any) {
+            console.error("Error creating user:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to create user',
+                description: error.message || 'An unknown error occurred.',
+            });
+            return false;
+        }
+
+    } else {
+        // --- Update an existing user ---
+        if (!selectedUser) return false;
+        try {
+             const userDocRef = doc(firestore, 'users', selectedUser.id.toString());
+             setDocumentNonBlocking(userDocRef, userToSave, { merge: true });
+             toast({
+                title: "User Updated",
+                description: `${userToSave.name}'s details have been saved.`,
+             });
+             handleCloseDialog();
+             return true;
+
+        } catch (error: any) {
+             console.error("Error updating user:", error);
+             toast({
+                variant: 'destructive',
+                title: 'Failed to update user',
+                description: error.message || 'An unknown error occurred.',
+            });
+            return false;
+        }
+    }
   };
+
 
   if (isUserLoading || isLoadingUsers) {
     return (

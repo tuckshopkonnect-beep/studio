@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth, useUser } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
 
@@ -33,8 +33,8 @@ export default function AdminLoginPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // If user is logged in, redirect to dashboard.
-    if (!isUserLoading && user) {
+    // If user is logged in (and not anonymous), redirect to dashboard.
+    if (!isUserLoading && user && !user.isAnonymous) {
         router.push("/dashboard");
     }
   }, [user, isUserLoading, router]);
@@ -48,40 +48,39 @@ export default function AdminLoginPage() {
         await signInWithEmailAndPassword(auth, email, password);
         // Successful login will be handled by the useEffect hook, which redirects to /dashboard
     } catch (error) {
-        if (error instanceof FirebaseError && error.code === 'auth/user-not-found') {
-            // User doesn't exist, so create them
-            try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // After creation, the onAuthStateChanged listener in useUser will update the state,
-                // and the useEffect will trigger the redirect.
-                toast({
-                    title: "Admin Account Created",
-                    description: "Default admin account has been set up successfully.",
-                });
-            } catch (creationError: any) {
-                setIsLoading(false);
-                toast({
-                    variant: 'destructive',
-                    title: 'Admin Creation Failed',
-                    description: creationError.message,
-                });
-            }
-        } else {
-            // Handle other login errors (e.g., wrong password)
-            setIsLoading(false);
-            toast({
-                variant: 'destructive',
-                title: 'Authentication Failed',
-                description: (error as FirebaseError).message || 'Please check your credentials.',
-            });
-        }
+        setIsLoading(false);
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Failed',
+            description: (error as FirebaseError).message || 'Please check your credentials.',
+        });
     }
-    // No need to set isLoading to false here, as the redirect will happen on success.
-    // We only set it to false on explicit failure.
+  };
+
+  // Function to handle temporary anonymous login to bootstrap the admin user
+  const handleAnonymousLogin = async () => {
+    if (!auth) return;
+    setIsLoading(true);
+    try {
+        await signInAnonymously(auth);
+        // This will set a user object, and the dashboard will become accessible.
+        router.push('/dashboard/users');
+        toast({
+            title: "Anonymous Session Started",
+            description: "Please navigate to the Users page to create your admin account.",
+        });
+    } catch (error) {
+        setIsLoading(false);
+        toast({
+            variant: 'destructive',
+            title: 'Anonymous Login Failed',
+            description: 'Could not start a temporary session. Please try again.',
+        });
+    }
   };
 
   // Prevent flash of login page if user is already logged in and being redirected
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !user.isAnonymous)) {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-background">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -125,9 +124,6 @@ export default function AdminLoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
-                    Forgot password?
-                  </Link>
                 </div>
                 <div className="relative">
                   <Input 
@@ -159,6 +155,19 @@ export default function AdminLoginPage() {
                 ) : (
                   "Login"
                 )}
+              </Button>
+               <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    First time setup?
+                    </span>
+                </div>
+              </div>
+              <Button type="button" variant="secondary" onClick={handleAnonymousLogin} disabled={isLoading || isUserLoading}>
+                  Start Admin Setup
               </Button>
             </div>
           </form>
