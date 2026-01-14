@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart } from "lucide-react";
+import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart, ArrowDown, ArrowUp, Archive, BarChart } from "lucide-react";
 import { initialOrders, initialUsers, initialInventory, menuItems } from "@/lib/data";
-import type { Order } from '@/lib/data';
+import type { Order, InventoryItem } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,10 +25,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [users, setUsers] = useState(initialUsers);
+  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+
 
   useEffect(() => {
     // In a real app, you'd fetch this from a server. Here we use localStorage.
@@ -40,6 +43,11 @@ export default function DashboardPage() {
         const storedUsers = localStorage.getItem('allUsers');
         const allUsers = storedUsers ? JSON.parse(storedUsers) : initialUsers;
         setUsers(allUsers);
+        
+        // Simulating inventory fetch
+        const storedInventory = localStorage.getItem('inventory');
+        const allInventory = storedInventory ? JSON.parse(storedInventory) : initialInventory;
+        setInventory(allInventory);
     }
   }, []);
 
@@ -51,9 +59,9 @@ export default function DashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const revenueThisMonth = orders
-    .filter(o => new Date(o.orderDate) >= startOfThisMonth)
-    .reduce((acc, order) => acc + order.total, 0);
+  const ordersThisMonth = orders.filter(o => new Date(o.orderDate) >= startOfThisMonth);
+
+  const revenueThisMonth = ordersThisMonth.reduce((acc, order) => acc + order.total, 0);
   
   const revenueLastMonth = orders
     .filter(o => {
@@ -83,6 +91,11 @@ export default function DashboardPage() {
   const weeklyOrderChange = calculatePercentageChange(ordersLast7Days, ordersPrevious7Days);
 
   const totalUsers = users.length;
+  
+  const lowStockItemsCount = inventory.filter(i => i.stock < i.lowStockThreshold).length;
+  
+  const averageOrderValue = ordersThisMonth.length > 0 ? revenueThisMonth / ordersThisMonth.length : 0;
+
 
   // Calculate top selling items
   const itemSales = orders.flatMap(o => o.items).reduce((acc, item) => {
@@ -107,7 +120,7 @@ export default function DashboardPage() {
   
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6">
          <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -117,8 +130,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₦{revenueThisMonth.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {monthlyRevenueChange >= 0 ? '+' : ''}{monthlyRevenueChange.toFixed(1)}% from last month
+            <p className={cn(
+              "text-xs flex items-center",
+              monthlyRevenueChange >= 0 ? "text-green-600" : "text-destructive"
+            )}>
+              {monthlyRevenueChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1"/> : <ArrowDown className="h-4 w-4 mr-1"/>}
+              {monthlyRevenueChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -143,8 +160,12 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+{ordersLast7Days}</div>
-            <p className="text-xs text-muted-foreground">
-              {weeklyOrderChange >= 0 ? '+' : ''}{weeklyOrderChange.toFixed(1)}% from last week
+            <p className={cn(
+              "text-xs flex items-center",
+              weeklyOrderChange >= 0 ? "text-green-600" : "text-destructive"
+            )}>
+              {weeklyOrderChange >= 0 ? <ArrowUp className="h-4 w-4 mr-1"/> : <ArrowDown className="h-4 w-4 mr-1"/>}
+              {weeklyOrderChange.toFixed(1)}% from last week
             </p>
           </CardContent>
         </Card>
@@ -157,6 +178,26 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">{totalUsers}</div>
             <p className="text-xs text-muted-foreground">Total registered users</p>
           </CardContent>
+        </Card>
+         <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+                <Archive className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{lowStockItemsCount}</div>
+                <p className="text-xs text-muted-foreground">Items needing restock</p>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg. Order Value</CardTitle>
+                <BarChart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">₦{averageOrderValue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">For this month</p>
+            </CardContent>
         </Card>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -294,3 +335,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
