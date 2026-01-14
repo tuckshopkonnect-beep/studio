@@ -1,13 +1,15 @@
 
 "use client";
 
-import { menuItems } from '@/lib/data';
 import MenuItemCard from '@/components/MenuItemCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Timer, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { MenuItem } from '@/lib/data';
 
 // --- StopOrdersAlert Component ---
 const StopOrdersAlert = () => {
@@ -143,12 +145,18 @@ const MenuSkeleton = () => (
 
 
 export default function OrderPage() {
-  const [isClient, setIsClient] = useState(false);
+  const firestore = useFirestore();
   const [shopOpen, setShopOpen] = useState(true);
   const [ordersStopped, setOrdersStopped] = useState(false);
+  
+  const menuItemsCollection = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, "menuItems");
+  }, [firestore]);
+  
+  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
 
   useEffect(() => {
-    setIsClient(true);
     // Check for master override first
     const stopOrders = localStorage.getItem('stopOrders') === 'true';
     setOrdersStopped(stopOrders);
@@ -189,12 +197,12 @@ export default function OrderPage() {
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
         {ordersStopped ? <StopOrdersAlert /> : <OrderTimer />}
         
-        {!isClient ? (
+        {isLoadingMenu ? (
           <MenuSkeleton />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-            {menuItems.map(item => (
-              <MenuItemCard key={item.id} item={item} isShopOpen={shopOpen} />
+            {(menuItems || []).map(item => (
+              <MenuItemCard key={(item as any).id} item={item} isShopOpen={shopOpen} />
             ))}
           </div>
         )}
