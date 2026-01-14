@@ -38,7 +38,7 @@ import {
 import Image from "next/image";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
 import MenuItemDetailDialog from "@/components/MenuItemDetailDialog";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -46,9 +46,13 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocki
 export default function InventoryPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
-  const menuItemsCollection = useMemoFirebase(() => collection(firestore, "menuItems"), [firestore]);
-  const { data: menu, isLoading } = useCollection<MenuItemType>(menuItemsCollection);
+  const menuItemsCollection = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, "menuItems");
+  }, [firestore, user]);
+  const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
   // NOTE: Inventory is not in Firestore yet, so we'll use a mock for now.
   const [inventory, setInventoryState] = React.useState<InventoryItem[]>([]);
@@ -57,8 +61,8 @@ export default function InventoryPage() {
     if (menu) {
       // Create mock inventory based on menu items. In a real app, this would also come from Firestore.
       setInventoryState(menu.map(item => ({
-        id: item.id,
-        name: item.name,
+        id: (item as any).id,
+        name: (item as any).name,
         stock: (item as any).stock ?? 100, // Assuming stock is a property for now
         lowStockThreshold: 15,
       })));
@@ -88,11 +92,11 @@ export default function InventoryPage() {
   const handleDeleteItem = async () => {
     if (!itemToDelete) return;
 
-    deleteDocumentNonBlocking(doc(firestore, "menuItems", itemToDelete.id.toString()));
+    deleteDocumentNonBlocking(doc(firestore, "menuItems", (itemToDelete as any).id.toString()));
 
     toast({
       title: "Menu Item Deleted",
-      description: `${itemToDelete.name} has been removed from the menu.`,
+      description: `${(itemToDelete as any).name} has been removed from the menu.`,
     });
     setItemToDelete(null);
   };
@@ -110,18 +114,26 @@ export default function InventoryPage() {
   }
 
   const handleSaveItem = async (itemData: MenuItemType) => {
-    const docRef = doc(firestore, "menuItems", itemData.id.toString());
+    const docRef = doc(firestore, "menuItems", (itemData as any).id.toString());
     
     // Using the non-blocking update to prevent UI freezes
     setDocumentNonBlocking(docRef, itemData, { merge: true });
 
     toast({
       title: isCreating ? "Item Added" : "Item Updated",
-      description: `${itemData.name} has been saved successfully.`
+      description: `${(itemData as any).name} has been saved successfully.`
     });
     handleCloseDialog();
     return true; // Indicate success
   };
+  
+  if (isUserLoading || isLoadingMenu) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
 
   return (
@@ -130,7 +142,7 @@ export default function InventoryPage() {
         open={!!itemToDelete}
         onOpenChange={(isOpen) => !isOpen && setItemToDelete(null)}
         onConfirm={handleDeleteItem}
-        title={`Delete "${itemToDelete?.name}"?`}
+        title={`Delete "${(itemToDelete as any)?.name}"?`}
         description="This action cannot be undone. This will permanently delete the menu item and its inventory record."
         confirmButtonText="Yes, Delete Item"
     />
@@ -198,7 +210,7 @@ export default function InventoryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoadingMenu ? (
                   <TableRow>
                     <TableCell colSpan={6} className="h-48 text-center">
                       <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
@@ -206,29 +218,29 @@ export default function InventoryPage() {
                     </TableCell>
                   </TableRow>
                 ) : menu && menu.map((item) => {
-                  const stockItem = inventory.find(inv => inv.id === item.id);
+                  const stockItem = inventory.find(inv => inv.id === (item as any).id);
                   const stock = stockItem?.stock ?? 0;
                   const stockStatus = stock === 0 ? "Out of Stock" : stock < (stockItem?.lowStockThreshold ?? 15) ? "Low Stock" : "In Stock";
                   
                   return (
-                    <TableRow key={item.id}>
+                    <TableRow key={(item as any).id}>
                       <TableCell className="hidden sm:table-cell">
                         <Image
-                          alt={item.name}
+                          alt={(item as any).name}
                           className="aspect-square rounded-md object-cover"
                           height="64"
-                          src={item.image.imageUrl}
+                          src={(item as any).image.imageUrl}
                           width="64"
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="font-medium">{(item as any).name}</TableCell>
                       <TableCell>
                         <Badge variant={stockStatus === "Out of Stock" ? "destructive" : stockStatus === "Low Stock" ? "secondary" : "outline"}>
                           {stockStatus}
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        ₦{item.price.toFixed(2)}
+                        ₦{(item as any).price.toFixed(2)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{stock}</TableCell>
                       <TableCell>
