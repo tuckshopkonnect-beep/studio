@@ -144,16 +144,20 @@ export default function MenuItemDetailDialog({
                   render={({ field }) => (
                     <FormItem className="w-full">
                       <FormLabel>Image</FormLabel>
-                      <Select onValueChange={(value) => {
+                      <Select 
+                        onValueChange={(value) => {
                           const selectedImage = PlaceHolderImages.find(p => p.id === value);
-                          if(selectedImage) form.setValue('image', selectedImage as any);
-                      }} value={field.value} disabled={!isEditing}>
+                          if(selectedImage) form.setValue('image', selectedImage as any, { shouldDirty: true });
+                        }} 
+                        value={field.value} 
+                        disabled={!isEditing}
+                      >
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="Select an image" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {PlaceHolderImages.map(img => (
-                            <SelectItem key={img.id} value={img.id}>{img.id.replace('-', ' ')}</SelectItem>
+                            <SelectItem key={img.id} value={img.id}>{img.id.replace(/-/g, ' ')}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
