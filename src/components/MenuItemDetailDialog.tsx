@@ -34,7 +34,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Edit, Save, X, Camera } from 'lucide-react';
+import { Edit, Save, X, Camera, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
@@ -45,6 +45,7 @@ interface MenuItemDetailDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (item: MenuItemType) => Promise<boolean>;
   isCreating: boolean;
+  isSaving?: boolean;
 }
 
 const formSchema = z.object({
@@ -71,6 +72,7 @@ export default function MenuItemDetailDialog({
   onOpenChange,
   onSave,
   isCreating,
+  isSaving = false,
 }: MenuItemDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(isCreating);
 
@@ -272,8 +274,9 @@ export default function MenuItemDetailDialog({
                   }}>
                     <X className="mr-2 h-4 w-4" /> Cancel
                   </Button>
-                  <Button type="submit" disabled={!form.formState.isDirty && !isCreating}>
-                    <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create Item" : "Save Changes"}
+                  <Button type="submit" disabled={(!form.formState.isDirty && !isCreating) || isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? "Saving..." : isCreating ? "Create Item" : "Save Changes"}
                   </Button>
                 </>
               ) : (

@@ -154,6 +154,7 @@ export default function InventoryPage() {
       item={selectedItem}
       isCreating={isCreating}
       menuItems={menu || []}
+      isSaving={isUserLoading} // Pass loading state to dialog
     />
 
     <Tabs defaultValue="all">
@@ -167,7 +168,7 @@ export default function InventoryPage() {
         <div className="ml-auto flex items-center gap-2">
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline">
+              <Button size="sm" variant="outline" disabled={isUserLoading}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -177,7 +178,7 @@ export default function InventoryPage() {
               <DropdownMenuItem onClick={handleExportCSV} disabled={!menu || menu.length === 0}>Export to CSV</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button size="sm" onClick={() => handleOpenDialog(null, 'create')}>
+          <Button size="sm" onClick={() => handleOpenDialog(null, 'create')} disabled={isUserLoading}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Item
           </Button>
