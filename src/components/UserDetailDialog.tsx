@@ -72,6 +72,25 @@ const emptyUser: User = {
 
 const classLevels = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
+const userSchema = z.object({
+    name: z.string().min(1, "Name is required."),
+    email: z.string().email("Invalid email address.").min(1, "Email is required."),
+    password: z.string().optional(),
+    role: z.enum(['Student', 'Parent', 'Admin']),
+    class: z.string().optional(),
+    balance: z.number().optional(),
+    parentId: z.number().optional(),
+    avatarUrl: z.string().optional(),
+    id: z.number().optional(),
+}).refine(data => !(data.role === 'Student' && !data.class), {
+    message: "Class is required for students.",
+    path: ["class"],
+});
+
+const createUserSchema = userSchema.extend({
+    password: z.string().min(1, "Password is required."),
+});
+
 export default function UserDetailDialog({
   user,
   allUsers,
@@ -87,23 +106,9 @@ export default function UserDetailDialog({
   const [parentComboboxOpen, setParentComboboxOpen] = useState(false)
 
   const parentUsers = allUsers.filter(u => u.role === 'Parent');
-
-  const userSchema = z.object({
-      name: z.string().min(1, "Name is required."),
-      email: z.string().email("Invalid email address.").min(1, "Email is required."),
-      password: isCreating ? z.string().min(1, "Password is required.") : z.string().optional(),
-      role: z.enum(['Student', 'Parent', 'Admin']),
-      class: z.string().optional(),
-      balance: z.number().optional(),
-      parentId: z.number().optional(),
-      avatarUrl: z.string().optional(),
-      id: z.number().optional(),
-  });
-
-
+  
   const form = useForm<z.infer<typeof userSchema>>({
-    resolver: zodResolver(userSchema),
-    defaultValues: isCreating ? { ...emptyUser, password: '' } : { ...user, password: '' }
+    resolver: zodResolver(isCreating ? createUserSchema : userSchema),
   });
 
   useEffect(() => {
@@ -115,9 +120,7 @@ export default function UserDetailDialog({
 
   const handleSaveClick = (values: z.infer<typeof userSchema>) => {
     const success = onSave(values as User);
-    if (success) {
-      // The parent component will handle closing the dialog
-    }
+    // Parent component handles closing dialog
   };
 
   const handleAvatarClick = () => {
@@ -140,11 +143,11 @@ export default function UserDetailDialog({
   const title = isCreating ? "Create New User" : isEditing ? `Edit User` : `User Details`;
   
   const watchRole = form.watch('role');
+  const watchParentId = form.watch('parentId');
   const avatarUrl = form.watch('avatarUrl');
   const name = form.watch('name');
-  const email = form.watch('email');
   
-  const selectedParent = parentUsers.find((parent) => parent.id === form.watch('parentId'));
+  const selectedParent = parentUsers.find((parent) => parent.id === watchParentId);
 
 
   return (
@@ -154,12 +157,12 @@ export default function UserDetailDialog({
           <form onSubmit={form.handleSubmit(handleSaveClick)}>
             <DialogHeader>
                 <DialogTitle>{title}</DialogTitle>
-                {!isCreating && <DialogDescription>{user?.name}</DialogDescription>}
+                {!isCreating && <DialogDescription>Details for {user?.name}</DialogDescription>}
 
                 <div className="flex flex-col items-center gap-4 pt-4">
-                  <div className="relative">
+                  <div className="relative group">
                       <Avatar 
-                          className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
+                          className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer")}
                           onClick={handleAvatarClick}
                       >
                           <AvatarImage src={avatarUrl} alt={name} className="object-cover"/>
@@ -315,7 +318,7 @@ export default function UserDetailDialog({
                                         </Button>
                                       </FormControl>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                       <Command>
                                         <CommandInput placeholder="Search parent..." />
                                         <CommandList>
