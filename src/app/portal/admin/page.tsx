@@ -100,8 +100,8 @@ export default function AdminLoginPage() {
         let description = "An unexpected error occurred.";
         if (error.code === 'auth/email-already-in-use') {
             description = "This admin account already exists. Please use the login form.";
-        } else if (error.code === 'permission-denied') {
-            description = "Permission denied. An admin account may already exist. This can happen if a user document exists but the auth user was deleted.";
+        } else if (error instanceof FirebaseError && error.code.includes('permission-denied')) {
+            description = "Permission denied. An admin account may already exist, or security rules are preventing the creation of the first user.";
         } else {
             description = error.message;
         }
@@ -145,7 +145,7 @@ export default function AdminLoginPage() {
           <div className="grid gap-4">
              {/* Create Admin Button */}
             <Button variant="secondary" onClick={handleCreateFirstAdmin} disabled={isLoading} className="w-full text-lg py-6">
-              {isLoading ? (
+              {isLoading && !isLoggingIn ? (
                  <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Creating Account...
@@ -159,13 +159,13 @@ export default function AdminLoginPage() {
             </Button>
             
             {/* Separator */}
-            <div className="relative">
+            <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                  <span className="w-full border-t border-white/30" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                  Already have an account?
+                  <span className="bg-card px-2 text-white/80">
+                  Or
                   </span>
               </div>
             </div>
