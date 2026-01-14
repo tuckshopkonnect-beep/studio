@@ -39,7 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query } from "firebase/firestore";
+import { collection, query, doc } from "firebase/firestore";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function OrdersPage() {
@@ -73,11 +73,9 @@ export default function OrdersPage() {
   const handleCancelOrder = () => {
     if (!orderToCancel || !firestore) return;
     
-    // Non-blockingly delete from the top-level 'orders' collection
     const adminOrderRef = doc(firestore, "orders", orderToCancel.id);
     deleteDocumentNonBlocking(adminOrderRef);
 
-    // Non-blockingly delete from the user's private 'orders' subcollection
     if (orderToCancel.userId) {
         const userOrderRef = doc(firestore, "users", orderToCancel.userId, "orders", orderToCancel.id);
         deleteDocumentNonBlocking(userOrderRef);
@@ -182,7 +180,6 @@ export default function OrdersPage() {
                     <TableCell>
                       <div className="font-medium">{order.customerName}</div>
                       <div className="hidden text-sm text-muted-foreground md:inline">
-                        {/* In a real app, this would be the customer's email */}
                         {order.customerName.toLowerCase().replace(" ", ".")}@school.com
                       </div>
                     </TableCell>

@@ -33,7 +33,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, PlusCircle, Download, Search } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Download, Search, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -41,16 +41,21 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection, deleteDoc, doc } from "firebase/firestore";
-import { Loader2 } from "lucide-react";
+
 
 export default function UsersPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
 
-  const usersCollection = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
-  const { data: users, isLoading } = useCollection<User>(usersCollection);
+  const usersCollection = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return collection(firestore, "users");
+  },[firestore, authUser]);
+
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
 
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -138,6 +143,14 @@ export default function UsersPage() {
     return true;
   };
 
+  if (isUserLoading || isLoadingUsers) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <>
       <ConfirmationDialog
@@ -204,7 +217,7 @@ export default function UsersPage() {
               <CardTitle>Users</CardTitle>
               <CardDescription>
                 Manage all user accounts. 
-                {!isLoading && ` Showing ${filteredUsers.length} of ${users?.length || 0} users.`}
+                {!isLoadingUsers && ` Showing ${filteredUsers.length} of ${users?.length || 0} users.`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -222,7 +235,7 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
+                  {isLoadingUsers ? (
                     <TableRow>
                         <TableCell colSpan={6} className="h-48 text-center">
                             <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />

@@ -97,24 +97,18 @@ export default function ReportsPage() {
   });
 
   // Firestore Queries
-  const ordersQuery = useMemoFirebase(() => firestore && user ? query(collection(firestore, "orders")) : null, [firestore, user]);
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "orders"));
+  }, [firestore, user]);
   const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
-  const menuItemsQuery = useMemoFirebase(() => firestore && user ? query(collection(firestore, "menuItems")) : null, [firestore, user]);
+  const menuItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "menuItems"));
+  }, [firestore, user]);
   const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsQuery);
   
-  const inventoryItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // This assumes a flat inventory collection which might not exist or be accessible.
-    // If inventory is a subcollection, this query needs adjustment.
-    // For now, let's assume an admin can read a top-level inventory collection.
-    // NOTE: This query will fail if the rules don't allow it.
-    // Let's assume inventory is nested under menuItems.
-    return null; // Cannot query all nested inventories efficiently. Will rely on menuItems data.
-  }, [firestore, user]);
-  const { data: initialInventory, isLoading: isLoadingInventory } = useCollection<InventoryItem>(inventoryItemsQuery);
-
-
   // Filter data based on date range
   const filteredOrders = (allOrders || []).filter(order => {
     const orderDate = new Date(order.orderDate);
