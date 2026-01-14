@@ -17,104 +17,47 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff, UserPlus } from "lucide-react";
 import { useAuth, useUser } from "@/firebase";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { signInAnonymously } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { FirebaseError } from "firebase/app";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function AdminLoginPage() {
-  const [email] = useState("admin@campusconnect.hub");
-  const [password] = useState("AdminPassword123");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
-  const firestore = getFirestore();
 
   useEffect(() => {
-    // If user is logged in (and not anonymous), redirect to dashboard.
-    if (!isUserLoading && user && !user.isAnonymous) {
-        router.push("/dashboard");
+    // Redirect if a non-anonymous user is already logged in
+    if (user && !user.isAnonymous) {
+      router.push("/dashboard");
     }
-  }, [user, isUserLoading, router]);
+  }, [user, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!auth) return;
-    setIsLoading(true);
-    setIsLoggingIn(true);
-
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Successful login will be handled by the useEffect hook
-    } catch (error) {
-        toast({
-            variant: 'destructive',
-            title: 'Authentication Failed',
-            description: "User does not exist or password was incorrect. Try creating the first admin user.",
-        });
-    } finally {
-      setIsLoading(false);
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleCreateFirstAdmin = async () => {
-    if (!auth || !firestore) return;
-    setIsLoading(true);
-    
-    try {
-      // 1. Create the user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const newAdmin = userCredential.user;
-
-      // 2. Create the user document in Firestore with the 'Admin' role
-      const userDocRef = doc(firestore, "users", newAdmin.uid);
-      const adminUserData = {
-        id: newAdmin.uid,
-        name: "Default Admin",
-        email: newAdmin.email,
-        role: "Admin",
-        avatarUrl: `https://i.pravatar.cc/150?u=${newAdmin.uid}`,
-        balance: 0,
-      };
-      
-      // Use setDoc to create the user profile document.
-      // The security rule is what protects this one-time action.
-      await setDoc(userDocRef, adminUserData);
-
+  const handleAnonymousSignIn = async () => {
+    if (!auth) {
       toast({
-        title: "Admin Account Created!",
-        description: "Redirecting you to the dashboard.",
+        variant: "destructive",
+        title: "Authentication service not available.",
       });
-
-      // The useEffect will catch the new auth state and redirect.
-      // A small delay ensures a smoother transition.
-      setTimeout(() => router.push("/dashboard"), 1000);
-
-    } catch (error: any) {
-        let description = "An unexpected error occurred.";
-        if (error.code === 'auth/email-already-in-use') {
-            description = "This admin account already exists. Please use the login form.";
-        } else if (error instanceof FirebaseError && error.code.includes('permission-denied')) {
-            description = "Permission denied. An admin account may already exist, or security rules are preventing the creation of the first user.";
-        } else {
-            description = error.message;
-        }
-        toast({
-            variant: 'destructive',
-            title: 'Admin Creation Failed',
-            description,
-        });
-        setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await signInAnonymously(auth);
+      // The useEffect will catch the new anonymous user and redirect
+      router.push("/dashboard/users");
+    } catch (error) {
+      console.error("Anonymous sign-in failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Setup Failed",
+        description: "Could not initiate the setup process. Please try again.",
+      });
+      setIsLoading(false);
     }
   };
-
-
+  
   if (isUserLoading || (user && !user.isAnonymous)) {
       return (
           <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -122,6 +65,7 @@ export default function AdminLoginPage() {
           </div>
       );
   }
+
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background">
@@ -138,51 +82,29 @@ export default function AdminLoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold">Admin Portal Setup</CardTitle>
           <CardDescription className="text-white/80 pt-2">
-            Click to create the default administrator account.
+            This will begin the secure, one-time setup for the first administrator account.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-             {/* Create Admin Button */}
-            <Button variant="secondary" onClick={handleCreateFirstAdmin} disabled={isLoading} className="w-full text-lg py-6">
-              {isLoading && !isLoggingIn ? (
+            <Button 
+              variant="secondary" 
+              onClick={handleAnonymousSignIn} 
+              disabled={isLoading} 
+              className="w-full text-lg py-6"
+            >
+              {isLoading ? (
                  <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating Account...
+                    Initializing...
                   </>
               ) : (
                 <>
                     <UserPlus className="mr-2 h-5 w-5" />
-                    Create First Admin Account
+                    Begin Admin Setup
                 </>
               )}
             </Button>
-            
-            {/* Separator */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/30" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-white/80">
-                  Or
-                  </span>
-              </div>
-            </div>
-            
-            {/* Login Form */}
-            <form onSubmit={handleLogin} className="grid gap-4">
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && isLoggingIn ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Logging In...
-                    </>
-                  ) : (
-                    "Login as Admin"
-                  )}
-                </Button>
-            </form>
           </div>
           
           <div className="mt-6 text-center text-sm">
