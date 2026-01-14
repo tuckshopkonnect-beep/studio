@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { initialOrders } from "@/lib/data";
 import type { Order } from "@/lib/data";
 import {
   DropdownMenu,
@@ -35,26 +34,30 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ListFilter, MoreHorizontal, File, Download, ShoppingBag } from "lucide-react";
+import { ListFilter, MoreHorizontal, File, Download, ShoppingBag, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query } from "firebase/firestore";
+import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function OrdersPage() {
   const { toast } = useToast();
-  const [orders, setOrders] = React.useState<Order[]>(initialOrders);
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+  
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, "orders"));
+  }, [firestore, user]);
+
+  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+
   const [orderToCancel, setOrderToCancel] = React.useState<Order | null>(null);
 
-  React.useEffect(() => {
-    // In a real app, you'd fetch this from a server. Here we use localStorage.
-    if (typeof window !== 'undefined') {
-        const storedOrders = localStorage.getItem('allOrders');
-        const allOrders = storedOrders ? JSON.parse(storedOrders) : initialOrders;
-        setOrders(allOrders);
-    }
-  }, []);
-
   const handleExportPDF = async () => {
+    if (!orders) return;
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportOrdersPDF } = await import('@/lib/pdf-utils');
@@ -62,16 +65,23 @@ export default function OrdersPage() {
   };
 
   const handleExportCSV = async () => {
+    if(!orders) return;
     const { exportOrdersCSV } = await import('@/lib/csv-utils');
     exportOrdersCSV(orders);
   };
   
   const handleCancelOrder = () => {
-    if (!orderToCancel) return;
+    if (!orderToCancel || !firestore) return;
     
-    const updatedOrders = orders.filter(order => order.id !== orderToCancel.id);
-    setOrders(updatedOrders);
-    localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
+    // Non-blockingly delete from the top-level 'orders' collection
+    const adminOrderRef = doc(firestore, "orders", orderToCancel.id);
+    deleteDocumentNonBlocking(adminOrderRef);
+
+    // Non-blockingly delete from the user's private 'orders' subcollection
+    if (orderToCancel.userId) {
+        const userOrderRef = doc(firestore, "users", orderToCancel.userId, "orders", orderToCancel.id);
+        deleteDocumentNonBlocking(userOrderRef);
+    }
     
     toast({
       title: "Order Cancelled",
@@ -79,6 +89,14 @@ export default function OrdersPage() {
     });
     setOrderToCancel(null);
   };
+
+  if (isUserLoading || isLoadingOrders) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -119,7 +137,7 @@ export default function OrdersPage() {
           </DropdownMenu>
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" disabled={orders.length === 0}>
+              <Button size="sm" variant="outline" disabled={!orders || orders.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
@@ -151,7 +169,14 @@ export default function OrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.length > 0 ? (
+              {isLoadingOrders ? (
+                 <TableRow>
+                    <TableCell colSpan={5} className="h-48 text-center">
+                        <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                        <p className="mt-2 text-muted-foreground">Loading orders...</p>
+                    </TableCell>
+                </TableRow>
+              ) : orders && orders.length > 0 ? (
                 orders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>
@@ -190,7 +215,7 @@ export default function OrdersPage() {
                           <DropdownMenuItem onSelect={() => alert(`Viewing student ${order.customerName}`)}>View Student</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                              className="text-destructive"
+                              className="text-destructive focus:text-destructive"
                               onSelect={() => setOrderToCancel(order)}
                           >
                             Cancel Order

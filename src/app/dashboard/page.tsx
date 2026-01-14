@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart, ArrowDown, ArrowUp, Archive, BarChart, Loader2 } from "lucide-react";
-import { menuItems as staticMenuItems } from "@/lib/data";
 import type { Order, User, MenuItem } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query } from 'firebase/firestore';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -113,7 +113,7 @@ export default function DashboardPage() {
     .map(([name, quantity]) => ({
       name,
       quantity,
-      image: staticMenuItems.find(mi => mi.name === name)?.image.imageUrl || 'https://placehold.co/100x100'
+      image: PlaceHolderImages.find(mi => mi.id === name.toLowerCase().replace(/ /g, '-'))?.imageUrl || 'https://placehold.co/100x100'
     }));
 
   const recentActivities: any[] = [
@@ -347,5 +347,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    

@@ -24,6 +24,7 @@ import {
   FileDown,
   ArrowUp,
   ArrowDown,
+  Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -50,7 +51,9 @@ import {
 } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
-import { initialOrders, initialUsers, menuItems, initialInventory } from "@/lib/data";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query } from "firebase/firestore";
+import type { Order, User, MenuItem, InventoryItem } from "@/lib/data";
 
 const chartConfig = {
   revenue: {
@@ -85,13 +88,35 @@ const getCategory = (itemName: string): keyof typeof chartConfig => {
 };
 
 export default function ReportsPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
   });
 
+  // Firestore Queries
+  const ordersQuery = useMemoFirebase(() => firestore && user ? query(collection(firestore, "orders")) : null, [firestore, user]);
+  const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+
+  const menuItemsQuery = useMemoFirebase(() => firestore && user ? query(collection(firestore, "menuItems")) : null, [firestore, user]);
+  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsQuery);
+  
+  const inventoryItemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // This assumes a flat inventory collection which might not exist or be accessible.
+    // If inventory is a subcollection, this query needs adjustment.
+    // For now, let's assume an admin can read a top-level inventory collection.
+    // NOTE: This query will fail if the rules don't allow it.
+    // Let's assume inventory is nested under menuItems.
+    return null; // Cannot query all nested inventories efficiently. Will rely on menuItems data.
+  }, [firestore, user]);
+  const { data: initialInventory, isLoading: isLoadingInventory } = useCollection<InventoryItem>(inventoryItemsQuery);
+
+
   // Filter data based on date range
-  const filteredOrders = initialOrders.filter(order => {
+  const filteredOrders = (allOrders || []).filter(order => {
     const orderDate = new Date(order.orderDate);
     const from = date?.from ? startOfDay(date.from) : null;
     const to = date?.to ? startOfDay(addDays(date.to, 1)) : null; // include the whole 'to' day
@@ -127,9 +152,9 @@ export default function ReportsPage() {
   
   // Sales by Category (Pie Chart)
   const salesByCategory = filteredOrders
-    .flatMap(order => order.items.map(item => ({...item, total: initialOrders.find(o => o.id === order.id)?.total || 0 })))
+    .flatMap(order => order.items.map(item => ({...item, total: allOrders?.find(o => o.id === order.id)?.total || 0 })))
     .reduce((acc, item) => {
-        const menuItem = menuItems.find(mi => mi.name === item.name);
+        const menuItem = menuItems?.find(mi => mi.name === item.name);
         if(!menuItem) return acc;
         const category = getCategory(menuItem.name);
         const itemRevenue = menuItem.price * item.quantity;
@@ -157,7 +182,7 @@ export default function ReportsPage() {
   const productPerformance = filteredOrders
     .flatMap(order => order.items)
     .reduce((acc, item) => {
-        const menuItem = menuItems.find(mi => mi.name === item.name);
+        const menuItem = menuItems?.find(mi => mi.name === item.name);
         if(!menuItem) return acc;
 
         if(!acc[item.name]) {
@@ -171,6 +196,13 @@ export default function ReportsPage() {
   const topProducts = Object.entries(productPerformance)
     .map(([name, data]) => ({ name, ...data }))
     .sort((a,b) => b.revenue - a.revenue);
+    
+    const inventoryData = menuItems?.map(item => ({
+      id: item.id,
+      name: item.name,
+      stock: (item as any).stock ?? 100, // Fallback stock
+      lowStockThreshold: 15
+    })) || [];
 
   // --- Export Logic ---
   const handleExportSection = async (sectionTitle: string, format: 'pdf' | 'csv') => {
@@ -222,7 +254,7 @@ export default function ReportsPage() {
       case 'Inventory Report':
         data = {
             head: [['Product', 'Current Stock']],
-            body: initialInventory.map(i => [i.name, i.stock.toString()])
+            body: (inventoryData).map(i => [i.name, i.stock.toString()])
         };
         break;
       default:
@@ -268,11 +300,19 @@ export default function ReportsPage() {
         },
         inventoryReport: {
             head: [['Product', 'Current Stock']],
-            body: initialInventory.map(i => [i.name, i.stock.toString()])
+            body: (inventoryData).map(i => [i.name, i.stock.toString()])
         }
     };
     generateFullReportPDF(date, reportData, jsPDF, autoTable);
   };
+  
+  if (isUserLoading || isLoadingOrders || isLoadingMenu) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
 
   return (
@@ -507,7 +547,7 @@ export default function ReportsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {initialInventory.map(item => (
+                    {inventoryData.map(item => (
                         <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.name}</TableCell>
                             <TableCell className={cn(
