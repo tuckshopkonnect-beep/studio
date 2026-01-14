@@ -55,7 +55,6 @@ export default function UsersPage() {
 
   const usersCollection = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
-    // For anonymous user on first setup, we expect this to fail, but we will handle the error.
     return collection(firestore, "users");
   },[firestore, authUser]);
 
