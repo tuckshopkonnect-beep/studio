@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -27,20 +27,29 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
 
-  const ordersCollection = useMemoFirebase(() => collection(firestore, "orders"), [firestore]);
-  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "orders"));
+  }, [firestore]);
+  const { data: orders } = useCollection<Order>(ordersQuery);
   
-  const usersCollection = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
-  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+  const usersCollection = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, "users")
+    }, [firestore]);
+  const { data: users } = useCollection<User>(usersCollection);
   
   // Changed from /inventory to /menuItems to respect security rules
-  const menuItemsCollection = useMemoFirebase(() => collection(firestore, "menuItems"), [firestore]);
-  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
+  const menuItemsCollection = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return collection(firestore, "menuItems");
+    }, [firestore]);
+  const { data: menuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 
   const now = new Date();

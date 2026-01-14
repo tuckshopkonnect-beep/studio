@@ -11,6 +11,7 @@ export interface CartItem extends MenuItem {
 
 export interface CompletedOrder {
   id: string;
+  userId: string;
   items: CartItem[];
   total: number;
   status: 'Pending' | 'Preparing' | 'Ready for Pickup' | 'Completed';
@@ -88,10 +89,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const updatedHistory = [order, ...history];
     localStorage.setItem('orderHistory', JSON.stringify(updatedHistory));
 
-    // Add to global list of all orders
-    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') as CompletedOrder[];
-    const updatedAllOrders = [order, ...allOrders];
-    localStorage.setItem('allOrders', JSON.stringify(updatedAllOrders));
+    // Add to global list of all orders - This part is now handled by writing to the top-level /orders collection in Firestore
+    // const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') as CompletedOrder[];
+    // const updatedAllOrders = [order, ...allOrders];
+    // localStorage.setItem('allOrders', JSON.stringify(updatedAllOrders));
   };
 
 
@@ -185,7 +186,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     clearCart,
     totalItems,
     totalPrice
-  }), [cart, inventory, clientInventory, completedOrder, getStock, addOrderToHistory, setCompletedOrder, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice]);
+  }), [cart, inventory, clientInventory, completedOrder, getStock, addOrderToHistory, setCompletedOrder, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice]);
 
   return (
     <CartContext.Provider value={value}>
@@ -201,3 +202,5 @@ export function useCart() {
   }
   return context;
 }
+
+    

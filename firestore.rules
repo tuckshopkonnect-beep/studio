@@ -111,7 +111,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // To protect user privacy, listing all users is disallowed.
       allow create: if isCreatingValidUser(userId);
       allow update: if isUpdatingValidUser(userId);
       allow delete: if isOwnerOfExistingDoc(userId);
@@ -146,10 +146,25 @@ service cloud.firestore {
         }
       }
     }
+    
+    // --------------------------------------------------------------------
+    // Aggregated & Public Data Rules 
+    // --------------------------------------------------------------------
 
-    // --------------------------------------------------------------------
-    // Public & Admin Data Rules (/menuItems)
-    // --------------------------------------------------------------------
+    /**
+     * @description Top-level orders collection for admin dashboard.
+     * @path /orders/{orderId}
+     * @allow Any signed-in user (admin) can read this collection.
+     * @deny All client-side writes are denied. This should be written to by a backend function.
+     */
+    match /orders/{orderId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
 
     /**
      * @description Manages the publicly viewable tuckshop menu items.
@@ -182,3 +197,4 @@ service cloud.firestore {
     }
   }
 }
+    

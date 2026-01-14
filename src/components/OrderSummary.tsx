@@ -8,8 +8,11 @@ import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { User, Order } from "@/lib/data";
+import type { User } from "@/lib/data";
 import { CompletedOrder } from "@/hooks/use-cart";
+import { useFirestore, useUser } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 
 
 interface OrderSummaryProps {
@@ -21,8 +24,10 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
   const { cart: cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const firestore = useFirestore();
+  const { user } = useUser();
 
-  if (!student) {
+  if (!student || !user) {
       return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
   }
 
@@ -58,30 +63,31 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return;
     }
     
-    // --- Deduct balance and save ---
-    if (typeof window !== 'undefined') {
-        const storedUsers = localStorage.getItem('allUsers');
-        let allUsers = storedUsers ? JSON.parse(storedUsers) : [];
-        allUsers = allUsers.map((u: User) => 
-            u.id === student.id 
-                ? { ...u, balance: u.balance - totalPrice } 
-                : u
-        );
-        localStorage.setItem('allUsers', JSON.stringify(allUsers));
-    }
+    const studentDocRef = doc(firestore, 'users', user.uid);
+    updateDocumentNonBlocking(studentDocRef, { balance: potentialBalance });
 
 
     const newOrder: CompletedOrder = {
       id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      userId: user.uid,
       items: [...cartItems],
       total: totalPrice,
       status: 'Ready for Pickup',
       orderDate: new Date().toISOString(),
       customerName: student.name,
     };
+    
+    // Write to user's private orders subcollection
+    const userOrdersColRef = collection(firestore, 'users', user.uid, 'orders');
+    addDocumentNonBlocking(userOrdersColRef, newOrder);
+
+    // Write to the top-level orders collection for admin view
+    const adminOrdersColRef = collection(firestore, 'orders');
+    addDocumentNonBlocking(adminOrdersColRef, newOrder);
+
 
     setCompletedOrder(newOrder);
-    addOrderToHistory(newOrder);
+    addOrderToHistory(newOrder); // This updates localStorage for the student history page
     clearCart();
     router.push('/student/order/confirmation');
   };
@@ -168,3 +174,5 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
     </>
   );
 }
+
+    

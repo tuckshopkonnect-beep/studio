@@ -237,6 +237,22 @@
         }
       },
       {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Top-level collection for all orders, intended for admin access.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "Unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
         "path": "/users/{userId}/orders/{orderId}",
         "definition": {
           "entityName": "Order",
@@ -313,6 +329,7 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, focusing on menu display, order placement, order management, and inventory control. It leverages path-based ownership for user-specific data (orders) and a top-level collection for menu items accessible to all users. Authorization Independence is achieved by storing the `userId` directly within the `Order` documents, eliminating the need for security rules to traverse to parent documents. QAPs are supported by segregating data based on ownership (orders under user IDs) and providing a flat, easily queryable structure for menu items."
+    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, focusing on menu display, order placement, order management, and inventory control. It leverages path-based ownership for user-specific data (orders) and a top-level collection for menu items accessible to all users. A top-level `/orders` collection is included for admin-level querying of all orders. Authorization Independence is achieved by storing the `userId` directly within the `Order` documents, eliminating the need for security rules to traverse to parent documents. QAPs are supported by segregating data based on ownership (orders under user IDs) and providing a flat, easily queryable structure for menu items and all orders."
   }
 }
+    
