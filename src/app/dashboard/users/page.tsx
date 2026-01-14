@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { initialUsers } from "@/lib/data";
 import type { User } from "@/lib/data";
 import {
   DropdownMenu,
@@ -42,10 +41,17 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, deleteDoc, doc } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
 
 export default function UsersPage() {
   const { toast } = useToast();
-  const [users, setUsers] = React.useState<User[]>(initialUsers);
+  const firestore = useFirestore();
+
+  const usersCollection = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
+  const { data: users, isLoading } = useCollection<User>(usersCollection);
+
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -55,26 +61,9 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const storedUsers = localStorage.getItem('allUsers');
-        if (storedUsers) {
-            setUsers(JSON.parse(storedUsers));
-        } else {
-            localStorage.setItem('allUsers', JSON.stringify(initialUsers));
-        }
-    }
-    setMounted(true)
-  }, []);
-
-  const updateUsers = (updatedUsers: User[]) => {
-    setUsers(updatedUsers);
-    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
-  };
-
 
   const filteredUsers = React.useMemo(() => {
+    if (!users) return [];
     return users
       .filter(user => {
         if (activeTab === "all") return true;
@@ -91,6 +80,7 @@ export default function UsersPage() {
   }, [users, activeTab, searchTerm]);
 
   const handleExportPDF = async () => {
+    if (!filteredUsers) return;
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const { exportUsersPDF } = await import('@/lib/pdf-utils');
@@ -98,18 +88,26 @@ export default function UsersPage() {
   };
 
   const handleExportCSV = async () => {
+    if (!filteredUsers) return;
     const { exportUsersCSV } = await import('@/lib/csv-utils');
     exportUsersCSV(filteredUsers);
   };
 
-  const handleDeleteUser = () => {
+  const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    const updatedUsers = users.filter(user => user.id !== userToDelete.id)
-    updateUsers(updatedUsers);
-    toast({
-      title: "User Deleted",
-      description: `${userToDelete.name} has been successfully deleted.`,
-    });
+    try {
+      await deleteDoc(doc(firestore, "users", userToDelete.id.toString()));
+      toast({
+        title: "User Deleted",
+        description: `${userToDelete.name} has been successfully deleted.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error deleting user",
+        description: error.message,
+      });
+    }
     setUserToDelete(null);
   };
 
@@ -134,27 +132,8 @@ export default function UsersPage() {
   };
 
   const handleSaveUser = (userToSave: User): boolean => {
-    if (isCreating) {
-      if (users.some(user => user.email === userToSave.email)) {
-        toast({
-          variant: "destructive",
-          title: "Email Already Exists",
-          description: "A user with this email address is already registered.",
-        });
-        return false;
-      }
-      const newUser = { 
-        ...userToSave, 
-        id: Date.now(), 
-        avatarUrl: userToSave.avatarUrl || `https://i.pravatar.cc/150?u=${Date.now()}` 
-      };
-      updateUsers([...users, newUser]);
-      toast({ title: "User Created", description: `${newUser.name} has been added.` });
-    } else {
-      const updatedUsers = users.map(u => u.id === userToSave.id ? userToSave : u)
-      updateUsers(updatedUsers);
-      toast({ title: "User Updated", description: `${userToSave.name}'s details have been saved.` });
-    }
+    // This will be replaced with Firestore logic
+    console.log("Saving user:", userToSave);
     handleCloseDialog();
     return true;
   };
@@ -172,7 +151,7 @@ export default function UsersPage() {
       
       <UserDetailDialog
           user={selectedUser}
-          allUsers={users}
+          allUsers={users || []}
           isOpen={isUserDetailOpen}
           onOpenChange={handleCloseDialog}
           onSave={handleSaveUser}
@@ -225,7 +204,7 @@ export default function UsersPage() {
               <CardTitle>Users</CardTitle>
               <CardDescription>
                 Manage all user accounts. 
-                {mounted && ` Showing ${filteredUsers.length} of ${users.length} users.`}
+                {!isLoading && ` Showing ${filteredUsers.length} of ${users?.length || 0} users.`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -243,7 +222,14 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.length > 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={6} className="h-48 text-center">
+                            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+                            <p className="mt-2 text-muted-foreground">Loading users...</p>
+                        </TableCell>
+                    </TableRow>
+                  ) : filteredUsers.length > 0 ? (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -264,7 +250,7 @@ export default function UsersPage() {
                           <Badge variant={user.role === 'Admin' ? 'destructive' : user.role === 'Parent' ? 'secondary' : 'outline'}>{user.role}</Badge>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {user.role === 'Student' ? `₦${user.balance.toFixed(2)}` : 'N/A'}
+                          {user.role === 'Student' ? `₦${(user.balance || 0).toFixed(2)}` : 'N/A'}
                         </TableCell>
                         <TableCell className={cn("hidden md:table-cell font-medium", user.role === 'Student' && "text-primary")}>
                           {user.role === 'Student' && user.dailyLimit ? `₦${user.dailyLimit.toFixed(2)}` : 'N/A'}
