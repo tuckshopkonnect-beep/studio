@@ -10,8 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingBag, Users, Activity, Star, ShoppingCart, ArrowDown, ArrowUp, Archive, BarChart } from "lucide-react";
-import { initialOrders, initialUsers, initialInventory, menuItems } from "@/lib/data";
-import type { Order, InventoryItem } from '@/lib/data';
+import { menuItems } from "@/lib/data";
+import type { Order, InventoryItem, User } from '@/lib/data';
 import WeeklySalesChart from "@/components/WeeklySalesChart";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,30 +26,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
 
 export default function DashboardPage() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [users, setUsers] = useState(initialUsers);
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
+  const firestore = useFirestore();
 
+  const ordersCollection = useMemoFirebase(() => collection(firestore, "orders"), [firestore]);
+  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
+  
+  const usersCollection = useMemoFirebase(() => collection(firestore, "users"), [firestore]);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+  
+  const inventoryCollection = useMemoFirebase(() => collection(firestore, "inventory"), [firestore]);
+  const { data: inventory, isLoading: isLoadingInventory } = useCollection<InventoryItem>(inventoryCollection);
 
-  useEffect(() => {
-    // In a real app, you'd fetch this from a server. Here we use localStorage.
-    if (typeof window !== 'undefined') {
-        const storedOrders = localStorage.getItem('allOrders');
-        const allOrders = storedOrders ? JSON.parse(storedOrders) : initialOrders;
-        setOrders(allOrders);
-
-        const storedUsers = localStorage.getItem('allUsers');
-        const allUsers = storedUsers ? JSON.parse(storedUsers) : initialUsers;
-        setUsers(allUsers);
-        
-        // Simulating inventory fetch
-        const storedInventory = localStorage.getItem('inventory');
-        const allInventory = storedInventory ? JSON.parse(storedInventory) : initialInventory;
-        setInventory(allInventory);
-    }
-  }, []);
 
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -59,23 +50,25 @@ export default function DashboardPage() {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
-  const ordersThisMonth = orders.filter(o => new Date(o.orderDate) >= startOfThisMonth);
+  const safeOrders = orders || [];
+
+  const ordersThisMonth = safeOrders.filter(o => new Date(o.orderDate) >= startOfThisMonth);
 
   const revenueThisMonth = ordersThisMonth.reduce((acc, order) => acc + order.total, 0);
   
-  const revenueLastMonth = orders
+  const revenueLastMonth = safeOrders
     .filter(o => {
         const orderDate = new Date(o.orderDate);
         return orderDate >= startOfLastMonth && orderDate <= endOfLastMonth;
     })
     .reduce((acc, order) => acc + order.total, 0);
 
-  const revenueThisYear = orders
+  const revenueThisYear = safeOrders
     .filter(o => new Date(o.orderDate) >= startOfThisYear)
     .reduce((acc, order) => acc + order.total, 0);
     
-  const ordersLast7Days = orders.filter(o => new Date(o.orderDate) >= sevenDaysAgo).length;
-  const ordersPrevious7Days = orders.filter(o => {
+  const ordersLast7Days = safeOrders.filter(o => new Date(o.orderDate) >= sevenDaysAgo).length;
+  const ordersPrevious7Days = safeOrders.filter(o => {
       const orderDate = new Date(o.orderDate);
       return orderDate >= fourteenDaysAgo && orderDate < sevenDaysAgo;
   }).length;
@@ -90,15 +83,15 @@ export default function DashboardPage() {
   const monthlyRevenueChange = calculatePercentageChange(revenueThisMonth, revenueLastMonth);
   const weeklyOrderChange = calculatePercentageChange(ordersLast7Days, ordersPrevious7Days);
 
-  const totalUsers = users.length;
+  const totalUsers = users?.length ?? 0;
   
-  const lowStockItemsCount = inventory.filter(i => i.stock < i.lowStockThreshold).length;
+  const lowStockItemsCount = inventory?.filter(i => i.stock < i.lowStockThreshold).length ?? 0;
   
   const averageOrderValue = ordersThisMonth.length > 0 ? revenueThisMonth / ordersThisMonth.length : 0;
 
 
   // Calculate top selling items
-  const itemSales = orders.flatMap(o => o.items).reduce((acc, item) => {
+  const itemSales = safeOrders.flatMap(o => o.items).reduce((acc, item) => {
     acc[item.name] = (acc[item.name] || 0) + item.quantity;
     return acc;
   }, {} as Record<string, number>);
@@ -116,7 +109,7 @@ export default function DashboardPage() {
     // This will now be empty by default
   ];
 
-  const recentOrders = orders.slice(0, 5);
+  const recentOrders = safeOrders.slice(0, 5);
   
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
@@ -335,5 +328,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
