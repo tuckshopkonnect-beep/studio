@@ -43,10 +43,46 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const totalRevenue = orders.reduce((acc, order) => acc + order.total, 0);
-  const totalOrders = orders.length;
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+  const startOfThisYear = new Date(now.getFullYear(), 0, 1);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const revenueThisMonth = orders
+    .filter(o => new Date(o.orderDate) >= startOfThisMonth)
+    .reduce((acc, order) => acc + order.total, 0);
+  
+  const revenueLastMonth = orders
+    .filter(o => {
+        const orderDate = new Date(o.orderDate);
+        return orderDate >= startOfLastMonth && orderDate <= endOfLastMonth;
+    })
+    .reduce((acc, order) => acc + order.total, 0);
+
+  const revenueThisYear = orders
+    .filter(o => new Date(o.orderDate) >= startOfThisYear)
+    .reduce((acc, order) => acc + order.total, 0);
+    
+  const ordersLast7Days = orders.filter(o => new Date(o.orderDate) >= sevenDaysAgo).length;
+  const ordersPrevious7Days = orders.filter(o => {
+      const orderDate = new Date(o.orderDate);
+      return orderDate >= fourteenDaysAgo && orderDate < sevenDaysAgo;
+  }).length;
+
+  const calculatePercentageChange = (current: number, previous: number) => {
+      if (previous === 0) {
+          return current > 0 ? 100 : 0;
+      }
+      return ((current - previous) / previous) * 100;
+  };
+
+  const monthlyRevenueChange = calculatePercentageChange(revenueThisMonth, revenueLastMonth);
+  const weeklyOrderChange = calculatePercentageChange(ordersLast7Days, ordersPrevious7Days);
+
   const totalUsers = users.length;
-  const totalItemsSold = orders.flatMap(o => o.items).reduce((acc, item) => acc + item.quantity, 0);
 
   // Calculate top selling items
   const itemSales = orders.flatMap(o => o.items).reduce((acc, item) => {
@@ -72,42 +108,44 @@ export default function DashboardPage() {
   return (
     <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-        <Card>
+         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Revenue
+              Revenue (This Month)
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₦{revenueThisMonth.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              {/* +20.1% from last month */}
+              {monthlyRevenueChange >= 0 ? '+' : ''}{monthlyRevenueChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              New Orders
+             Total Revenue (This Year)
             </CardTitle>
-            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{totalOrders}</div>
-             <p className="text-xs text-muted-foreground">
-              Total orders placed
+            <div className="text-2xl font-bold">₦{revenueThisYear.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Revenue from successful sales in {now.getFullYear()}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Items Sold</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">New Orders (7 days)</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{totalItemsSold}</div>
-            <p className="text-xs text-muted-foreground">Total items from all orders</p>
+            <div className="text-2xl font-bold">+{ordersLast7Days}</div>
+            <p className="text-xs text-muted-foreground">
+              {weeklyOrderChange >= 0 ? '+' : ''}{weeklyOrderChange.toFixed(1)}% from last week
+            </p>
           </CardContent>
         </Card>
         <Card>
