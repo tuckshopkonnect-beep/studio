@@ -22,14 +22,15 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
-import type { User } from "@/lib/data";
+import type { User, Order } from "@/lib/data";
 import { usePathname } from "next/navigation";
+import { initialUsers as defaultUsers, initialOrders as defaultOrders } from "@/lib/data";
 
 export default function Header() {
   const { totalItems } = useCart();
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [spentToday, setSpentToday] = useState(0);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
 
   useEffect(() => {
     // This code runs on the client, after the component mounts
@@ -42,17 +43,25 @@ export default function Header() {
         }
 
         const storedUsers = localStorage.getItem('allUsers');
-        const users = storedUsers ? JSON.parse(storedUsers) : [];
-        setAllUsers(users);
+        const users: User[] = storedUsers ? JSON.parse(storedUsers) : defaultUsers;
         
-        const student = users.find((u: User) => u.role === 'Student' && u.name === 'Alex Doe');
-        if(student) {
-          const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
+        let activeUser = null;
+        if (pathname.startsWith('/student')) {
+            activeUser = users.find((u: User) => u.role === 'Student' && u.name === 'Alex Doe');
+        } else if (pathname.startsWith('/parent')) {
+            activeUser = users.find((u: User) => u.role === 'Parent' && u.name === 'Mrs. Brown');
+        }
+        setCurrentUser(activeUser);
+        
+        if(activeUser && activeUser.role === 'Student') {
+          const storedOrders = localStorage.getItem('allOrders');
+          const allOrders: Order[] = storedOrders ? JSON.parse(storedOrders) : defaultOrders;
+
           const todaySpent = allOrders
             .filter((o: any) => {
               const orderDate = new Date(o.orderDate);
               const today = new Date();
-              return o.customerName === student.name &&
+              return o.customerName === activeUser?.name &&
                      orderDate.getDate() === today.getDate() &&
                      orderDate.getMonth() === today.getMonth() &&
                      orderDate.getFullYear() === today.getFullYear();
@@ -61,9 +70,7 @@ export default function Header() {
           setSpentToday(todaySpent);
         }
     }
-  }, [pathname]); // Rerun when path changes to update totals
-
-  const student = allUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe');
+  }, [pathname]);
 
   const setTheme = (theme: "light" | "dark") => {
     localStorage.setItem("theme", theme);
@@ -77,6 +84,7 @@ export default function Header() {
   const isParentPortal = pathname.startsWith('/parent');
   const dashboardLink = isParentPortal ? "/parent/dashboard" : "/student/dashboard";
 
+  const studentUser = currentUser?.role === 'Student' ? currentUser : undefined;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -153,7 +161,7 @@ export default function Header() {
                 <SheetHeader className="px-6 pt-6">
                   <SheetTitle>Your Order</SheetTitle>
                 </SheetHeader>
-                <OrderSummary student={student} spentToday={spentToday} />
+                <OrderSummary student={studentUser} spentToday={spentToday} />
               </SheetContent>
             </Sheet>
           )}
