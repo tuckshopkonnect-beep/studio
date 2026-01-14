@@ -15,17 +15,24 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronsUpDown, Check } from "lucide-react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { initialUsers } from "@/lib/data";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import type { User } from "@/lib/data";
+import { cn } from "@/lib/utils";
 
 
 export default function SettingsPage() {
@@ -41,6 +48,8 @@ export default function SettingsPage() {
   const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [individualLimit, setIndividualLimit] = useState<string>('');
+  const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+
 
   const studentUsers = allUsers.filter(u => u.role === 'Student');
   const selectedStudent = allUsers.find(u => u.id === Number(selectedStudentId));
@@ -129,7 +138,26 @@ export default function SettingsPage() {
 
     toast({
       title: "Individual Limit Updated",
-      description: `The daily limit for ${selectedStudent?.name} has been set to ₦${newLimit || 'none'}.`
+      description: `The daily limit for ${selectedStudent?.name} has been set to ₦${newLimit || 'default'}.`
+    });
+  };
+
+  const handleRemoveIndividualLimit = () => {
+    if (!selectedStudentId) return;
+    
+    const studentId = Number(selectedStudentId);
+
+    setIndividualLimit(''); // Clear the input
+    
+    setAllUsers(prevUsers => 
+      prevUsers.map(u => 
+        u.id === studentId ? { ...u, dailyLimit: undefined } : u
+      )
+    );
+
+    toast({
+      title: "Individual Limit Removed",
+      description: `The daily limit for ${selectedStudent?.name} has been reverted to the default.`
     });
   };
   
@@ -194,32 +222,70 @@ export default function SettingsPage() {
           <CardContent className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="student-select">Select Student</Label>
-                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                  <SelectTrigger id="student-select">
-                    <SelectValue placeholder="Choose a student..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {studentUsers.map(student => (
-                      <SelectItem key={student.id} value={String(student.id)}>
-                        {student.name} - {student.class}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={isComboboxOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedStudentId
+                        ? studentUsers.find((student) => String(student.id) === selectedStudentId)?.name
+                        : "Select a student..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search student..." />
+                      <CommandList>
+                        <CommandEmpty>No student found.</CommandEmpty>
+                        <CommandGroup>
+                          {studentUsers.map((student) => (
+                            <CommandItem
+                              key={student.id}
+                              value={student.name}
+                              onSelect={() => {
+                                setSelectedStudentId(String(student.id));
+                                setIsComboboxOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedStudentId === String(student.id) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {student.name} - {student.class}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               {selectedStudentId && (
                  <div className="grid gap-2">
                     <Label htmlFor="individual-limit">Custom Daily Limit (₦)</Label>
-                    <div className="relative">
-                       <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                       <Input 
-                        id="individual-limit" 
-                        type="number"
-                        placeholder="Leave blank for no limit" 
-                        className="pl-6"
-                        value={individualLimit}
-                        onChange={(e) => setIndividualLimit(e.target.value)}
-                      />
+                    <div className="flex gap-2">
+                       <div className="relative flex-grow">
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                          <Input 
+                            id="individual-limit" 
+                            type="number"
+                            placeholder="Leave blank to use default" 
+                            className="pl-6"
+                            value={individualLimit}
+                            onChange={(e) => setIndividualLimit(e.target.value)}
+                          />
+                       </div>
+                       {selectedStudent?.dailyLimit !== undefined && (
+                          <Button variant="outline" onClick={handleRemoveIndividualLimit}>
+                            Remove Limit
+                          </Button>
+                       )}
                     </div>
                 </div>
               )}
@@ -346,3 +412,5 @@ export default function SettingsPage() {
     </div>
     </>
   );
+
+    
