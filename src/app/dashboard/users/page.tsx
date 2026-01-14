@@ -154,18 +154,18 @@ export default function UsersPage() {
         description="This action cannot be undone. This will permanently delete the user's account and all associated data."
         confirmButtonText="Yes, Delete User"
       />
-      {isUserDetailOpen && (
-        <UserDetailDialog
-            user={selectedUser}
-            allUsers={users}
-            isOpen={isUserDetailOpen}
-            onOpenChange={handleCloseDialog}
-            onSave={handleSaveUser}
-            isEditing={isEditing}
-            setIsEditing={setIsEditing}
-            isCreating={isCreating}
-        />
-      )}
+      
+      <UserDetailDialog
+          user={selectedUser}
+          allUsers={users}
+          isOpen={isUserDetailOpen}
+          onOpenChange={handleCloseDialog}
+          onSave={handleSaveUser}
+          isEditing={isEditing}
+          setIsEditing={setIsEditing}
+          isCreating={isCreating}
+      />
+      
 
       <Tabs defaultValue="all" onValueChange={setActiveTab}>
         <div className="flex items-center gap-4">

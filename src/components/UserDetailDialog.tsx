@@ -3,6 +3,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '@/lib/data';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -11,9 +14,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -38,14 +48,13 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 
 interface UserDetailDialogProps {
   user: User | null;
   allUsers: User[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (user: User) => boolean; // Returns true on success, false on failure
+  onSave: (user: User) => boolean;
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   isCreating: boolean;
@@ -73,67 +82,42 @@ export default function UserDetailDialog({
   setIsEditing,
   isCreating,
 }: UserDetailDialogProps) {
-  const [userData, setUserData] = useState<User>(user || emptyUser);
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
   const [parentComboboxOpen, setParentComboboxOpen] = useState(false)
 
   const parentUsers = allUsers.filter(u => u.role === 'Parent');
 
+  const userSchema = z.object({
+      name: z.string().min(1, "Name is required."),
+      email: z.string().email("Invalid email address."),
+      password: isCreating ? z.string().min(1, "Password is required.") : z.string().optional(),
+      role: z.enum(['Student', 'Parent', 'Admin']),
+      class: z.string().optional(),
+      balance: z.number().optional(),
+      parentId: z.number().optional(),
+      avatarUrl: z.string().optional(),
+      id: z.number().optional(),
+  });
+
+
+  const form = useForm<z.infer<typeof userSchema>>({
+    resolver: zodResolver(userSchema),
+    defaultValues: isCreating ? { ...emptyUser, password: '' } : { ...user, password: '' }
+  });
+
   useEffect(() => {
-    if (isCreating) {
-        setUserData(emptyUser);
-        setPassword('');
-    } else {
-        setUserData(user || emptyUser);
+    if (isOpen) {
+      form.reset(isCreating ? { ...emptyUser, password: '' } : { ...user, password: '' });
     }
-  }, [user, isCreating]);
+  }, [isOpen, isCreating, user, form]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    setUserData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseFloat(value) || 0 : value,
-    }));
-  };
 
-  const handleRoleChange = (value: 'Student' | 'Parent' | 'Admin') => {
-    setUserData(prev => ({ ...prev, role: value }));
-  };
-
-  const handleParentLinkChange = (value: string) => {
-    setParentComboboxOpen(false);
-    const parentId = Number(value)
-    setUserData(prev => ({ ...prev, parentId: parentId > 0 ? parentId : undefined }));
-  };
-
-  const handleClassChange = (value: string) => {
-    setUserData(prev => ({ ...prev, class: value }));
-  };
-  
-  const handleSaveClick = () => {
-    // Input validation
-    if (!userData.name || !userData.email) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Name and email are required fields.",
-      });
-      return;
+  const handleSaveClick = (values: z.infer<typeof userSchema>) => {
+    const success = onSave(values as User);
+    if (success) {
+      form.reset();
     }
-    if (isCreating && !password) {
-        toast({
-            variant: "destructive",
-            title: "Validation Error",
-            description: "Password is required for new users.",
-        });
-        return;
-    }
-    
-    // onSave will now return a boolean. If it's false (due to validation fail), we don't close the dialog.
-    onSave(userData);
   };
 
   const handleAvatarClick = () => {
@@ -147,7 +131,7 @@ export default function UserDetailDialog({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUserData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+        form.setValue('avatarUrl', reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -156,205 +140,257 @@ export default function UserDetailDialog({
   const title = isCreating ? "Create New User" : isEditing ? `Edit ${user?.name}` : `User Details`;
   const description = isCreating ? "Fill in the details to add a new user." : isEditing ? `Editing details for ${user?.name}` : `Viewing details for ${user?.name}`;
 
+  const watchRole = form.watch('role');
+  const avatarUrl = form.watch('avatarUrl');
+  const name = form.watch('name');
+  const email = form.watch('email');
+  const parentId = form.watch('parentId');
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          {isEditing ? (
-             <DialogTitle className="sr-only">{title}</DialogTitle>
-           ) : (
-             <DialogTitle>{title}</DialogTitle>
-           )}
-           <DialogDescription className="sr-only">
-             {description}
-           </DialogDescription>
-
-          <div className="flex flex-col items-center gap-4 pt-4">
-              <div className="relative">
-                  <Avatar 
-                      className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
-                      onClick={handleAvatarClick}
-                  >
-                      <AvatarImage src={userData.avatarUrl} alt={userData.name} className="object-cover"/>
-                      <AvatarFallback className="text-3xl">{userData.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {isEditing && (
-                      <div 
-                          className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSaveClick)}>
+            <DialogHeader>
+              <div className="flex flex-col items-center gap-4 pt-4">
+                  <div className="relative">
+                      <Avatar 
+                          className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer group")}
                           onClick={handleAvatarClick}
                       >
-                          <Camera className="h-8 w-8 text-white" />
-                      </div>
-                  )}
-                  <Input 
-                      ref={fileInputRef}
-                      type="file" 
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileChange} 
-                  />
-              </div>
-               {isEditing ? (
-                  <div className="grid gap-2 w-full text-center">
-                      <Label htmlFor="name" className="sr-only">First & Last Name</Label>
+                          <AvatarImage src={avatarUrl} alt={name} className="object-cover"/>
+                          <AvatarFallback className="text-3xl">{name ? name.charAt(0) : 'U'}</AvatarFallback>
+                      </Avatar>
+                      {isEditing && (
+                          <div 
+                              className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={handleAvatarClick}
+                          >
+                              <Camera className="h-8 w-8 text-white" />
+                          </div>
+                      )}
                       <Input 
-                        id="name" 
-                        name="name" 
-                        value={userData.name} 
-                        onChange={handleInputChange} 
-                        placeholder="First & Last Name"
-                        className="text-center text-xl font-semibold h-auto p-1 bg-transparent border-0 focus-visible:ring-1"
+                          ref={fileInputRef}
+                          type="file" 
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileChange} 
                       />
                   </div>
-              ) : (
-                  <div className="grid gap-1 text-center">
-                      <DialogTitle>{userData.name}</DialogTitle>
-                      <DialogDescription className="mt-[-1rem]">{userData.email}</DialogDescription>
-                      <Badge variant={userData.role === 'Admin' ? 'destructive' : userData.role === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{userData.role}</Badge>
-                  </div>
-              )}
-          </div>
-        </DialogHeader>
+                   {isEditing ? (
+                      <div className="grid gap-2 w-full text-center">
+                          <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel htmlFor="name" className="sr-only">First & Last Name</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        {...field}
+                                        id="name"
+                                        placeholder="First & Last Name"
+                                        className="text-center text-xl font-semibold h-auto p-1 bg-transparent border-0 focus-visible:ring-1"
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                              )}
+                          />
+                      </div>
+                  ) : (
+                      <div className="grid gap-1 text-center">
+                          <DialogTitle>{name}</DialogTitle>
+                          <DialogDescription className="mt-[-1rem]">{email}</DialogDescription>
+                          <Badge variant={watchRole === 'Admin' ? 'destructive' : watchRole === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{watchRole}</Badge>
+                      </div>
+                  )}
+              </div>
+            </DialogHeader>
 
-        <div className="grid gap-6 py-4">
+            <div className="grid gap-6 py-4">
 
-            <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" value={userData.email} onChange={handleInputChange} disabled={!isEditing} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={userData.role} onValueChange={handleRoleChange} disabled={!isEditing}>
-                        <SelectTrigger id="role">
-                            <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Student">Student</SelectItem>
-                            <SelectItem value="Parent">Parent</SelectItem>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-            {isCreating && (
-                 <div className="grid gap-2 relative">
-                    <Label htmlFor="password">Password</Label>
-                    <Input 
-                      id="password" 
-                      name="password" 
-                      type={showPassword ? "text" : "password"} 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      className="pr-10"
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled={!isEditing} />
+                          </FormControl>
+                           <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-[26px] h-7 w-7 text-muted-foreground"
-                        onClick={() => setShowPassword(prev => !prev)}
-                    >
-                        {showPassword ? <EyeOff /> : <Eye />}
-                        <span className="sr-only">Toggle password visibility</span>
-                    </Button>
+                    <FormField
+                        control={form.control}
+                        name="role"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Role</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value} disabled={!isEditing}>
+                                    <FormControl>
+                                        <SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="Student">Student</SelectItem>
+                                        <SelectItem value="Parent">Parent</SelectItem>
+                                        <SelectItem value="Admin">Admin</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                 <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </div>
-            )}
-            {userData.role === 'Student' && (
-                <div className={cn("grid grid-cols-2 gap-4 transition-all duration-300", userData.role === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden')}>
-                    <div className="grid gap-2">
-                        <Label htmlFor="class">Class</Label>
-                        <Select value={userData.class} onValueChange={handleClassChange} disabled={!isEditing}>
-                          <SelectTrigger id="class">
-                              <SelectValue placeholder="Select a class..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                              {classLevels.map(level => (
-                                  <SelectItem key={level} value={level}>{level}</SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="balance">Initial Balance</Label>
-                        <Input id="balance" name="balance" type="number" value={userData.balance} onChange={handleInputChange} disabled={!isEditing} />
-                    </div>
-                    <div className="grid gap-2 col-span-2">
-                        <Label htmlFor="parent">Link to Parent</Label>
-                        <Popover open={parentComboboxOpen} onOpenChange={setParentComboboxOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={parentComboboxOpen}
-                                className="w-full justify-between"
-                                disabled={!isEditing}
+                {isCreating && (
+                     <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem className="relative">
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                    <Input {...field} type={showPassword ? 'text' : 'password'} className="pr-10" />
+                                </FormControl>
+                                 <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-1 top-[26px] h-7 w-7 text-muted-foreground"
+                                    onClick={() => setShowPassword(prev => !prev)}
                                 >
-                                {userData.parentId
-                                    ? parentUsers.find((parent) => parent.id === userData.parentId)?.name
-                                    : "Select parent..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    {showPassword ? <EyeOff /> : <Eye />}
+                                    <span className="sr-only">Toggle password visibility</span>
                                 </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                                <Command>
-                                <CommandInput placeholder="Search parent..." />
-                                <CommandList>
-                                <CommandEmpty>No parent found.</CommandEmpty>
-                                <CommandGroup>
-                                    {parentUsers.map((parent) => (
-                                    <CommandItem
-                                        key={parent.id}
-                                        value={parent.name}
-                                        onSelect={() => handleParentLinkChange(String(parent.id))}
-                                    >
-                                        <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            userData.parentId === parent.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                        />
-                                        {parent.name}
-                                    </CommandItem>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                {watchRole === 'Student' && (
+                    <div className={cn("grid grid-cols-2 gap-4 transition-all duration-300", watchRole === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden')}>
+                       <FormField
+                          control={form.control}
+                          name="class"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Class</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!isEditing}>
+                                <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select a class..." /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {classLevels.map(level => (
+                                        <SelectItem key={level} value={level}>{level}</SelectItem>
                                     ))}
-                                </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                         <FormField
+                          control={form.control}
+                          name="balance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Initial Balance</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} disabled={!isEditing} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid gap-2 col-span-2">
+                             <FormField
+                              control={form.control}
+                              name="parentId"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-col">
+                                  <FormLabel>Link to Parent</FormLabel>
+                                  <Popover open={parentComboboxOpen} onOpenChange={setParentComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                                          disabled={!isEditing}
+                                        >
+                                          {field.value
+                                            ? parentUsers.find((parent) => parent.id === field.value)?.name
+                                            : "Select parent..."}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                      <Command>
+                                        <CommandInput placeholder="Search parent..." />
+                                        <CommandList>
+                                          <CommandEmpty>No parent found.</CommandEmpty>
+                                          <CommandGroup>
+                                            {parentUsers.map((parent) => (
+                                              <CommandItem
+                                                value={parent.name}
+                                                key={parent.id}
+                                                onSelect={() => {
+                                                  field.onChange(parent.id);
+                                                  setParentComboboxOpen(false);
+                                                }}
+                                              >
+                                                <Check
+                                                  className={cn("mr-2 h-4 w-4", parent.id === field.value ? "opacity-100" : "opacity-0")}
+                                                />
+                                                {parent.name}
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
+                                        </CommandList>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
 
-
-        <DialogFooter>
-          {isEditing ? (
-            <>
-              <Button variant="outline" onClick={() => {
-                if (isCreating) {
-                    onOpenChange(false);
-                } else {
-                    setIsEditing(false);
-                    setUserData(user!); // Revert changes
-                }
-              }}>
-                <X className="mr-2 h-4 w-4" /> Cancel
-              </Button>
-              <Button onClick={handleSaveClick}>
-                <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create User" : "Save Changes"}
-              </Button>
-            </>
-          ) : (
-             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-              <Button onClick={() => setIsEditing(true)}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+            <DialogFooter>
+              {isEditing ? (
+                <>
+                  <Button type="button" variant="outline" onClick={() => {
+                    if (isCreating) {
+                        onOpenChange(false);
+                    } else {
+                        setIsEditing(false);
+                        form.reset(user || emptyUser);
+                    }
+                  }}>
+                    <X className="mr-2 h-4 w-4" /> Cancel
+                  </Button>
+                  <Button type="submit" disabled={!form.formState.isDirty}>
+                    <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create User" : "Save Changes"}
+                  </Button>
+                </>
+              ) : (
+                 <>
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+                  <Button type="button" onClick={() => setIsEditing(true)}>
+                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
