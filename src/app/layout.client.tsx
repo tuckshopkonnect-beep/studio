@@ -9,6 +9,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
 
   // Define paths where the default header should not be shown
   const noHeaderPaths = [
+    '/', // Hide on the main landing page
     '/dashboard',
     '/parent/dashboard',
     '/student/dashboard',
@@ -16,7 +17,11 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
   ];
 
   // A more robust check to see if the path starts with any of the noHeaderPaths
-  const hideHeader = noHeaderPaths.some(p => pathname.startsWith(p));
+  const hideHeader = noHeaderPaths.some(p => {
+    if (p === '/') return pathname === '/';
+    return pathname.startsWith(p);
+  });
+
 
   return (
     <>
