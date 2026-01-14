@@ -133,7 +133,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
       // Allow list only for admins.
       allow list: if isAdmin();
       // Allow creation if it's a valid user, an admin is doing it, OR if it's the very first user being created.
