@@ -13,6 +13,7 @@ export interface MenuItem {
 export interface Order {
   id: string;
   customerName: string;
+  userId: string;
   items: {
     name: string;
     quantity: number;

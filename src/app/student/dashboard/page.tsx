@@ -22,6 +22,8 @@ import { usePathname } from "next/navigation";
 export default function StudentDashboard() {
     const pathname = usePathname();
     const [allUsers, setAllUsers] = useState(initialUsers);
+    const [allOrders, setAllOrders] = useState(initialOrders);
+
 
     useEffect(() => {
         // This effect ensures the component re-renders with the latest data from localStorage
@@ -29,6 +31,10 @@ export default function StudentDashboard() {
             const storedUsers = localStorage.getItem('allUsers');
             if (storedUsers) {
                 setAllUsers(JSON.parse(storedUsers));
+            }
+             const storedOrders = localStorage.getItem('orderHistory');
+            if (storedOrders) {
+                setAllOrders(JSON.parse(storedOrders));
             }
         }
     }, [pathname]);
@@ -41,7 +47,7 @@ export default function StudentDashboard() {
     spentToday: 0.00,
   };
 
-  const spentToday = initialOrders
+  const spentToday = allOrders
     .filter(o => {
       const orderDate = new Date(o.orderDate);
       const today = new Date();
