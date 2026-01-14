@@ -15,7 +15,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import type { MenuItem as MenuItemType, InventoryItem } from "@/lib/data";
+import type { MenuItem as MenuItemType } from "@/lib/data";
 import {
   Table,
   TableBody,
@@ -42,6 +42,8 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
 import MenuItemDetailDialog from "@/components/MenuItemDetailDialog";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { InventoryItem } from "@/lib/data";
+
 
 export default function InventoryPage() {
   const { toast } = useToast();
@@ -52,18 +54,17 @@ export default function InventoryPage() {
     if (!firestore || !user) return null;
     return collection(firestore, "menuItems");
   }, [firestore, user]);
+
   const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
-  // NOTE: Inventory is not in Firestore yet, so we'll use a mock for now.
   const [inventory, setInventoryState] = React.useState<InventoryItem[]>([]);
   
   React.useEffect(() => {
     if (menu) {
-      // Create mock inventory based on menu items. In a real app, this would also come from Firestore.
       setInventoryState(menu.map(item => ({
         id: (item as any).id,
         name: (item as any).name,
-        stock: (item as any).stock ?? 100, // Assuming stock is a property for now
+        stock: (item as any).stock ?? 100,
         lowStockThreshold: 15,
       })));
     }
@@ -90,9 +91,10 @@ export default function InventoryPage() {
   };
   
   const handleDeleteItem = async () => {
-    if (!itemToDelete) return;
+    if (!itemToDelete || !firestore) return;
 
-    deleteDocumentNonBlocking(doc(firestore, "menuItems", (itemToDelete as any).id.toString()));
+    const docRef = doc(firestore, "menuItems", (itemToDelete as any).id.toString());
+    deleteDocumentNonBlocking(docRef);
 
     toast({
       title: "Menu Item Deleted",
@@ -114,9 +116,9 @@ export default function InventoryPage() {
   }
 
   const handleSaveItem = async (itemData: MenuItemType) => {
+    if (!firestore) return false;
     const docRef = doc(firestore, "menuItems", (itemData as any).id.toString());
     
-    // Using the non-blocking update to prevent UI freezes
     setDocumentNonBlocking(docRef, itemData, { merge: true });
 
     toast({
@@ -124,7 +126,7 @@ export default function InventoryPage() {
       description: `${(itemData as any).name} has been saved successfully.`
     });
     handleCloseDialog();
-    return true; // Indicate success
+    return true; 
   };
   
   if (isUserLoading || isLoadingMenu) {
@@ -154,7 +156,7 @@ export default function InventoryPage() {
       item={selectedItem}
       isCreating={isCreating}
       menuItems={menu || []}
-      isSaving={isUserLoading} // Pass loading state to dialog
+      isSaving={isUserLoading}
     />
 
     <Tabs defaultValue="all">
