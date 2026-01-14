@@ -6,6 +6,7 @@ import MenuItemCard from '@/components/MenuItemCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Timer, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // --- StopOrdersAlert Component ---
 const StopOrdersAlert = () => {
@@ -118,11 +119,35 @@ const OrderTimer = () => {
 };
 // --- End OrderTimer Component ---
 
+const MenuSkeleton = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+      {Array.from({ length: 8 }).map((_, index) => (
+        <Card key={index} className="flex flex-col overflow-hidden">
+            <CardHeader className="p-0">
+                <Skeleton className="h-48 w-full" />
+            </CardHeader>
+             <CardContent className="flex-grow p-4">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-1/2 mt-1" />
+            </CardContent>
+            <CardFooter className="flex items-center justify-between p-4 bg-muted/50">
+                 <Skeleton className="h-8 w-1/4" />
+                 <Skeleton className="h-9 w-2/4" />
+            </CardFooter>
+        </Card>
+      ))}
+    </div>
+);
+
+
 export default function OrderPage() {
+  const [isClient, setIsClient] = useState(false);
   const [shopOpen, setShopOpen] = useState(true);
   const [ordersStopped, setOrdersStopped] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     // Check for master override first
     const stopOrders = localStorage.getItem('stopOrders') === 'true';
     setOrdersStopped(stopOrders);
@@ -162,11 +187,16 @@ export default function OrderPage() {
       <section>
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
         {ordersStopped ? <StopOrdersAlert /> : <OrderTimer />}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-          {menuItems.map(item => (
-            <MenuItemCard key={item.id} item={item} isShopOpen={shopOpen} />
-          ))}
-        </div>
+        
+        {!isClient ? (
+          <MenuSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            {menuItems.map(item => (
+              <MenuItemCard key={item.id} item={item} isShopOpen={shopOpen} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
