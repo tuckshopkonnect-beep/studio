@@ -45,7 +45,7 @@ interface UserDetailDialogProps {
   allUsers: User[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (user: User) => void;
+  onSave: (user: User) => boolean; // Returns true on success, false on failure
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   isCreating: boolean;
@@ -131,7 +131,8 @@ export default function UserDetailDialog({
         });
         return;
     }
-    // We pass the password separately if you were to handle it, but here it's just for the form
+    
+    // onSave will now return a boolean. If it's false (due to validation fail), we don't close the dialog.
     onSave(userData);
   };
 
@@ -208,6 +209,7 @@ export default function UserDetailDialog({
                   </div>
               ) : (
                   <div className="grid gap-1 text-center">
+                      <DialogTitle>{userData.name}</DialogTitle>
                       <DialogDescription className="mt-[-1rem]">{userData.email}</DialogDescription>
                       <Badge variant={userData.role === 'Admin' ? 'destructive' : userData.role === 'Parent' ? 'secondary' : 'outline'} className="mx-auto mt-1">{userData.role}</Badge>
                   </div>

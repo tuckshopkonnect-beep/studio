@@ -116,7 +116,7 @@ export default function UsersPage() {
     setIsCreating(false);
   };
 
-  const handleSaveUser = (userToSave: User) => {
+  const handleSaveUser = (userToSave: User): boolean => {
     if (isCreating) {
       // Check for email uniqueness
       if (users.some(user => user.email === userToSave.email)) {
@@ -125,7 +125,7 @@ export default function UsersPage() {
           title: "Email Already Exists",
           description: "A user with this email address is already registered.",
         });
-        return;
+        return false; // Indicate failure
       }
       // Add new user
       const newUser = { 
@@ -141,6 +141,7 @@ export default function UsersPage() {
       toast({ title: "User Updated", description: `${userToSave.name}'s details have been saved.` });
     }
     handleCloseDialog();
+    return true; // Indicate success
   };
 
   return (
