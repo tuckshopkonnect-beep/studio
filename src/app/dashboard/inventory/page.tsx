@@ -117,7 +117,7 @@ export default function InventoryPage() {
 
   const handleSaveItem = async (itemData: MenuItemType) => {
     if (!firestore) return false;
-    const docRef = doc(firestore, "menuItems", (itemData as any).id.toString());
+    const docRef = doc(firestore, "menuItems", String(itemData.id));
     
     setDocumentNonBlocking(docRef, itemData, { merge: true });
 
