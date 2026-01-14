@@ -41,6 +41,7 @@ export default function AdminLoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) return;
     setIsLoading(true);
 
     // Use the non-blocking sign-in function
@@ -48,11 +49,11 @@ export default function AdminLoginPage() {
 
     // We don't need to wait for the result here. The `useEffect` above
     // will handle the redirect when the user state changes.
-    // We can show a loading state for a better UX.
+    // We can show a loading state for a better UX and handle potential errors.
     setTimeout(() => {
-        // Check if we are still on this page after a delay.
-        // If the user object hasn't changed, it means login failed.
-        if (router.asPath.includes('/portal/admin')) {
+        // This is a failsafe. If after 3 seconds, the user object hasn't changed
+        // and we are still on the login page, it likely means the login failed.
+        if (router.asPath.includes('/portal/admin') && !auth.currentUser) {
              setIsLoading(false);
              toast({
                 variant: 'destructive',
