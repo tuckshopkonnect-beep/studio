@@ -55,10 +55,11 @@ export default function UsersPage() {
 
   const usersCollection = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
+    // For anonymous user on first setup, we expect this to fail, but we will handle the error.
     return collection(firestore, "users");
   },[firestore, authUser]);
 
-  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+  const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -69,6 +70,7 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
+  const isInitialSetup = authUser?.isAnonymous && (!users || users.length === 0);
 
   const filteredUsers = React.useMemo(() => {
     if (!users) return [];
@@ -206,13 +208,15 @@ export default function UsersPage() {
   };
 
 
-  if (isUserLoading || isLoadingUsers) {
+  if (isUserLoading || (isLoadingUsers && !usersError)) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
+  
+  const showEmptyState = !isInitialSetup && (!filteredUsers || filteredUsers.length === 0);
 
   return (
     <>
@@ -258,7 +262,7 @@ export default function UsersPage() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" disabled={isInitialSetup}>
                   <Download className="mr-2 h-4 w-4" />
                   Export
                 </Button>
@@ -279,8 +283,10 @@ export default function UsersPage() {
             <CardHeader>
               <CardTitle>Users</CardTitle>
               <CardDescription>
-                Manage all user accounts. 
-                {!isLoadingUsers && ` Showing ${filteredUsers.length} of ${users?.length || 0} users.`}
+                {isInitialSetup 
+                  ? "No admin account found. Please add the first admin user."
+                  : `Manage all user accounts. Showing ${filteredUsers.length} of ${users?.length || 0} users.`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -298,14 +304,14 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingUsers ? (
+                  {isLoadingUsers && !usersError ? (
                     <TableRow>
                         <TableCell colSpan={6} className="h-48 text-center">
                             <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
                             <p className="mt-2 text-muted-foreground">Loading users...</p>
                         </TableCell>
                     </TableRow>
-                  ) : filteredUsers.length > 0 ? (
+                  ) : (isInitialSetup || filteredUsers.length > 0) ? (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -365,7 +371,10 @@ export default function UsersPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        No users found.
+                        {isInitialSetup 
+                          ? "Click 'Add User' to create the first administrator."
+                          : "No users found."
+                        }
                       </TableCell>
                     </TableRow>
                   )}
