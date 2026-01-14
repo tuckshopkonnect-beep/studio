@@ -35,8 +35,53 @@ export default function ScannerPage() {
   const [orders, setOrders] = useState(initialOrders);
   
   useEffect(() => {
+    let isMounted = true;
+    const startScan = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Camera not available on this browser");
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        
+        if (!isMounted) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        setHasCameraPermission(true);
+  
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute("playsinline", "true"); // Required for iOS
+          await videoRef.current.play();
+          if (isMounted) {
+            setIsScanning(true);
+            animationFrameId.current = requestAnimationFrame(tick);
+          }
+        }
+  
+      } catch (err) {
+        if (isMounted) {
+            console.error('Error accessing camera:', err);
+            setHasCameraPermission(false);
+            toast({
+              variant: 'destructive',
+              title: 'Camera Access Denied',
+              description: 'Please enable camera permissions in your browser to use the QR scanner.',
+            });
+        }
+      }
+    };
+    
+    startScan();
+
     // When the component unmounts, stop the camera and scanning loop
     return () => {
+      isMounted = false;
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
@@ -44,43 +89,6 @@ export default function ScannerPage() {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
-
-  const startScan = async () => {
-    try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera not available on this browser");
-      }
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
-      streamRef.current = stream;
-      setHasCameraPermission(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute("playsinline", "true"); // Required for iOS
-        videoRef.current.play();
-        setIsScanning(true);
-        animationFrameId.current = requestAnimationFrame(tick);
-      }
-
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      setHasCameraPermission(false);
-      toast({
-        variant: 'destructive',
-        title: 'Camera Access Denied',
-        description: 'Please enable camera permissions in your browser to use the QR scanner.',
-      });
-    }
-  };
-
-  useEffect(() => {
-    // Start scanning when component mounts
-    startScan();
   }, [toast]);
   
 
@@ -180,7 +188,7 @@ export default function ScannerPage() {
     // Reset the scanner page
     setScannedOrder(null);
     setTransactionId("");
-    startScan(); // Restart scanning for the next order
+    // The useEffect hook will handle restarting the scan
   };
 
 
@@ -196,7 +204,7 @@ export default function ScannerPage() {
         <CardContent>
           <div className="mx-auto max-w-md space-y-6">
             <div className="relative flex aspect-video w-full items-center justify-center rounded-lg border-2 border-dashed bg-muted overflow-hidden">
-              <video ref={videoRef} className="w-full h-full object-cover" />
+              <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               {hasCameraPermission === false && (
                 <div className="absolute text-center text-muted-foreground z-10 p-4">
@@ -268,7 +276,7 @@ export default function ScannerPage() {
                  <Button className="w-full" onClick={handleMarkAsCompleted} disabled={scannedOrder.status === 'Completed'}>
                     {scannedOrder.status === 'Completed' ? 'Order Already Completed' : 'Mark as Completed & Collect'}
                  </Button>
-                 <Button variant="outline" className="w-full" onClick={() => { setScannedOrder(null); setTransactionId(''); startScan(); }}>
+                 <Button variant="outline" className="w-full" onClick={() => { setScannedOrder(null); setTransactionId(''); /* Let useEffect restart scan */ }}>
                     Scan Next
                 </Button>
             </CardFooter>
