@@ -70,7 +70,9 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
-  const isInitialSetup = authUser?.isAnonymous && (!users || users.length === 0);
+  // This is the critical change: determine if it's the initial setup.
+  // It's the setup phase if the user is anonymous AND there's a permission error trying to load users.
+  const isInitialSetup = authUser?.isAnonymous && !!usersError;
 
   const filteredUsers = React.useMemo(() => {
     if (!users) return [];
@@ -208,7 +210,7 @@ export default function UsersPage() {
   };
 
 
-  if (isUserLoading || (isLoadingUsers && !usersError)) {
+  if (isUserLoading || (isLoadingUsers && !isInitialSetup)) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -304,14 +306,23 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingUsers && !usersError ? (
+                  {isLoadingUsers && !isInitialSetup ? (
                     <TableRow>
                         <TableCell colSpan={6} className="h-48 text-center">
                             <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
                             <p className="mt-2 text-muted-foreground">Loading users...</p>
                         </TableCell>
                     </TableRow>
-                  ) : (isInitialSetup || filteredUsers.length > 0) ? (
+                  ) : showEmptyState || isInitialSetup ? (
+                     <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        {isInitialSetup 
+                          ? "Click 'Add User' to create the first administrator."
+                          : "No users found."
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ) : (
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -368,15 +379,6 @@ export default function UsersPage() {
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        {isInitialSetup 
-                          ? "Click 'Add User' to create the first administrator."
-                          : "No users found."
-                        }
-                      </TableCell>
-                    </TableRow>
                   )}
                 </TableBody>
               </Table>

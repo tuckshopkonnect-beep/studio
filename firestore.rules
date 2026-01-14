@@ -132,8 +132,8 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
-      // Allow list if admin, OR if it's an authenticated user and the collection is empty (for setup).
-      allow list: if isAdmin() || (isSignedIn() && size(get(/databases/$(database)/documents/users).data) == 0);
+      // Allow list only for admins. A special case for initial setup is handled in the UI.
+      allow list: if isAdmin();
       // Allow creation if it's a valid user, an admin is doing it, OR if it's the very first user being created.
       allow create: if isCreatingValidUser(userId) || isAdmin() || isCreatingFirstUser();
       allow update: if isUpdatingValidUser(userId) || isAdmin();
