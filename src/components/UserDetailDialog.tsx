@@ -72,24 +72,28 @@ const emptyUser: User = {
 
 const classLevels = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
-const userSchema = z.object({
-    name: z.string().min(1, "Name is required."),
-    email: z.string().email("Invalid email address.").min(1, "Email is required."),
-    password: z.string().optional(),
-    role: z.enum(['Student', 'Parent', 'Admin']),
-    class: z.string().optional(),
-    balance: z.number().optional(),
-    parentId: z.number().optional(),
-    avatarUrl: z.string().optional(),
-    id: z.number().optional(),
-}).refine(data => !(data.role === 'Student' && !data.class), {
+const baseUserSchema = z.object({
+  name: z.string().min(1, "Name is required."),
+  email: z.string().email("Invalid email address.").min(1, "Email is required."),
+  password: z.string().optional(),
+  role: z.enum(['Student', 'Parent', 'Admin']),
+  class: z.string().optional(),
+  balance: z.number().optional(),
+  parentId: z.number().optional(),
+  avatarUrl: z.string().optional(),
+  id: z.number().optional(),
+});
+
+const refineStudent = (schema: z.ZodObject<any, any>) => schema.refine(data => !(data.role === 'Student' && !data.class), {
     message: "Class is required for students.",
     path: ["class"],
 });
 
-const createUserSchema = userSchema.extend({
+const userSchema = refineStudent(baseUserSchema);
+
+const createUserSchema = refineStudent(baseUserSchema.extend({
     password: z.string().min(1, "Password is required."),
-});
+}));
 
 export default function UserDetailDialog({
   user,
@@ -107,7 +111,7 @@ export default function UserDetailDialog({
 
   const parentUsers = allUsers.filter(u => u.role === 'Parent');
   
-  const form = useForm<z.infer<typeof userSchema>>({
+  const form = useForm<z.infer<typeof baseUserSchema>>({
     resolver: zodResolver(isCreating ? createUserSchema : userSchema),
   });
 
@@ -118,7 +122,7 @@ export default function UserDetailDialog({
   }, [isOpen, isCreating, user, form]);
 
 
-  const handleSaveClick = (values: z.infer<typeof userSchema>) => {
+  const handleSaveClick = (values: z.infer<typeof baseUserSchema>) => {
     const success = onSave(values as User);
     // Parent component handles closing dialog
   };
@@ -158,34 +162,34 @@ export default function UserDetailDialog({
             <DialogHeader>
                 <DialogTitle>{title}</DialogTitle>
                 {!isCreating && <DialogDescription>Details for {user?.name}</DialogDescription>}
+            </DialogHeader>
 
-                <div className="flex flex-col items-center gap-4 pt-4">
-                  <div className="relative group">
-                      <Avatar 
-                          className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer")}
+            <div className="flex flex-col items-center gap-4 pt-4">
+              <div className="relative group">
+                  <Avatar 
+                      className={cn("h-24 w-24 border-2 border-primary/20", isEditing && "cursor-pointer")}
+                      onClick={handleAvatarClick}
+                  >
+                      <AvatarImage src={avatarUrl} alt={name} className="object-cover"/>
+                      <AvatarFallback className="text-3xl">{name ? name.charAt(0) : 'U'}</AvatarFallback>
+                  </Avatar>
+                  {isEditing && (
+                      <div 
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={handleAvatarClick}
                       >
-                          <AvatarImage src={avatarUrl} alt={name} className="object-cover"/>
-                          <AvatarFallback className="text-3xl">{name ? name.charAt(0) : 'U'}</AvatarFallback>
-                      </Avatar>
-                      {isEditing && (
-                          <div 
-                              className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={handleAvatarClick}
-                          >
-                              <Camera className="h-8 w-8 text-white" />
-                          </div>
-                      )}
-                      <Input 
-                          ref={fileInputRef}
-                          type="file" 
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleFileChange} 
-                      />
-                  </div>
+                          <Camera className="h-8 w-8 text-white" />
+                      </div>
+                  )}
+                  <Input 
+                      ref={fileInputRef}
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileChange} 
+                  />
               </div>
-            </DialogHeader>
+            </div>
 
             <div className="grid gap-6 py-4">
                 <FormField
@@ -385,3 +389,5 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
+
+    
