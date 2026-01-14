@@ -69,11 +69,11 @@ service cloud.firestore {
     /**
      * Checks if this is the very first user being created in the system.
      * This is a special rule for bootstrapping the first admin user.
-     * It allows any authenticated session (including anonymous) to create the
-     * first user document, which should be an admin.
+     * It allows any authenticated user to create their own user document if
+     * no other user documents exist. This rule is used only once.
      */
     function isCreatingFirstUser() {
-        return isSignedIn() && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isOwner(request.auth.uid) && !exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.id == request.auth.uid;
     }
 
 

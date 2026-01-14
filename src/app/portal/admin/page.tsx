@@ -21,13 +21,13 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "fire
 import { useToast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
 import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function AdminLoginPage() {
   const [email] = useState("admin@campusconnect.hub");
   const [password] = useState("AdminPassword123");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   
   const router = useRouter();
   const auth = useAuth();
@@ -76,7 +76,7 @@ export default function AdminLoginPage() {
       const userDocRef = doc(firestore, "users", newAdmin.uid);
       const adminUserData = {
         id: newAdmin.uid,
-        name: "Admin User",
+        name: "Default Admin",
         email: newAdmin.email,
         role: "Admin",
         avatarUrl: `https://i.pravatar.cc/150?u=${newAdmin.uid}`,
