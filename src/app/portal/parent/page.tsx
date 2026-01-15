@@ -17,22 +17,29 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-
+import { doc, setDoc } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 
 export default function ParentLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("admin@campusconnect.hub");
-  const [password, setPassword] = useState("AdminPassword123");
+  const [isSignUp, setIsSignUp] = useState(false);
+  
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
+    if (!auth || !firestore) {
         toast({
             variant: "destructive",
             title: "Authentication service not ready.",
@@ -40,23 +47,63 @@ export default function ParentLoginPage() {
         });
         return;
     }
-    setIsLoading(true);
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast({
-            title: "Login Successful",
-            description: "Redirecting to your dashboard...",
-        });
-        router.push("/parent/dashboard");
-    } catch (error: any) {
-        console.error("Login failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid email or password. Please try again.",
-        });
-    } finally {
-        setIsLoading(false);
+
+    if (isSignUp) {
+        if (password !== confirmPassword) {
+            toast({ variant: "destructive", title: "Passwords do not match." });
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            // Create user document in Firestore
+            await setDoc(doc(firestore, "users", user.uid), {
+                id: user.uid,
+                name: name,
+                email: email,
+                role: 'Parent',
+                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+                balance: 0,
+            });
+
+            toast({
+                title: "Account Created",
+                description: "Redirecting to your dashboard...",
+            });
+            router.push("/parent/dashboard");
+
+        } catch (error: any) {
+            console.error("Sign up failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Sign Up Failed",
+                description: error.message || "An unknown error occurred.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    } else {
+        // Login logic
+        setIsLoading(true);
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            toast({
+                title: "Login Successful",
+                description: "Redirecting to your dashboard...",
+            });
+            router.push("/parent/dashboard");
+        } catch (error: any) {
+            console.error("Login failed:", error);
+            toast({
+                variant: "destructive",
+                title: "Login Failed",
+                description: "Invalid email or password. Please try again.",
+            });
+        } finally {
+            setIsLoading(false);
+        }
     }
   };
 
@@ -73,14 +120,28 @@ export default function ParentLoginPage() {
 
       <Card className="mx-auto max-w-sm w-full bg-black/30 backdrop-blur-xl border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Parent Login</CardTitle>
+          <CardTitle className="text-3xl font-bold">{isSignUp ? 'Create Parent Account' : 'Parent Login'}</CardTitle>
           <CardDescription className="text-white/80 pt-2">
-            Enter your credentials to manage your child's account.
+            {isSignUp ? "Fill in your details to create an account." : "Enter your credentials to manage your child's account."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
+              {isSignUp && (
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -96,9 +157,11 @@ export default function ParentLoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
-                    Forgot password?
-                  </Link>
+                  {!isSignUp && (
+                    <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
+                      Forgot password?
+                    </Link>
+                  )}
                 </div>
                  <div className="relative">
                     <Input 
@@ -121,20 +184,38 @@ export default function ParentLoginPage() {
                       </Button>
                 </div>
               </div>
+              {isSignUp && (
+                 <div className="grid gap-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Input 
+                      id="confirm-password" 
+                      type={showPassword ? "text" : "password"} 
+                      required 
+                      className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                    />
+                 </div>
+              )}
               <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Authenticating...
+                    {isSignUp ? "Creating Account..." : "Authenticating..."}
                   </>
                 ) : (
-                  "Login"
+                  isSignUp ? "Sign Up" : "Login"
                 )}
               </Button>
             </div>
           </form>
           <div className="mt-6 text-center text-sm">
-            <Link href="/portal" className="underline hover:text-primary">
+            <span className="text-white/70">{isSignUp ? 'Already have an account?' : "Don't have an account?"}</span>
+            <Button variant="link" className="text-white hover:text-primary" onClick={() => setIsSignUp(!isSignUp)}>
+                {isSignUp ? 'Login' : 'Create an account'}
+            </Button>
+            <br/>
+            <Link href="/portal" className="underline hover:text-primary mt-2 inline-block">
               &larr; Back to portal selection
             </Link>
           </div>
