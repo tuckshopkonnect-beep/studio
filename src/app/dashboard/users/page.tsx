@@ -165,7 +165,7 @@ export default function UsersPage() {
             const userDocRef = doc(firestore, 'users', newUserId);
             // This now uses setDoc directly because it's part of an async operation
             // that depends on the user being created first.
-            await setDoc(userDocRef, userDataForFirestore, { merge: false });
+            await setDoc(userDocRef, userDataForFirestore);
             
             toast({
                 title: "User Created",
@@ -189,6 +189,7 @@ export default function UsersPage() {
         if (!selectedUser) return false;
         try {
              const userDocRef = doc(firestore, 'users', selectedUser.id.toString());
+             // For updates, we can use the non-blocking version for a snappier UI
              setDocumentNonBlocking(userDocRef, userToSave, { merge: true });
              toast({
                 title: "User Updated",
