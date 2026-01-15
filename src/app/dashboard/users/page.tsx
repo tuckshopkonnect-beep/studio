@@ -55,6 +55,8 @@ export default function UsersPage() {
 
   const usersCollection = useMemoFirebase(() => {
     if (!firestore || !authUser) return null;
+    // Do not attempt to query if the user is anonymous, this will be handled by isInitialSetup
+    if (authUser.isAnonymous) return null;
     return collection(firestore, "users");
   },[firestore, authUser]);
 
@@ -70,11 +72,10 @@ export default function UsersPage() {
   const [isCreating, setIsCreating] = React.useState(false);
 
   // This is the critical change: determine if it's the initial setup.
-  // It's the setup phase if the user is anonymous AND there's a permission error trying to load users.
-  const isInitialSetup = authUser?.isAnonymous && !!usersError;
+  const isInitialSetup = authUser?.isAnonymous;
 
   const filteredUsers = React.useMemo(() => {
-    if (!users) return [];
+    if (isInitialSetup || !users) return [];
     return users
       .filter(user => {
         if (activeTab === "all") return true;
@@ -88,7 +89,7 @@ export default function UsersPage() {
           user.email.toLowerCase().includes(searchLower)
         );
       });
-  }, [users, activeTab, searchTerm]);
+  }, [users, activeTab, searchTerm, isInitialSetup]);
 
   const handleExportPDF = async () => {
     if (!filteredUsers) return;
@@ -164,7 +165,9 @@ export default function UsersPage() {
 
             // 3. Create user document in Firestore
             const userDocRef = doc(firestore, 'users', newUserId);
-            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: false });
+            // This now uses setDoc directly because it's part of an async operation
+            // that depends on the user being created first.
+            await setDoc(userDocRef, userDataForFirestore, { merge: false });
             
             toast({
                 title: "User Created",
@@ -209,7 +212,7 @@ export default function UsersPage() {
   };
 
 
-  if (isUserLoading || (isLoadingUsers && !isInitialSetup)) {
+  if (isUserLoading || isLoadingUsers) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -245,10 +248,10 @@ export default function UsersPage() {
       <Tabs defaultValue="all" onValueChange={setActiveTab}>
         <div className="flex items-center gap-4">
           <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="student">Students</TabsTrigger>
-            <TabsTrigger value="parent">Parents</TabsTrigger>
-            <TabsTrigger value="admin">Admins</TabsTrigger>
+            <TabsTrigger value="all" disabled={isInitialSetup}>All</TabsTrigger>
+            <TabsTrigger value="student" disabled={isInitialSetup}>Students</TabsTrigger>
+            <TabsTrigger value="parent" disabled={isInitialSetup}>Parents</TabsTrigger>
+            <TabsTrigger value="admin" disabled={isInitialSetup}>Admins</TabsTrigger>
           </TabsList>
           <div className="relative ml-auto flex-1 md:grow-0">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -258,6 +261,7 @@ export default function UsersPage() {
               className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={isInitialSetup}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -285,7 +289,7 @@ export default function UsersPage() {
               <CardTitle>Users</CardTitle>
               <CardDescription>
                 {isInitialSetup 
-                  ? "No admin account found. Please add the first admin user."
+                  ? "No admin account found. Click 'Add User' to create the first administrator."
                   : `Manage all user accounts. Showing ${filteredUsers.length} of ${users?.length || 0} users.`
                 }
               </CardDescription>
@@ -305,19 +309,12 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingUsers && !isInitialSetup ? (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-48 text-center">
-                            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-                            <p className="mt-2 text-muted-foreground">Loading users...</p>
-                        </TableCell>
-                    </TableRow>
-                  ) : showEmptyState || isInitialSetup ? (
+                  {showEmptyState || isInitialSetup ? (
                      <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                         {isInitialSetup 
                           ? "Click 'Add User' to create the first administrator."
-                          : "No users found."
+                          : "No users found for the current filter."
                         }
                       </TableCell>
                     </TableRow>

@@ -73,6 +73,18 @@ service cloud.firestore {
     function isOwnerOfExistingDoc(userId) {
       return isOwner(userId) && isExistingDoc();
     }
+    
+    /**
+     * This function allows the very first user document to be created.
+     * It is used to bootstrap the initial administrator account.
+     * It uses existsAfter() to ensure the rule only passes if this create
+     * operation results in the very first document.
+     */
+    function isCreatingFirstUser() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
 
     /**
      * Validates a new user document on creation.
@@ -123,8 +135,8 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       // Allow list only for admins.
       allow list: if isAdmin();
-      // Allow creation if it's a valid user or an admin is doing it.
-      allow create: if isCreatingValidUser(userId) || isAdmin();
+      // Allow creation if it's the first user or an admin is doing it.
+      allow create: if isCreatingFirstUser() || (isAdmin() && isCreatingValidUser(userId));
       allow update: if isUpdatingValidUser(userId) || isAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
