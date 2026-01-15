@@ -80,8 +80,8 @@ service cloud.firestore {
      * It ensures no other user documents exist.
      */
     function isCreatingFirstUser() {
-        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
 
@@ -131,11 +131,16 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      // Allow list only for admins.
+      // An authenticated user can read their own profile, or an admin can read any profile.
+      allow get: if isOwner(userId) || isAdmin();
+      
+      // Allow list only for admins. This is where the error occurs.
       allow list: if isAdmin();
-      // Allow creation if it's the first user or an admin is doing it.
+      
+      // Allow creation if it's the first user (and they are an Admin) or if an existing admin is creating a user.
       allow create: if isCreatingFirstUser() || (isAdmin() && isCreatingValidUser(userId));
+      
+      // Allow update if the user is the owner or an admin.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
       allow delete: if isAdmin();
 
@@ -147,11 +152,11 @@ service cloud.firestore {
        * @principle Enforces document ownership via path hierarchy for all reads and writes.
        */
       match /orders/{orderId} {
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
+        allow get: if isOwner(userId) || isAdmin();
+        allow list: if isOwner(userId) || isAdmin();
         allow create: if isCreatingValidOrder(userId);
-        allow update: if isUpdatingValidOrder(userId);
-        allow delete: if isOwnerOfExistingDoc(userId);
+        allow update: if isUpdatingValidOrder(userId) || isAdmin();
+        allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
         /**
          * @description Manages the specific items within a user's order.
@@ -161,11 +166,11 @@ service cloud.firestore {
          * @principle Inherits ownership from the parent document path, providing secure, granular control.
          */
         match /orderItems/{orderItemId} {
-          allow get: if isOwner(userId);
-          allow list: if isOwner(userId);
+          allow get: if isOwner(userId) || isAdmin();
+          allow list: if isOwner(userId) || isAdmin();
           allow create: if isOwner(userId);
-          allow update: if isOwnerOfExistingDoc(userId);
-          allow delete: if isOwnerOfExistingDoc(userId);
+          allow update: if isOwnerOfExistingDoc(userId) || isAdmin();
+          allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
         }
       }
     }
@@ -217,3 +222,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
