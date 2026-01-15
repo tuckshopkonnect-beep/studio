@@ -43,7 +43,7 @@ import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, deleteDoc, doc, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 
 
 export default function UsersPage() {
@@ -105,19 +105,19 @@ export default function UsersPage() {
   const handleDeleteUser = async () => {
     if (!userToDelete || !firestore) return;
     try {
-      // Note: Deleting a user from Auth requires a recent sign-in.
-      // This will often fail on the client and is better handled by a server function.
-      // For this client-side demo, we'll focus on deleting the Firestore record.
-      await deleteDoc(doc(firestore, "users", userToDelete.id.toString()));
+      // Deleting a Firestore document is the primary action for the admin.
+      // Deleting the Auth user from the client is restricted and often fails.
+      // This action is best handled by a server-side function.
+      await deleteDoc(doc(firestore, "users", userToDelete.id));
       toast({
-        title: "User Deleted",
-        description: `${userToDelete.name}'s profile has been deleted. Auth record may still exist.`,
+        title: "User Profile Deleted",
+        description: `${userToDelete.name}'s profile has been deleted from Firestore. The authentication record may still exist.`,
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error deleting user",
-        description: error.message,
+        title: "Error Deleting User Profile",
+        description: error.message || "Could not delete user document.",
       });
     }
     setUserToDelete(null);
@@ -153,17 +153,15 @@ export default function UsersPage() {
             const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
             const newUserId = userCredential.user.uid;
 
-            // 2. Prepare user data for Firestore
+            // 2. Prepare user data for Firestore, ensuring the ID from Auth is used
             const userDataForFirestore = {
                 ...userToSave,
                 id: newUserId, // Use the UID from Auth as the document ID
             };
-            delete (userDataForFirestore as any).password; // Don't store the password in Firestore
+            delete (userDataForFirestore as any).password; // Never store the password in Firestore
 
-            // 3. Create user document in Firestore
+            // 3. Create user document in Firestore with the correct ID
             const userDocRef = doc(firestore, 'users', newUserId);
-            // This now uses setDoc directly because it's part of an async operation
-            // that depends on the user being created first.
             await setDoc(userDocRef, userDataForFirestore);
             
             toast({
@@ -187,7 +185,7 @@ export default function UsersPage() {
         // --- Update an existing user ---
         if (!selectedUser) return false;
         try {
-             const userDocRef = doc(firestore, 'users', selectedUser.id.toString());
+             const userDocRef = doc(firestore, 'users', selectedUser.id);
              const updateData = { ...userToSave };
              delete (updateData as any).password;
              
@@ -229,7 +227,7 @@ export default function UsersPage() {
         onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}
         onConfirm={handleDeleteUser}
         title={`Delete ${userToDelete?.name}?`}
-        description="This action cannot be undone. This will permanently delete the user's account and all associated data."
+        description="This will permanently delete the user's profile data. This action cannot be undone."
         confirmButtonText="Yes, Delete User"
       />
       

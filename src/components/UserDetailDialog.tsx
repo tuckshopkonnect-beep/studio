@@ -35,7 +35,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
-import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff, Search } from 'lucide-react';
+import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserDetailDialogProps {
@@ -43,34 +43,35 @@ interface UserDetailDialogProps {
   allUsers: User[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onSave: (user: User) => boolean;
+  onSave: (user: User & { password?: string }) => Promise<boolean>;
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   isCreating: boolean;
 }
 
-const emptyUser: User = {
-  id: 0,
+const emptyUser: Omit<User, 'id'> = {
   name: '',
   email: '',
   role: 'Student',
   avatarUrl: '',
   balance: 0,
   class: '',
+  parentId: undefined,
+  dailyLimit: undefined
 };
 
 const classLevels = ['JSS1', 'JSS2', 'JSS3', 'SS1', 'SS2', 'SS3'];
 
 const baseUserSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Name is required."),
   email: z.string().email("Invalid email address.").min(1, "Email is required."),
   password: z.string().optional(),
   role: z.enum(['Student', 'Parent', 'Admin']),
   class: z.string().optional(),
   balance: z.number().optional(),
-  parentId: z.number().optional(),
+  parentId: z.string().optional(),
   avatarUrl: z.string().optional(),
-  id: z.number().optional(),
 });
 
 const userSchemaWithRefinement = baseUserSchema.refine(data => !(data.role === 'Student' && !data.class), {
@@ -79,7 +80,7 @@ const userSchemaWithRefinement = baseUserSchema.refine(data => !(data.role === '
 });
 
 const createUserSchemaWithRefinement = baseUserSchema.extend({
-    password: z.string().min(1, "Password is required for new users."),
+    password: z.string().min(6, "Password must be at least 6 characters."),
 }).refine(data => !(data.role === 'Student' && !data.class), {
     message: "Class is required for students.",
     path: ["class"],
@@ -97,6 +98,7 @@ export default function UserDetailDialog({
   isCreating,
 }: UserDetailDialogProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parentSearchTerm, setParentSearchTerm] = useState('');
 
@@ -109,14 +111,16 @@ export default function UserDetailDialog({
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(isCreating ? { ...emptyUser, password: '' } : { ...user, password: '' });
+      form.reset(isCreating ? { ...emptyUser, password: '' } : { ...(user || emptyUser), password: '' });
       setParentSearchTerm('');
     }
   }, [isOpen, isCreating, user, form]);
 
 
-  const handleSaveClick = (values: z.infer<typeof baseUserSchema>) => {
-    const success = onSave(values as User);
+  const handleSaveClick = async (values: z.infer<typeof baseUserSchema>) => {
+    setIsSaving(true);
+    const success = await onSave(values as User & { password?: string });
+    setIsSaving(false);
     if (!success) {
       // Don't close the dialog if save failed (e.g., duplicate email)
     }
@@ -363,8 +367,9 @@ export default function UserDetailDialog({
                   }}>
                     <X className="mr-2 h-4 w-4" /> Cancel
                   </Button>
-                  <Button type="submit" disabled={!form.formState.isDirty && !isCreating}>
-                    <Save className="mr-2 h-4 w-4" /> {isCreating ? "Create User" : "Save Changes"}
+                  <Button type="submit" disabled={isSaving || (!form.formState.isDirty && !isCreating)}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isSaving ? "Saving..." : isCreating ? "Create User" : "Save Changes"}
                   </Button>
                 </>
               ) : (
