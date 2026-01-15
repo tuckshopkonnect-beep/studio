@@ -31,7 +31,7 @@ export interface InventoryItem {
 }
 
 export interface User {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   role: 'Admin' | 'Parent' | 'Student';
@@ -79,7 +79,7 @@ export const initialInventory: InventoryItem[] = menuItems.map(item => ({
 // We keep these three users as default entry points for the different portals.
 // All other users will be created via the "Add User" feature.
 export const initialUsers: User[] = [
-    { id: 1, name: 'Admin User', email: 'admin@school.com', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
+    { id: 1, name: 'Admin User', email: 'admin@campusconnect.hub', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
     { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0 },
     { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 7500.00, class: 'SS2', dailyLimit: 3000.00, parentId: 6 },
 ];
