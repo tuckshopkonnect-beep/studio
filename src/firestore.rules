@@ -80,21 +80,22 @@ service cloud.firestore {
      * It ensures the user being created has the 'Admin' role and that no other users exist.
      */
     function isCreatingFirstUser() {
-      // Use getAfter() to check the state of the document *after* the proposed write.
-      // This correctly allows the first user document to be created, as exists() checks the current state.
-      let isFirstUser = !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-                        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-      return isFirstUser;
+        // Use getAfter() to check the state of the document *after* the proposed write.
+        // This correctly allows the first user document to be created, as exists() checks the current state.
+        // This also checks that no other user documents exist at all, ensuring it's a true bootstrap.
+        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && size(getAfter(/databases/$(database)/documents/users).data) == 1
+            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
 
     /**
-     * Validates a new user document on creation.
-     * Ensures the creator is the owner and the document's internal `id` field
-     * matches the user's auth UID for relational integrity.
+     * Validates a new user document on creation by an admin.
+     * Ensures the creator is an admin and the new document's internal `id` field
+     * matches the new user's auth UID for relational integrity.
      */
     function isCreatingValidUser(userId) {
-      return isOwner(userId) && request.resource.data.id == userId;
+      return isAdmin() && request.resource.data.id == userId;
     }
     
     /**
@@ -142,7 +143,7 @@ service cloud.firestore {
       
       // Allow creation ONLY if it's the first user (and they are an Admin) 
       // OR if an existing admin is creating a new user.
-      allow create: if isCreatingFirstUser() || isAdmin();
+      allow create: if isCreatingFirstUser() || isCreatingValidUser(userId);
       
       // Allow update if the user is the owner or an admin.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
