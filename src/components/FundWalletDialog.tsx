@@ -17,13 +17,15 @@ import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/lib/data";
 import { usePaystackPayment } from 'react-paystack';
 import { CreditCard, Loader2 } from "lucide-react";
+import { useFirestore } from "@/firebase";
+import { doc, updateDoc, increment } from "firebase/firestore";
 
 interface FundWalletDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   child: User;
   parentEmail: string;
-  onSuccess: (amount: number, childId: number) => void;
+  onSuccess: (amount: number, childId: string) => void;
 }
 
 const paystackPublicKey = "pk_test_94b05b50b19eae02848d09a3b44a52aab1eec139";
@@ -36,10 +38,32 @@ export default function FundWalletDialog({
   onSuccess,
 }: FundWalletDialogProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const amountInKobo = Number(amount) * 100;
+
+  const handlePaystackSuccess = async () => {
+    if (!firestore) return;
+    const numericAmount = Number(amount);
+    try {
+      const childDocRef = doc(firestore, 'users', child.id);
+      await updateDoc(childDocRef, {
+        balance: increment(numericAmount)
+      });
+      onSuccess(numericAmount, child.id);
+    } catch (e) {
+      console.error("Failed to update balance:", e);
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: "Payment was successful but we failed to update the wallet balance. Please contact support."
+      })
+    } finally {
+      resetAndClose();
+    }
+  }
 
   const config = {
       reference: new Date().getTime().toString(),
@@ -75,13 +99,9 @@ export default function FundWalletDialog({
     setIsLoading(true);
 
     initializePayment({
-        onSuccess: () => {
-            onSuccess(numericAmount, child.id);
-            resetAndClose();
-        },
+        onSuccess: handlePaystackSuccess,
         onClose: () => {
            setIsLoading(false);
-           // User may have closed the Paystack modal
            toast({
                variant: "default",
                title: "Payment window closed",

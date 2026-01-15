@@ -10,62 +10,34 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { DollarSign, History, ShoppingCart, TrendingUp } from "lucide-react";
+import { DollarSign, History, ShoppingCart, TrendingUp, Loader2, UserX } from "lucide-react";
 import Link from "next/link";
 import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInput, PersonalizedFoodRecommendationsOutput } from "@/app/actions";
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { initialUsers, initialOrders } from "@/lib/data";
-import { usePathname } from "next/navigation";
-
+import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
+import type { User } from "@/lib/data";
 
 export default function StudentDashboard() {
-    const pathname = usePathname();
-    const [allUsers, setAllUsers] = useState(initialUsers);
-    const [allOrders, setAllOrders] = useState(initialOrders);
+  const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
 
-
-    useEffect(() => {
-        // This effect ensures the component re-renders with the latest data from localStorage
-        if (typeof window !== 'undefined') {
-            const storedUsers = localStorage.getItem('allUsers');
-            if (storedUsers) {
-                setAllUsers(JSON.parse(storedUsers));
-            }
-             const storedOrders = localStorage.getItem('orderHistory');
-            if (storedOrders) {
-                setAllOrders(JSON.parse(storedOrders));
-            }
-        }
-    }, [pathname]);
-
-
-  const student = allUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe') || {
-    name: "Alex Doe",
-    balance: 0,
-    dailyLimit: 3000.00,
-    spentToday: 0.00,
-  };
-
-  const spentToday = allOrders
-    .filter(o => {
-      const orderDate = new Date(o.orderDate);
-      const today = new Date();
-      return o.customerName === student.name &&
-             orderDate.getDate() === today.getDate() &&
-             orderDate.getMonth() === today.getMonth() &&
-             orderDate.getFullYear() === today.getFullYear() &&
-             o.status === 'Completed';
-    })
-    .reduce((acc, order) => acc + order.total, 0);
-
+  const { data: student, isLoading: isLoadingStudent } = useDoc<User>(
+    useMemoFirebase(() => (firestore && authUser) ? collection(firestore, "users").doc(authUser.uid) : null, [firestore, authUser])
+  );
+  
+  // This would need a more complex query in a real app, likely fetching orders. For now, we mock it.
+  const spentToday = 0; 
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!student) return;
+
     const fetchRecommendations = async () => {
-      setIsLoading(true);
+      setIsLoadingRecs(true);
       setError(null);
       const input: PersonalizedFoodRecommendationsInput = {
         orderHistory: [], // Placeholder, no history initially
@@ -81,13 +53,34 @@ export default function StudentDashboard() {
       } catch (e) {
          setError("An unexpected error occurred.");
       } finally {
-        setIsLoading(false);
+        setIsLoadingRecs(false);
       }
     };
     
     fetchRecommendations();
-  }, []);
+  }, [student]);
 
+
+  if (isUserLoading || isLoadingStudent) {
+    return (
+        <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  if (!student) {
+      return (
+        <div className="container mx-auto p-4 md:p-6 text-center">
+          <UserX className="mx-auto h-16 w-16 text-destructive" />
+          <h1 className="mt-4 text-2xl font-bold">Could Not Load Profile</h1>
+          <p className="text-muted-foreground">We couldn't find your student profile. Please try logging out and back in.</p>
+           <Button asChild className="mt-4">
+            <Link href="/portal/student">Login Again</Link>
+          </Button>
+        </div>
+      );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6">
@@ -155,7 +148,7 @@ export default function StudentDashboard() {
                     <CardDescription>Personalized recommendations based on your recent orders.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {isLoading ? (
+                    {isLoadingRecs ? (
                         <div className="space-y-2">
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-4 w-1/2" />

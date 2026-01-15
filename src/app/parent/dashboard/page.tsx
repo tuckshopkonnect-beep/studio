@@ -12,13 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, History, Phone } from "lucide-react";
+import { PlusCircle, History, Phone, Loader2, UserX } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { initialUsers } from "@/lib/data";
 import FundWalletDialog from "@/components/FundWalletDialog";
-import type { User } from "@/lib/data";
+import type { User, Order } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { usePathname } from "next/navigation";
+import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
+import Link from "next/link";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -40,61 +41,71 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function ParentDashboard() {
   const { toast } = useToast();
-  const pathname = usePathname();
-  const [allUsers, setAllUsers] = useState<User[]>(initialUsers);
-  
-  // In a real app, this would come from an auth context
-  const parent = allUsers.find(u => u.email === "emma.brown.p@parent.com")!;
-  const childrenOfParent = allUsers.filter(u => u.parentId === parent?.id);
+  const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
 
+  const { data: parent, isLoading: isLoadingParent } = useDoc<User>(
+    useMemoFirebase(() => (firestore && authUser) ? collection(firestore, "users").doc(authUser.uid) : null, [firestore, authUser])
+  );
+
+  const childrenQuery = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return query(collection(firestore, 'users'), where('parentId', '==', authUser.uid));
+  }, [firestore, authUser]);
+
+  const { data: children, isLoading: isLoadingChildren } = useCollection<User>(childrenQuery);
+  
   const [fundingChild, setFundingChild] = useState<User | null>(null);
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);
 
-  useEffect(() => {
-    // This effect ensures the component re-renders with the latest data from localStorage
-    // when the user navigates back to this page.
-    if (typeof window !== 'undefined') {
-        const storedUsers = localStorage.getItem('allUsers');
-        if (storedUsers) {
-            setAllUsers(JSON.parse(storedUsers));
-        }
-    }
-  }, [pathname]);
-
-  // Mocked spending data
-  const spending = {
-    "Emma Brown": 2000.00,
-    // Add other children's spending here if needed
-  };
+  // Note: Spending data would require fetching all orders for each child, which can be inefficient.
+  // A better real-world solution would be a separate 'spending' summary document updated by a cloud function.
+  // For this demo, we'll assume spending is 0 for simplicity.
+  const getSpending = (childId: string) => {
+    return 0; 
+  }
 
   const handleOpenFundDialog = (child: User) => {
     setFundingChild(child);
     setIsFundDialogOpen(true);
   };
   
-  const handleFundingSuccess = (amount: number, childId: number) => {
-    const updatedUsers = allUsers.map(user => 
-      user.id === childId ? { ...user, balance: user.balance + amount } : user
-    )
-    setAllUsers(updatedUsers);
-    localStorage.setItem('allUsers', JSON.stringify(updatedUsers));
-
+  const handleFundingSuccess = (amount: number, childId: string) => {
+    // This logic is now handled by Firestore updates and real-time listeners.
+    // We just show a success message.
     toast({
         title: "Funding Successful",
-        description: `₦${amount.toFixed(2)} has been added to ${fundingChild?.name}'s account.`,
+        description: `₦${amount.toFixed(2)} has been added to ${fundingChild?.name}'s account. The balance will update shortly.`,
     });
     setIsFundDialogOpen(false);
     setFundingChild(null);
   };
 
 
+  if (isUserLoading || isLoadingParent || isLoadingChildren) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   if (!parent) {
-      return <div>Loading...</div>
+      return (
+        <div className="container mx-auto p-4 md:p-6 text-center">
+          <UserX className="mx-auto h-16 w-16 text-destructive" />
+          <h1 className="mt-4 text-2xl font-bold">Could Not Load Profile</h1>
+          <p className="text-muted-foreground">We couldn't find your user profile. Please try logging out and back in.</p>
+          <Button asChild className="mt-4">
+            <Link href="/portal/parent">Login Again</Link>
+          </Button>
+        </div>
+      );
   }
   
   return (
     <>
-    {fundingChild && (
+    {fundingChild && parent && (
       <FundWalletDialog
         isOpen={isFundDialogOpen}
         onOpenChange={setIsFundDialogOpen}
@@ -111,8 +122,8 @@ export default function ParentDashboard() {
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {childrenOfParent.map((child) => {
-              const spent = spending[child.name as keyof typeof spending] || 0;
+            {children && children.map((child) => {
+              const spent = getSpending(child.id);
               const limit = child.dailyLimit || 0;
               const progress = limit > 0 ? (spent / limit) * 100 : 0;
 
@@ -125,7 +136,7 @@ export default function ParentDashboard() {
                         </Avatar>
                         <div>
                             <CardTitle className="text-xl">{child.name}</CardTitle>
-                            <CardDescription>Student Account</CardDescription>
+                            <CardDescription>{child.class} - Student Account</CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-6">
@@ -152,6 +163,18 @@ export default function ParentDashboard() {
                 </Card>
               )
             })}
+
+             {children?.length === 0 && (
+                <Card className="md:col-span-2 lg:col-span-3">
+                    <CardContent className="flex flex-col items-center justify-center p-10 text-center">
+                        <UserX className="h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-semibold">No Children Linked</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Please contact the school administrator to link your children's accounts to your parent profile.
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
         </div>
         <div className="mt-8">
             <Card>

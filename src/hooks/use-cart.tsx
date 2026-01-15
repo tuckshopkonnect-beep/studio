@@ -3,7 +3,6 @@
 
 import { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import type { MenuItem, InventoryItem } from '@/lib/data';
-import { initialInventory, menuItems, initialOrders } from '@/lib/data';
 
 export interface CartItem extends MenuItem {
   quantity: number;
@@ -37,41 +36,23 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Function to generate inventory with random stock, but only on the client
-const generateInitialInventory = (): InventoryItem[] => {
-  return menuItems.map(item => ({
-    id: item.id,
-    name: item.name,
-    stock: Math.floor(Math.random() * 80) + 20, // Random stock between 20 and 100
-    lowStockThreshold: 15,
-  }));
-};
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
-  
-  // This state will hold the client-side generated inventory
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [clientInventory, setClientInventory] = useState<InventoryItem[] | null>(null);
 
 
   useEffect(() => {
-    // Generate inventory with random stock only on the client-side after mount
-    setClientInventory(generateInitialInventory());
+    // This effect is now just for sessionStorage and doesn't generate data
+    if (typeof window === 'undefined') return;
 
-    if (typeof window !== 'undefined') {
-        const allOrders = localStorage.getItem('allOrders');
-        if (!allOrders) {
-            localStorage.setItem('allOrders', JSON.stringify(initialOrders));
-        }
+    const savedOrder = sessionStorage.getItem('completedOrder');
+    if (savedOrder) {
+      setCompletedOrderState(JSON.parse(savedOrder));
     }
   }, []);
 
-  const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(() => {
-     if (typeof window === 'undefined') return null;
-    const savedOrder = sessionStorage.getItem('completedOrder');
-    return savedOrder ? JSON.parse(savedOrder) : null;
-  });
+  const [completedOrder, setCompletedOrderState] = useState<CompletedOrder | null>(null);
   
   const setCompletedOrder = (order: CompletedOrder | null) => {
     setCompletedOrderState(order);
@@ -83,16 +64,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addOrderToHistory = (order: CompletedOrder) => {
-    if (typeof window === 'undefined') return;
-    // Add to student's personal history
+     if (typeof window === 'undefined') return;
+    // This is for the local student history page.
     const history = JSON.parse(localStorage.getItem('orderHistory') || '[]') as CompletedOrder[];
     const updatedHistory = [order, ...history];
     localStorage.setItem('orderHistory', JSON.stringify(updatedHistory));
-
-    // Add to global list of all orders - This part is now handled by writing to the top-level /orders collection in Firestore
-    // const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') as CompletedOrder[];
-    // const updatedAllOrders = [order, ...allOrders];
-    // localStorage.setItem('allOrders', JSON.stringify(updatedAllOrders));
   };
 
 
@@ -127,7 +103,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const stock = getStock(itemId);
       const cartItem = cart.find(i => i.id === itemId);
       
-      const sourceInventory = clientInventory || initialInventory;
+      const sourceInventory = clientInventory || [];
       const originalStock = sourceInventory.find(i => i.id === itemId)?.stock ?? 0;
       
       if (quantity <= 0) {
@@ -202,5 +178,3 @@ export function useCart() {
   }
   return context;
 }
-
-    

@@ -16,11 +16,13 @@ import { Button } from "@/components/ui/button";
 import { QrCode, Search, VideoOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { initialOrders } from "@/lib/data"; // Using static data for now
+import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import type { Order } from "@/lib/data";
 
 export default function ScannerPage() {
   const [transactionId, setTransactionId] = useState("");
-  const [scannedOrder, setScannedOrder] = useState<any | null>(null);
+  const [scannedOrder, setScannedOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -30,10 +32,8 @@ export default function ScannerPage() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const { toast } = useToast();
+  const firestore = useFirestore();
 
-  // In a real app, this would be a shared state (e.g., Context or Zustand)
-  const [orders, setOrders] = useState(initialOrders);
-  
   useEffect(() => {
     let isMounted = true;
     const startScan = async () => {
@@ -79,7 +79,6 @@ export default function ScannerPage() {
     
     startScan();
 
-    // When the component unmounts, stop the camera and scanning loop
     return () => {
       isMounted = false;
       if (animationFrameId.current) {
@@ -109,9 +108,8 @@ export default function ScannerPage() {
 
           if (code) {
             setTransactionId(code.data);
-            handleManualLookup(code.data); // Automatically look up after scan
+            handleManualLookup(code.data);
             
-            // Stop scanning
             setIsScanning(false);
             if (animationFrameId.current) {
                cancelAnimationFrame(animationFrameId.current);
@@ -124,71 +122,64 @@ export default function ScannerPage() {
                 title: "QR Code Scanned!",
                 description: `Transaction ID: ${code.data}`,
             })
-            return; // Exit the loop
+            return;
           }
       }
     }
-    // Continue scanning if no code is found
     animationFrameId.current = requestAnimationFrame(tick);
   };
 
 
-  const handleManualLookup = (idToLookup?: string) => {
+  const handleManualLookup = async (idToLookup?: string) => {
     const lookupId = idToLookup || transactionId;
     setError(null);
     setScannedOrder(null);
-    if (!lookupId) {
+    if (!lookupId || !firestore) {
       setError("Please enter or scan a Transaction ID.");
       return;
     }
     
-    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]') || initialOrders;
-    
-    const foundOrder = allOrders.find(
-      (order: any) => order.id.toLowerCase() === lookupId.toLowerCase()
-    );
-
-    if (foundOrder) {
-        setScannedOrder(foundOrder);
-    } else {
-        // Mock finding a newly created order that isn't in initialData
-        if (lookupId.toLowerCase().startsWith('txn-')) {
-             setScannedOrder({
-                id: lookupId,
-                customerName: "Alex Doe", // This part is mocked
-                items: [
-                    { name: "Sausage Roll", quantity: 2 },
-                    { name: "Orange Juice", quantity: 1 }
-                ],
-                total: 1400,
-                status: "Ready for Pickup",
-            });
+    const orderDocRef = doc(firestore, "orders", lookupId);
+    try {
+        const { getDoc } = await import("firebase/firestore");
+        const docSnap = await getDoc(orderDocRef);
+        if (docSnap.exists()) {
+            setScannedOrder({ id: docSnap.id, ...docSnap.data() } as Order);
         } else {
             setError("Transaction ID not found.");
-            setScannedOrder(null);
         }
+    } catch(e) {
+        setError("Error fetching transaction details.");
+        console.error(e);
     }
   };
 
-  const handleMarkAsCompleted = () => {
-    if (!scannedOrder) return;
+  const handleMarkAsCompleted = async () => {
+    if (!scannedOrder || !firestore) return;
     
-    // Update the state of the order
-    const allOrders = JSON.parse(localStorage.getItem('allOrders') || '[]');
-    const updatedOrders = allOrders.map((order: any) => 
-        order.id === scannedOrder.id ? { ...order, status: 'Completed' } : order
-    );
-    localStorage.setItem('allOrders', JSON.stringify(updatedOrders));
+    try {
+        const orderDocRef = doc(firestore, "orders", scannedOrder.id);
+        await updateDoc(orderDocRef, { status: 'Completed' });
 
-    toast({
-        title: "Order Completed",
-        description: `Order #${scannedOrder.id} has been marked as completed.`
-    });
+        const userOrderDocRef = doc(firestore, "users", scannedOrder.userId, "orders", scannedOrder.id);
+        await updateDoc(userOrderDocRef, { status: 'Completed' });
 
-    // Reset the scanner page
-    setScannedOrder(null);
-    setTransactionId("");
-    // The useEffect hook will handle restarting the scan
+        toast({
+            title: "Order Completed",
+            description: `Order #${scannedOrder.id} has been marked as completed.`
+        });
+
+        setScannedOrder(null);
+        setTransactionId("");
+        // Let useEffect restart scanning if needed, or implement a manual restart button
+    } catch (e) {
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: "Could not mark the order as completed. Please check permissions."
+        })
+        console.error(e);
+    }
   };
 
 

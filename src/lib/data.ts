@@ -31,7 +31,7 @@ export interface InventoryItem {
 }
 
 export interface User {
-  id: number | string;
+  id: string; // Changed to string to match Firebase UID
   name: string;
   email: string;
   role: 'Admin' | 'Parent' | 'Student';
@@ -39,7 +39,7 @@ export interface User {
   balance: number;
   class?: string;
   dailyLimit?: number;
-  parentId?: number;
+  parentId?: string; // Changed to string to match Firebase UID
 }
 
 export interface PasswordResetRequest {
@@ -66,22 +66,11 @@ export const menuItems: MenuItem[] = [
   { id: 11, name: 'Can of Soda', description: 'A can of your favorite soda.', price: 300, image: PlaceHolderImages[10], category: 'Drinks' },
 ];
 
-// All initial data is now cleared. The app will rely on user interactions.
+// All initial data is now cleared. The app will rely on Firestore.
 export const initialOrders: Order[] = [];
 
-export const initialInventory: InventoryItem[] = menuItems.map(item => ({
-    id: item.id,
-    name: item.name,
-    stock: 100, // Static initial stock
-    lowStockThreshold: 15,
-}));
+export const initialInventory: InventoryItem[] = [];
 
-// We keep these three users as default entry points for the different portals.
-// All other users will be created via the "Add User" feature.
-export const initialUsers: User[] = [
-    { id: 1, name: 'Admin User', email: 'admin@campusconnect.hub', role: 'Admin', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026024d', balance: 0 },
-    { id: 6, name: 'Mrs. Brown', email: 'emma.brown.p@parent.com', role: 'Parent', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026705d', balance: 0 },
-    { id: 7, name: 'Alex Doe', email: 'alex.d@school.com', role: 'Student', avatarUrl: 'https://i.pravatar.cc/150?u=a042581f4e29026706d', balance: 7500.00, class: 'SS2', dailyLimit: 3000.00, parentId: 6 },
-];
+export const initialUsers: User[] = [];
 
 export const passwordResetRequests: PasswordResetRequest[] = [];

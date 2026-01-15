@@ -16,20 +16,48 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function StudentLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("alex.d@school.com");
+  const [password, setPassword] = useState("password");
   const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "Authentication service not ready.",
+            description: "Please try again in a moment.",
+        });
+        return;
+    }
     setIsLoading(true);
-
-    // Simulate an API call for authentication
-    setTimeout(() => {
-      router.push("/student/dashboard");
-    }, 2000);
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({
+            title: "Login Successful",
+            description: "Redirecting to your dashboard...",
+        });
+        router.push("/student/dashboard");
+    } catch (error: any) {
+        console.error("Login failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: "Invalid email or password. Please try again.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -54,14 +82,15 @@ export default function StudentLoginPage() {
           <form onSubmit={handleLogin}>
             <div className="grid gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="student-id">Student ID</Label>
+                <Label htmlFor="student-id">Email</Label>
                 <Input
                   id="student-id"
-                  type="text"
-                  placeholder="Your student ID"
+                  type="email"
+                  placeholder="your.email@school.com"
                   required
                   className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
-                  defaultValue="alex.d"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                 />
               </div>
               <div className="grid gap-2">
@@ -77,7 +106,8 @@ export default function StudentLoginPage() {
                     type={showPassword ? "text" : "password"} 
                     required 
                     className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
-                    defaultValue="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
                   />
                   <Button
                       type="button"

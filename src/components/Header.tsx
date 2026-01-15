@@ -24,16 +24,25 @@ import {
 import { useEffect, useState } from "react";
 import type { User, Order } from "@/lib/data";
 import { usePathname } from "next/navigation";
-import { initialUsers as defaultUsers, initialOrders as defaultOrders } from "@/lib/data";
+import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from 'firebase/firestore';
+
 
 export default function Header() {
   const { totalItems } = useCart();
   const pathname = usePathname();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
+  
+  const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(
+    useMemoFirebase(() => (firestore && authUser) ? collection(firestore, "users").doc(authUser.uid) : null, [firestore, authUser])
+  );
+
+  // For spent today, you would typically query the orders collection.
+  // This is a simplified placeholder.
   const [spentToday, setSpentToday] = useState(0);
 
   useEffect(() => {
-    // This code runs on the client, after the component mounts
     if (typeof window !== 'undefined') {
         const storedTheme = localStorage.getItem("theme") || "light";
         if (storedTheme === 'dark') {
@@ -41,36 +50,8 @@ export default function Header() {
         } else {
           document.documentElement.classList.remove('dark');
         }
-
-        const storedUsers = localStorage.getItem('allUsers');
-        const users: User[] = storedUsers ? JSON.parse(storedUsers) : defaultUsers;
-        
-        let activeUser = null;
-        if (pathname.startsWith('/student')) {
-            activeUser = users.find((u: User) => u.role === 'Student' && u.name === 'Alex Doe');
-        } else if (pathname.startsWith('/parent')) {
-            activeUser = users.find((u: User) => u.role === 'Parent' && u.name === 'Mrs. Brown');
-        }
-        setCurrentUser(activeUser);
-        
-        if(activeUser && activeUser.role === 'Student') {
-          const storedOrders = localStorage.getItem('allOrders');
-          const allOrders: Order[] = storedOrders ? JSON.parse(storedOrders) : defaultOrders;
-
-          const todaySpent = allOrders
-            .filter((o: any) => {
-              const orderDate = new Date(o.orderDate);
-              const today = new Date();
-              return o.customerName === activeUser?.name &&
-                     orderDate.getDate() === today.getDate() &&
-                     orderDate.getMonth() === today.getMonth() &&
-                     orderDate.getFullYear() === today.getFullYear();
-            })
-            .reduce((acc: number, order: any) => acc + order.total, 0);
-          setSpentToday(todaySpent);
-        }
     }
-  }, [pathname]);
+  }, []);
 
   const setTheme = (theme: "light" | "dark") => {
     localStorage.setItem("theme", theme);

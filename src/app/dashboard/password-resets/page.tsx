@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CheckCircle, XCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { passwordResetRequests as initialRequests } from "@/lib/data";
 import type { PasswordResetRequest } from "@/lib/data";
 import { formatDistanceToNow } from 'date-fns';
 import ConfirmationDialog from "@/components/ConfirmationDialog";
@@ -30,7 +29,8 @@ import ResetPasswordDialog from "@/components/ResetPasswordDialog";
 
 export default function PasswordResetsPage() {
     const { toast } = useToast();
-    const [requests, setRequests] = React.useState<PasswordResetRequest[]>(initialRequests);
+    // In a real app, this would come from a Firestore collection
+    const [requests, setRequests] = React.useState<PasswordResetRequest[]>([]);
     
     const [requestToDeny, setRequestToDeny] = React.useState<PasswordResetRequest | null>(null);
     const [requestToApprove, setRequestToApprove] = React.useState<PasswordResetRequest | null>(null);
