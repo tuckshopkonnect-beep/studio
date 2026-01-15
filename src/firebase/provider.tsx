@@ -64,14 +64,39 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
-    isUserLoading: false, // Set to false as we are not performing auth
+    isUserLoading: true, // Start as loading
     userError: null,
   });
 
-  // Effect to subscribe to Firebase auth state changes is now disabled
   useEffect(() => {
-    // Intentionally left blank to stop authentication
-  }, [auth]); // Depends on the auth instance
+    if (!auth) {
+      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not available.") });
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // User is signed in.
+        setUserAuthState({ user, isUserLoading: false, userError: null });
+      } else {
+        // No user is signed in, attempt anonymous sign in as a fallback.
+        try {
+          const userCredential = await signInAnonymously(auth);
+          setUserAuthState({ user: userCredential.user, isUserLoading: false, userError: null });
+        } catch (error) {
+          console.error("Anonymous sign-in failed:", error);
+          setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
+        }
+      }
+    }, (error) => {
+      // Handle errors from the listener itself.
+      console.error("Auth state listener error:", error);
+      setUserAuthState({ user: null, isUserLoading: false, userError: error });
+    });
+    
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [auth]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
