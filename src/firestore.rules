@@ -61,6 +61,8 @@ service cloud.firestore {
      * It reads the user's profile from the /users collection.
      */
     function isAdmin() {
+      // It is critical that we check for sign in first, otherwise this rule will
+      // throw a null pointer exception if an unauthenticated user tries to access.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
@@ -78,10 +80,9 @@ service cloud.firestore {
      * It ensures the user being created has the 'Admin' role and that no other users exist.
      */
     function isCreatingFirstUser() {
-      // Use getAfter() to check the state of the database *after* the write would have occurred.
-      // This correctly handles the "no documents exist yet" scenario.
-      return getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' 
-             && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      let isFirst = !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      let isBecomingAdmin = request.resource.data.role == 'Admin';
+      return isFirst && isBecomingAdmin;
     }
 
 
@@ -134,12 +135,11 @@ service cloud.firestore {
       // An authenticated user can read their own profile. Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       
-      // Allow list only for admins.
+      // Allow list only for admins. This is where the error occurs.
       allow list: if isAdmin();
       
-      // Allow creation if it's the first user (and they are an Admin), if an existing admin is creating a user,
-      // or if any authenticated user is creating their OWN profile document.
-      allow create: if isCreatingFirstUser() || isAdmin() || isCreatingValidUser(userId);
+      // Allow creation if it's the first user (and they are an Admin) or if an existing admin is creating a user.
+      allow create: if isCreatingFirstUser() || (isAdmin() && isCreatingValidUser(userId));
       
       // Allow update if the user is the owner or an admin.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
