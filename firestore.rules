@@ -65,19 +65,6 @@ service cloud.firestore {
       // throw a null pointer exception if an unauthenticated user tries to access.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
-    
-    /**
-     * Checks if this is the very first user being created in the system.
-     * This is a special rule for bootstrapping the first admin user.
-     * It allows any authenticated user to create their own user document if
-     * no other user documents exist. This rule is used only once.
-     */
-    function isCreatingFirstUser() {
-      // This rule allows the creation of the first user document by checking if the users collection is empty.
-      // `existsAfter` is used in create operations to inspect the document that *will* exist after the operation succeeds.
-      return isSignedIn() && request.auth.uid == request.resource.data.id && !existsAfter(/databases/$(database)/documents/users/$(request.resource.data.id));
-    }
-
 
     /**
      * A composite check for state-changing operations (update, delete), ensuring
@@ -136,8 +123,8 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       // Allow list only for admins.
       allow list: if isAdmin();
-      // Allow creation if it's a valid user, an admin is doing it, OR if it's the very first user being created.
-      allow create: if isCreatingValidUser(userId) || isAdmin() || isCreatingFirstUser();
+      // Allow creation if it's a valid user or an admin is doing it.
+      allow create: if isCreatingValidUser(userId) || isAdmin();
       allow update: if isUpdatingValidUser(userId) || isAdmin();
       allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
