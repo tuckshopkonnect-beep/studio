@@ -80,9 +80,11 @@ service cloud.firestore {
      * It ensures the user being created has the 'Admin' role and that no other users exist.
      */
     function isCreatingFirstUser() {
-      let isFirst = !exists(/databases/$(database)/documents/users/$(request.auth.uid));
-      let isBecomingAdmin = request.resource.data.role == 'Admin';
-      return isFirst && isBecomingAdmin;
+      // Use getAfter() to check the state of the document *after* the proposed write.
+      // This correctly allows the first user document to be created, as exists() checks the current state.
+      let isFirstUser = !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+                        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      return isFirstUser;
     }
 
 
@@ -135,11 +137,12 @@ service cloud.firestore {
       // An authenticated user can read their own profile. Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       
-      // Allow list only for admins. This is where the error occurs.
+      // Allow list only for admins.
       allow list: if isAdmin();
       
-      // Allow creation if it's the first user (and they are an Admin) or if an existing admin is creating a user.
-      allow create: if isCreatingFirstUser() || (isAdmin() && isCreatingValidUser(userId));
+      // Allow creation ONLY if it's the first user (and they are an Admin) 
+      // OR if an existing admin is creating a new user.
+      allow create: if isCreatingFirstUser() || isAdmin();
       
       // Allow update if the user is the owner or an admin.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
