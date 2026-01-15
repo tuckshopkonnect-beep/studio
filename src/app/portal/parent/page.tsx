@@ -24,8 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function ParentLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("emma.brown.p@parent.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("admin@campusconnect.hub");
+  const [password, setPassword] = useState("AdminPassword123");
   const router = useRouter();
   const auth = useAuth();
   const { toast } = useToast();
