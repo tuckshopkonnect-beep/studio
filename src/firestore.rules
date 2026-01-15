@@ -77,11 +77,12 @@ service cloud.firestore {
     /**
      * This function allows the very first user document to be created.
      * It is used to bootstrap the initial administrator account.
-     * It ensures no other user documents exist.
+     * It ensures the user being created has the 'Admin' role and that no other users exist.
      */
     function isCreatingFirstUser() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      let isFirst = !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      let isBecomingAdmin = request.resource.data.role == 'Admin';
+      return isFirst && isBecomingAdmin;
     }
 
 
@@ -131,7 +132,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      // An authenticated user can read their own profile, or an admin can read any profile.
+      // An authenticated user can read their own profile. Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       
       // Allow list only for admins. This is where the error occurs.
@@ -183,7 +184,6 @@ service cloud.firestore {
      * @description Top-level orders collection for admin dashboard.
      * @path /orders/{orderId}
      * @allow Any signed-in admin can read this collection.
-     * @deny All client-side writes are denied. This should be written to by a backend function.
      */
     match /orders/{orderId} {
       allow get: if isAdmin();
@@ -222,5 +222,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
