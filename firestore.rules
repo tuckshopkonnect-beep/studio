@@ -77,11 +77,12 @@ service cloud.firestore {
     /**
      * This function allows the very first user document to be created.
      * It is used to bootstrap the initial administrator account.
-     * It ensures no other user documents exist.
+     * It ensures the user being created has the 'Admin' role and that no other users exist.
      */
     function isCreatingFirstUser() {
-        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && request.resource.data.role == 'Admin';
+      let isFirst = !exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      let isBecomingAdmin = request.resource.data.role == 'Admin';
+      return isFirst && isBecomingAdmin;
     }
 
 
