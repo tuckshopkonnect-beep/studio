@@ -219,7 +219,7 @@ export default function DashboardPage() {
             <CardDescription>A visual representation of sales over the past week.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <WeeklySalesChart />
+            <WeeklySalesChart orders={safeOrders} />
           </CardContent>
         </Card>
         <Card className="lg:col-span-3">

@@ -1,24 +1,36 @@
 
 "use client"
 
+import { useMemo } from "react";
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import {
   ChartContainer,
   ChartTooltip as ChartTooltipPrimitive,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import type { Order } from "@/lib/data";
+import { format, subDays } from 'date-fns';
 
-const data = [
-  { name: "Mon", total: Math.floor(Math.random() * 30000) + 5000 },
-  { name: "Tue", total: Math.floor(Math.random() * 30000) + 10000 },
-  { name: "Wed", total: Math.floor(Math.random() * 30000) + 15000 },
-  { name: "Thu", total: Math.floor(Math.random() * 30000) + 20000 },
-  { name: "Fri", total: Math.floor(Math.random() * 30000) + 25000 },
-  { name: "Sat", total: Math.floor(Math.random() * 10000) + 5000 },
-  { name: "Sun", total: Math.floor(Math.random() * 10000) + 2000 },
-]
+interface WeeklySalesChartProps {
+  orders: Order[];
+}
 
-export default function WeeklySalesChart() {
+export default function WeeklySalesChart({ orders }: WeeklySalesChartProps) {
+  const data = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
+    
+    const salesData = last7Days.map(day => {
+        const dayString = format(day, 'E'); // Mon, Tue, etc.
+        const total = orders
+            .filter(order => format(new Date(order.orderDate), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
+            .reduce((sum, order) => sum + order.total, 0);
+        return { name: dayString, total };
+    });
+
+    return salesData;
+  }, [orders]);
+
+
   return (
     <ChartContainer config={{
       total: {
