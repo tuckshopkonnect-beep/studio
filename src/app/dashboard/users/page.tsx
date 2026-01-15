@@ -44,7 +44,6 @@ import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth } from "@/firebase";
 import { collection, deleteDoc, doc, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 
 export default function UsersPage() {
@@ -70,7 +69,7 @@ export default function UsersPage() {
   const [isCreating, setIsCreating] = React.useState(false);
 
   // This is the critical change: determine if it's the initial setup.
-  const isInitialSetup = authUser?.isAnonymous;
+  const isInitialSetup = !isLoadingUsers && (!users || users.length === 0);
 
   const filteredUsers = React.useMemo(() => {
     if (isInitialSetup || !users) return [];
@@ -189,8 +188,11 @@ export default function UsersPage() {
         if (!selectedUser) return false;
         try {
              const userDocRef = doc(firestore, 'users', selectedUser.id.toString());
-             // For updates, we can use the non-blocking version for a snappier UI
-             setDocumentNonBlocking(userDocRef, userToSave, { merge: true });
+             const updateData = { ...userToSave };
+             delete (updateData as any).password;
+             
+             await setDoc(userDocRef, updateData, { merge: true });
+
              toast({
                 title: "User Updated",
                 description: `${userToSave.name}'s details have been saved.`,
@@ -219,7 +221,6 @@ export default function UsersPage() {
     );
   }
   
-  const showEmptyState = !isInitialSetup && (!users || users.length === 0);
 
   return (
     <>
@@ -315,7 +316,7 @@ export default function UsersPage() {
                           <p className="mt-2 text-muted-foreground">Loading users...</p>
                         </TableCell>
                       </TableRow>
-                  ) : showEmptyState || isInitialSetup ? (
+                  ) : isInitialSetup ? (
                      <TableRow>
                       <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                         {isInitialSetup 
