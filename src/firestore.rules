@@ -80,8 +80,8 @@ service cloud.firestore {
      * It ensures no other user documents exist.
      */
     function isCreatingFirstUser() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && !exists(/databases/$(database)/documents/users);
+        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
+             && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
 
@@ -131,7 +131,7 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
       // Allow list only for admins.
       allow list: if isAdmin();
       // Allow creation if it's the first user or an admin is doing it.
@@ -183,9 +183,9 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow get: if isAdmin();
       allow list: if isAdmin();
-      allow create: if false; // Should be created via user-specific path
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isCreatingValidOrder(request.resource.data.userId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
 

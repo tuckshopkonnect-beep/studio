@@ -8,22 +8,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Download, Home, Loader2, AlertTriangle, QrCode } from "lucide-react";
 import QRCode from "react-qr-code";
-import { initialUsers } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { User } from "@/lib/data";
 
 export default function OrderConfirmationPage() {
     const router = useRouter();
     const pathname = usePathname();
-    const { cart, completedOrder, setCompletedOrder, clearCart } = useCart();
+    const { completedOrder, setCompletedOrder, clearCart } = useCart();
     const qrCodeRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
     const [isPosEnabled, setIsPosEnabled] = useState(true);
-    const [isClient, setIsClient] = useState(false);
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
+    const firestore = useFirestore();
+    const { user: authUser } = useUser();
+    
+    const { data: student, isLoading: isLoadingStudent } = useDoc<User>(
+      useMemoFirebase(() => authUser && firestore ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore])
+    );
+
+    const studentBalance = student && completedOrder ? student.balance : 0;
 
     useEffect(() => {
         // Check if POS scanner is enabled from localStorage
@@ -31,11 +37,9 @@ export default function OrderConfirmationPage() {
         setIsPosEnabled(posEnabled);
     }, []);
 
-    const student = initialUsers.find(u => u.role === 'Student' && u.name === 'Alex Doe')!;
-    const studentBalance = student ? student.balance - (completedOrder?.total ?? 0) : 0;
 
     const handleDownloadReceipt = async () => {
-        if (completedOrder && qrCodeRef.current) {
+        if (completedOrder && student && qrCodeRef.current) {
             setIsDownloading(true);
             const { default: jsPDF } = await import('jspdf');
             const { default: autoTable } = await import('jspdf-autotable');
@@ -87,7 +91,7 @@ export default function OrderConfirmationPage() {
         };
     }, [pathname, setCompletedOrder, clearCart, router]);
 
-    if (!isClient) {
+    if (isLoadingStudent) {
         return (
             <div className="container mx-auto flex flex-col items-center justify-center p-4 md:p-6 min-h-[calc(100vh-8rem)]">
                 <Card className="w-full max-w-lg text-center shadow-2xl">
