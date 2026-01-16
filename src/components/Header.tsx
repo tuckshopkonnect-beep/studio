@@ -42,7 +42,6 @@ export default function Header() {
 
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
-  // Use the hook to get today's spending for the student role
   const isStudent = currentUser?.role === 'Student';
   const { spentToday, isLoadingSpending } = useTodaysSpending(isStudent ? authUser?.uid : null);
 
@@ -71,6 +70,9 @@ export default function Header() {
   const dashboardLink = isParentPortal ? "/parent/dashboard" : "/student/dashboard";
 
   const studentUser = currentUser?.role === 'Student' ? currentUser : undefined;
+  
+  const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSpending;
+  const canDisplayCart = !isCartDataLoading && studentUser;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -147,12 +149,18 @@ export default function Header() {
                 <SheetHeader className="px-6 pt-6">
                   <SheetTitle>Your Order</SheetTitle>
                 </SheetHeader>
-                {isLoadingCurrentUser || isUserLoading || isLoadingSpending ? (
+                {isCartDataLoading && (
                   <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : (
+                )}
+                {canDisplayCart && (
                   <OrderSummary student={studentUser} spentToday={spentToday} />
+                )}
+                {!isCartDataLoading && !studentUser && (
+                   <div className="p-6 text-center text-muted-foreground">
+                      Could not load your student profile. Please try logging in again.
+                  </div>
                 )}
               </SheetContent>
             </Sheet>
