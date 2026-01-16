@@ -18,7 +18,7 @@ import FundWalletDialog from "@/components/FundWalletDialog";
 import type { User, Order } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
+import { collection, query, where, doc, documentId } from "firebase/firestore";
 import Link from "next/link";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -50,11 +50,13 @@ export default function ParentDashboard() {
   }, [firestore, authUser, isUserLoading]);
 
   const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
+  
+  const childrenIds = parent?.childIds;
 
   const childrenQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser || isUserLoading) return null;
-    return query(collection(firestore, 'users'), where('parentId', '==', authUser.uid));
-  }, [firestore, authUser, isUserLoading]);
+      if (!firestore || !childrenIds || childrenIds.length === 0) return null;
+      return query(collection(firestore, 'users'), where(documentId(), 'in', childrenIds));
+  }, [firestore, childrenIds]);
 
   const { data: children, isLoading: isLoadingChildren } = useCollection<User>(childrenQuery);
   

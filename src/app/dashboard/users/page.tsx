@@ -42,7 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth } from "@/firebase";
-import { collection, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 
@@ -151,10 +151,13 @@ export default function UsersPage() {
    Object.keys(sanitizedData).forEach(key => {
        const K = key as keyof typeof sanitizedData;
        if (sanitizedData[K] === undefined) {
-           delete sanitizedData[K];
+           delete (sanitizedData as any)[K];
        }
    });
    delete (sanitizedData as any).password;
+   
+   const savedUserId = isCreating ? '' : selectedUser!.id; // Will get ID after creation
+   const previousParentId = isCreating ? undefined : selectedUser?.parentId;
 
    if (isCreating) {
        // --- Create a new user ---
@@ -172,6 +175,12 @@ export default function UsersPage() {
            // 3. Create user document in Firestore with the correct ID
            const userDocRef = doc(firestore, 'users', newUserId);
            await setDoc(userDocRef, userDataForFirestore);
+
+           // 4. If student is linked to a parent, update the parent's childIds
+           if (userToSave.parentId) {
+               const newParentRef = doc(firestore, 'users', userToSave.parentId);
+               await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
+           }
            
            toast({
                title: "User Created",
@@ -195,8 +204,21 @@ export default function UsersPage() {
        if (!selectedUser) return false;
        try {
             const userDocRef = doc(firestore, 'users', selectedUser.id);
-            
             await setDoc(userDocRef, sanitizedData, { merge: true });
+
+            // If the parent has changed, update both old and new parent docs
+            if (userToSave.parentId !== previousParentId) {
+                // Remove child from the old parent's list
+                if (previousParentId) {
+                    const oldParentRef = doc(firestore, 'users', previousParentId);
+                    await updateDoc(oldParentRef, { childIds: arrayRemove(savedUserId) });
+                }
+                // Add child to the new parent's list
+                if (userToSave.parentId) {
+                    const newParentRef = doc(firestore, 'users', userToSave.parentId);
+                    await updateDoc(newParentRef, { childIds: arrayUnion(savedUserId) });
+                }
+            }
 
             toast({
                title: "User Updated",

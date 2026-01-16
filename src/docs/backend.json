@@ -215,6 +215,13 @@
         "parentId": {
           "type": "string",
           "description": "The user ID of the parent linked to this student account."
+        },
+        "childIds": {
+          "type": "array",
+          "description": "An array of user IDs for the children linked to this parent account.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
