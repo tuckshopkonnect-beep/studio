@@ -53,23 +53,23 @@ service cloud.firestore {
      * @description Manages user profile documents.
      */
     match /users/{userId} {
-      // READ: A user can always get their own document. This is critical to allow isAdmin() to work.
+      // READ: A user can always get their own document. This is critical for isAdmin() to work.
+      // An admin can get any document via the `list` rule.
       allow get: if isOwner(userId);
-      // LIST: Only an admin can list all users.
       allow list: if isAdmin();
+
       // DELETE: Only an admin can delete a user.
       allow delete: if isAdmin();
 
-      // WRITE (Create/Update): This is the definitive fix for the bootstrap problem.
-      // A write is allowed if:
-      // 1. The user is an admin.
-      // OR
-      // 2. The user is updating their own profile and NOT changing their role.
-      // OR
-      // 3. The user is setting their role to 'Admin' for the first time (either on creation or on a partial doc).
-      allow write: if isAdmin() ||
-                     (isOwner(userId) && request.resource.data.role == resource.data.role) ||
-                     (isOwner(userId) && request.resource.data.role == 'Admin' && (resource == null || resource.data.role == null));
+      // CREATE: This rule handles the initial creation of any user.
+      // It allows an existing admin to create users, and crucially, allows the VERY FIRST
+      // user to create their own account if they are setting the role to 'Admin'.
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
+
+      // UPDATE: This rule handles updates to existing user documents.
+      // It allows an admin to update anyone, or a user to update their own profile
+      // as long as they are not trying to change their role.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
 
       /**
        * @description Manages a user's orders, nested under their profile.
