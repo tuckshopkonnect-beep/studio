@@ -29,8 +29,8 @@ const Footer = () => {
                     <h4 className="font-semibold mb-2">Support</h4>
                     <ul className="space-y-2 text-sm">
                         <li><a href="mailto:tuckshopkonnect@gmail.com" className="text-muted-foreground hover:text-primary">Contact Us</a></li>
-                        <li><Link href="#" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
-                        <li><Link href="#" className="text-muted-foreground hover:text-primary">Terms of Service</Link></li>
+                        <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
+                        <li><Link href="/terms-of-service" className="text-muted-foreground hover:text-primary">Terms of Service</Link></li>
                         <li><Link href="/vote-of-thanks" className="text-muted-foreground hover:text-primary">Vote of Thanks</Link></li>
                     </ul>
                 </div>
