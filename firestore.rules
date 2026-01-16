@@ -22,13 +22,13 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
-    function isParentOf(childId) {
-      // Check if the requester is the parent of the document being accessed,
-      // by looking at the childIds array in the requester's own document.
-      let parentDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function isParent(childUserId) {
+      // A user is a parent of the child if the child's document has a 'parentId' field
+      // that matches the requester's UID. This is more direct and reliable.
+      let childDoc = get(/databases/$(database)/documents/users/$(childUserId)).data;
       return isSignedIn()
-             && 'childIds' in parentDoc
-             && parentDoc.childIds.includes(childId);
+             && 'parentId' in childDoc
+             && childDoc.parentId == request.auth.uid;
     }
     
     function isCreatingValidOrder(userId) {
@@ -44,12 +44,12 @@ service cloud.firestore {
       // READ: 
       // A user can get their own document.
       // An admin can get any document.
-      // A parent can get the document of a user listed in their childIds.
-      allow get: if isOwner(userId) || isAdmin() || isParentOf(userId);
+      // A parent can get the document of their child.
+      allow get: if isOwner(userId) || isAdmin() || isParent(userId);
       
       // LIST:
       // Only admins can list/query the entire users collection.
-      // Parents will fetch their children via specific GETs (through an 'in' query), not a broad LIST.
+      // Parents will fetch their children via specific GETs, not a broad LIST.
       allow list: if isAdmin();
       
       // CREATE:
