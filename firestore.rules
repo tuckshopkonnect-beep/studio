@@ -74,9 +74,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       // CRITICAL FIX: The `get` rule MUST NOT call `isAdmin()` to avoid a circular dependency.
-      // `isAdmin()` needs to `get` a user document, but if the `get` rule also calls `isAdmin()`,
-      // it creates an infinite recursion that Firestore denies.
-      // A user can always get their own document, which is what allows `isAdmin()` to work.
+      // A user must always be able to get their own document, which is what allows `isAdmin()` to work.
       allow get: if isOwner(userId);
       
       // Admins can list all users for the dashboard.
