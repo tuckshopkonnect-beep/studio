@@ -12,6 +12,7 @@ export default function VoteOfThanksPage() {
     "Samuel Ayomide",
     "Staffs of DLHS (2024/25 session)",
     "Miss Patience",
+    "My Parents",
     "and to the members of Set 2k25"
   ];
 
