@@ -172,38 +172,29 @@ export default function UsersPage() {
    const previousParentId = isCreating ? undefined : selectedUser?.parentId;
 
    if (isCreating) {
-       // --- Create a new user ---
        try {
-           // 1. Create user in Firebase Authentication. This will sign in the new user and sign out the admin.
+           setIsRedirecting(true);
+           handleCloseDialog();
+           
            const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
 
-           // 2. Prepare user data for Firestore, ensuring the ID from Auth is used
-           const userDataForFirestore = {
-               ...sanitizedData,
-               id: newUserId, // Use the UID from Auth as the document ID
-           };
+           const userDataForFirestore = { ...sanitizedData, id: newUserId };
 
-           // 3. Create user document in Firestore with the correct ID
            const userDocRef = doc(firestore, 'users', newUserId);
            await setDoc(userDocRef, userDataForFirestore);
 
-           // 4. If student is linked to a parent, update the parent's childIds
            if (userToSave.parentId) {
                const newParentRef = doc(firestore, 'users', userToSave.parentId);
                await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-            // 5. Set redirecting state and inform admin
-            setIsRedirecting(true);
             toast({
                 title: "User Created Successfully",
-                description: "You've been logged in as the new user. Redirecting to portal...",
+                description: "Redirecting you to the portal to log back in...",
                 duration: 5000,
             });
-           handleCloseDialog();
            
-           // 6. Redirect to portal page after a short delay
            setTimeout(() => {
                 router.push('/portal');
            }, 3000);
@@ -217,24 +208,21 @@ export default function UsersPage() {
                title: 'Failed to create user',
                description: error.message || 'An unknown error occurred.',
            });
+           setIsRedirecting(false);
            return false;
        }
 
    } else {
-       // --- Update an existing user ---
        if (!selectedUser) return false;
        try {
             const userDocRef = doc(firestore, 'users', selectedUser.id);
             await setDoc(userDocRef, sanitizedData, { merge: true });
 
-            // If the parent has changed, update both old and new parent docs
             if (userToSave.parentId !== previousParentId) {
-                // Remove child from the old parent's list
                 if (previousParentId) {
                     const oldParentRef = doc(firestore, 'users', previousParentId);
                     await updateDoc(oldParentRef, { childIds: arrayRemove(savedUserId) });
                 }
-                // Add child to the new parent's list
                 if (userToSave.parentId) {
                     const newParentRef = doc(firestore, 'users', userToSave.parentId);
                     await updateDoc(newParentRef, { childIds: arrayUnion(savedUserId) });
@@ -262,11 +250,11 @@ export default function UsersPage() {
 
   if (isRedirecting) {
     return (
-      <div className="flex h-full items-center justify-center rounded-lg border bg-card p-6 text-center">
-        <div>
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-12 text-center shadow-lg">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
           <h2 className="mt-4 text-xl font-semibold">User Created</h2>
-          <p className="mt-2 text-muted-foreground">Redirecting you back to the portal to log in again...</p>
+          <p className="mt-2 text-muted-foreground">You are being logged out. Redirecting to the portal...</p>
         </div>
       </div>
     );
