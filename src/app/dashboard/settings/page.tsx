@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, ChevronsUpDown, Check } from "lucide-react";
+import { ArrowRight, ChevronsUpDown, Check, Loader2 } from "lucide-react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import {
   Popover,
@@ -32,14 +32,42 @@ import {
 } from "@/components/ui/command";
 import type { User } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, where, doc, updateDoc, setDoc } from "firebase/firestore";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { Skeleton } from "@/components/ui/skeleton";
 
+
+// Define the settings type
+interface AppSettings {
+  jssLimit: number;
+  sssLimit: number;
+}
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
+
+  // State for default limits
+  const [jssLimit, setJssLimit] = useState("");
+  const [sssLimit, setSssLimit] = useState("");
+
+  // Fetch settings from Firestore
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "defaultLimits");
+  }, [firestore]);
+
+  const { data: defaultLimits, isLoading: isLoadingLimits } = useDoc<AppSettings>(settingsDocRef);
+
+  useEffect(() => {
+    if (defaultLimits) {
+      setJssLimit(String(defaultLimits.jssLimit || ""));
+      setSssLimit(String(defaultLimits.sssLimit || ""));
+    }
+  }, [defaultLimits]);
+
 
   const [posScannerEnabled, setPosScannerEnabled] = useState(true);
   const [orderTimerEnabled, setOrderTimerEnabled] = useState(false);
@@ -69,7 +97,7 @@ export default function SettingsPage() {
     } else {
       setIndividualLimit('');
     }
-  }, [selectedStudentId, allUsers]);
+  }, [selectedStudent]);
 
 
   useEffect(() => {
@@ -120,11 +148,24 @@ export default function SettingsPage() {
   };
 
   const handleSaveDefaults = () => {
-    // In a real app, this would save to a backend, perhaps a 'settings' document.
-    toast({
-        title: "Default limits saved",
-        description: "The default spending limits have been updated."
-    });
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Database not ready.' });
+      return;
+    }
+    
+    const settingsData: AppSettings = {
+      jssLimit: Number(jssLimit),
+      sssLimit: Number(sssLimit),
+    };
+
+    if (settingsDocRef) {
+        setDocumentNonBlocking(settingsDocRef, settingsData, { merge: true });
+
+        toast({
+            title: "Default limits saved",
+            description: "The default spending limits have been updated and will apply to all students without an individual limit."
+        });
+    }
   };
 
   const handleSaveIndividualLimit = async () => {
@@ -198,17 +239,25 @@ export default function SettingsPage() {
             <form className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                  <Input id="jss-limit" type="number" defaultValue="2500" className="pl-6" />
-                </div>
+                {isLoadingLimits ? (
+                    <Skeleton className="h-10 w-full" />
+                ) : (
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                        <Input id="jss-limit" type="number" value={jssLimit} onChange={(e) => setJssLimit(e.target.value)} className="pl-6" />
+                    </div>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
-                  <Input id="sss-limit" type="number" defaultValue="4000" className="pl-6" />
-                </div>
+                {isLoadingLimits ? (
+                    <Skeleton className="h-10 w-full" />
+                ) : (
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">₦</span>
+                        <Input id="sss-limit" type="number" value={sssLimit} onChange={(e) => setSssLimit(e.target.value)} className="pl-6" />
+                    </div>
+                )}
               </div>
             </form>
           </CardContent>

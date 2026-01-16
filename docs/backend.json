@@ -210,6 +210,25 @@
         "email",
         "role"
       ]
+    },
+    "AppSettings": {
+      "title": "Application Settings",
+      "type": "object",
+      "description": "Stores global configuration for the application, such as default spending limits.",
+      "properties": {
+        "jssLimit": {
+          "type": "number",
+          "description": "Default daily spending limit for Junior Secondary School students."
+        },
+        "sssLimit": {
+          "type": "number",
+          "description": "Default daily spending limit for Senior Secondary School students."
+        }
+      },
+      "required": [
+        "jssLimit",
+        "sssLimit"
+      ]
     }
   },
   "auth": {
@@ -327,9 +346,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/settings/{settingId}",
+        "definition": {
+          "entityName": "AppSettings",
+          "schema": {
+            "$ref": "#/backend/entities/AppSettings"
+          },
+          "description": "Stores global application settings. Writable only by admins.",
+          "params": [
+            {
+              "name": "settingId",
+              "description": "The unique identifier for the setting document (e.g., 'defaultLimits')."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, focusing on menu display, order placement, order management, and inventory control. It leverages path-based ownership for user-specific data (orders) and a top-level collection for menu items accessible to all users. A top-level `/orders` collection is included for admin-level querying of all orders. Authorization Independence is achieved by storing the `userId` directly within the `Order` documents, eliminating the need for security rules to traverse to parent documents. QAPs are supported by segregating data based on ownership (orders under user IDs) and providing a flat, easily queryable structure for menu items and all orders."
   }
 }
-    

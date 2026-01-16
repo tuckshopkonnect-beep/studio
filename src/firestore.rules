@@ -152,6 +152,15 @@ service cloud.firestore {
       allow create: if isCreatingValidOrder(request.resource.data.userId);
     }
 
+    /**
+     * @description Manages application-wide settings.
+     * @path /settings/{settingId}
+     * @allow Admins can read and write settings.
+     */
+    match /settings/{settingId} {
+        allow read, write: if isAdmin();
+    }
+
     match /menuItems/{menuItemId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
