@@ -64,13 +64,12 @@ service cloud.firestore {
       // A write is allowed if:
       // 1. The user is an admin.
       // OR
-      // 2. The user is creating their own 'Admin' account for the first time (the bootstrap case).
-      //    - `resource` is null on create, so `resource.data.role` is null.
+      // 2. The user is updating their own profile and NOT changing their role.
       // OR
-      // 3. The user is updating their own document, but NOT changing their role.
-      allow write: if isAdmin() || 
-                     (isOwner(userId) && request.resource.data.role == 'Admin' && resource.data.role == null) ||
-                     (isOwner(userId) && request.resource.data.role == resource.data.role);
+      // 3. The user is setting their role to 'Admin' for the first time (either on creation or on a partial doc).
+      allow write: if isAdmin() ||
+                     (isOwner(userId) && request.resource.data.role == resource.data.role) ||
+                     (isOwner(userId) && request.resource.data.role == 'Admin' && (resource == null || resource.data.role == null));
 
       /**
        * @description Manages a user's orders, nested under their profile.
