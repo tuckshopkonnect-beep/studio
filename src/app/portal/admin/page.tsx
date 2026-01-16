@@ -62,9 +62,6 @@ export default function AdminLoginPage() {
                 role: 'Admin', // Set the role to Admin
                 avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
                 balance: 0,
-                class: undefined,
-                dailyLimit: undefined,
-                parentId: undefined
             };
             
             await setDoc(userDocRef, newUserProfile);
