@@ -61,9 +61,9 @@ export default function UsersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin) return null;
+    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
     return collection(firestore, "users");
-  },[firestore, isCurrentUserAdmin]);
+  },[firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
 
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
@@ -170,7 +170,7 @@ export default function UsersPage() {
    if (isCreating) {
        // --- Create a new user ---
        try {
-           // 1. Create user in Firebase Authentication
+           // 1. Create user in Firebase Authentication. This will sign in the new user and sign out the admin.
            const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
 
@@ -190,10 +190,12 @@ export default function UsersPage() {
                await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-           toast({
-               title: "User Created",
-               description: `${userToSave.name} has been added successfully.`,
-           });
+            // 5. Inform the admin about the session switch.
+            toast({
+                title: "User Created Successfully",
+                description: "Session has been switched to the new user. Please log out and sign back in as an administrator to continue.",
+                duration: 10000,
+            });
            handleCloseDialog();
            return true;
 
