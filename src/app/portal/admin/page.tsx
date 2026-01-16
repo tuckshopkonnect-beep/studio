@@ -19,7 +19,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { FirebaseError } from "firebase/app";
 
@@ -49,17 +49,30 @@ export default function AdminLoginPage() {
         const user = userCredential.user;
 
         const userDocRef = doc(firestore, "users", user.uid);
-        const newUserProfile = {
-            id: user.uid,
-            name: user.email?.split('@')[0] || 'Admin',
-            email: user.email!,
-            role: 'Admin' as const,
-            avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
-            balance: 0,
-        };
-        
-        // This write operation is critical for bootstrapping the admin role.
-        await setDoc(userDocRef, newUserProfile, { merge: true });
+        const docSnap = await getDoc(userDocRef);
+
+        if (!docSnap.exists()) {
+            // Document does not exist, so we create it.
+            // This is governed by the 'create' rule.
+            const newUserProfile = {
+                id: user.uid,
+                name: user.email?.split('@')[0] || 'Admin',
+                email: user.email!,
+                role: 'Admin' as const,
+                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+                balance: 0,
+            };
+            await setDoc(userDocRef, newUserProfile);
+        } else {
+            // Document exists, check if the role needs to be set.
+            // This is governed by the 'update' rule.
+            const existingData = docSnap.data();
+            if (existingData.role !== 'Admin') {
+                await updateDoc(userDocRef, {
+                    role: 'Admin'
+                });
+            }
+        }
 
         toast({
             title: "Login Successful",
