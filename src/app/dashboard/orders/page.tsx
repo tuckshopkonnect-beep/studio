@@ -38,19 +38,26 @@ import { ListFilter, MoreHorizontal, File, Download, ShoppingBag, Loader2 } from
 import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export default function OrdersPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc(currentUserDocRef);
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
   
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || isUserLoading || !authUser || !isCurrentUserAdmin) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, isUserLoading, user]);
+  }, [firestore, isUserLoading, authUser, isCurrentUserAdmin]);
 
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
@@ -88,11 +95,25 @@ export default function OrdersPage() {
     setOrderToCancel(null);
   };
 
-  if (isUserLoading || isLoadingOrders) {
+  if (isUserLoading || isLoadingCurrentUser) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to access this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
+        </CardContent>
+      </Card>
     );
   }
 
