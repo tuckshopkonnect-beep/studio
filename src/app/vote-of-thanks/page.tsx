@@ -29,7 +29,7 @@ export default function VoteOfThanksPage() {
         </CardHeader>
         <CardContent>
           <p className="mb-6 text-lg text-center">
-            A special thing to be following people.
+            A special thanks to the following people.
           </p>
           <ul className="space-y-3 text-center text-lg text-card-foreground">
             {people.map((person, index) => (
