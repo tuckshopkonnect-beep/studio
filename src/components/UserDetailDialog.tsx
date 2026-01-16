@@ -154,11 +154,6 @@ export default function UserDetailDialog({
       <DialogContent 
         className="sm:max-w-lg"
         onPointerDownOutside={(e) => {
-          // This is the crucial part:
-          // When a popover is open inside a modal dialog, the dialog's overlay
-          // will try to capture clicks. This handler checks if a click
-          // happened inside the command popover (`[cmdk-root]`) and, if so,
-          // prevents the dialog from closing, allowing interaction with the popover.
           if ((e.target as HTMLElement).closest('[cmdk-root]')) {
             e.preventDefault();
           }
@@ -274,7 +269,7 @@ export default function UserDetailDialog({
                     />
                 )}
                 {watchRole === 'Student' && (
-                    <div className={cn("grid gap-4 transition-all duration-300", watchRole === 'Student' ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden pointer-events-none')}>
+                    <div className={cn("grid gap-4 transition-all duration-300", watchRole === 'Student' ? 'grid' : 'hidden')}>
                        <div className="grid grid-cols-2 gap-4">
                          <FormField
                           control={form.control}
