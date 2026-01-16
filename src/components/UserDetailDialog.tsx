@@ -331,12 +331,21 @@ export default function UserDetailDialog({
                                           <CommandList>
                                             <CommandEmpty>No parent found.</CommandEmpty>
                                             <CommandGroup>
+                                               <CommandItem
+                                                  onSelect={() => {
+                                                    form.setValue("parentId", null, { shouldDirty: true });
+                                                    setIsParentPopoverOpen(false);
+                                                  }}
+                                                >
+                                                  <X className="mr-2 h-4 w-4" />
+                                                  Unlink Parent
+                                                </CommandItem>
                                               {parentUsers.map((parent) => (
                                                 <CommandItem
                                                   value={parent.name}
                                                   key={parent.id}
                                                   onSelect={() => {
-                                                    form.setValue("parentId", parent.id);
+                                                    form.setValue("parentId", parent.id, { shouldDirty: true });
                                                     setIsParentPopoverOpen(false);
                                                   }}
                                                 >
