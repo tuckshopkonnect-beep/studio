@@ -153,10 +153,7 @@ export default function UserDetailDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         className="sm:max-w-lg"
-        onInteractOutside={(e) => {
-          // This event is fired when the user clicks or focuses outside the dialog.
-          // We want to prevent the dialog from closing if the interaction is
-          // within our `Command` popover for parent selection.
+        onPointerDownOutside={(e) => {
           if ((e.target as HTMLElement).closest('[cmdk-root]')) {
             e.preventDefault();
           }
@@ -325,6 +322,7 @@ export default function UserDetailDialog({
                                               !field.value && "text-muted-foreground"
                                             )}
                                             disabled={!isEditing}
+                                            onClick={() => setIsParentPopoverOpen(true)}
                                           >
                                             {field.value
                                               ? parentUsers.find(
@@ -420,7 +418,3 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
-
-  
-
-    
