@@ -64,9 +64,9 @@ export default function SettingsPage() {
 
   // Fetch settings from Firestore
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore || isUserLoading) return null;
+    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
     return doc(firestore, "settings", "defaultLimits");
-  }, [firestore, isUserLoading]);
+  }, [firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
 
   const { data: defaultLimits, isLoading: isLoadingLimits } = useDoc<AppSettings>(settingsDocRef);
 
@@ -91,9 +91,9 @@ export default function SettingsPage() {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !authUser) return null;
+    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
     return query(collection(firestore, "users"), where('role', '==', 'Student'));
-  }, [firestore, isUserLoading, authUser]);
+  }, [firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
 
   const { data: studentUsers } = useCollection<User>(usersQuery);
   const allUsers = studentUsers || [];
@@ -487,3 +487,5 @@ export default function SettingsPage() {
     </div>
     </>
   );
+
+    
