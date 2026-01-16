@@ -325,7 +325,7 @@ export default function UserDetailDialog({
                                           </Button>
                                         </FormControl>
                                       </PopoverTrigger>
-                                      <PopoverContent className="w-full p-0">
+                                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                         <Command>
                                           <CommandInput placeholder="Search parents..." />
                                           <CommandList>
@@ -342,7 +342,7 @@ export default function UserDetailDialog({
                                                 </CommandItem>
                                               {parentUsers.map((parent) => (
                                                 <CommandItem
-                                                  value={parent.name}
+                                                  value={parent.name + " " + parent.email}
                                                   key={parent.id}
                                                   onSelect={() => {
                                                     form.setValue("parentId", parent.id, { shouldDirty: true });
@@ -357,7 +357,10 @@ export default function UserDetailDialog({
                                                         : "opacity-0"
                                                     )}
                                                   />
-                                                  {parent.name}
+                                                  <div className="flex flex-col">
+                                                    <span>{parent.name}</span>
+                                                    <span className="text-xs text-muted-foreground">{parent.email}</span>
+                                                  </div>
                                                 </CommandItem>
                                               ))}
                                             </CommandGroup>
@@ -406,3 +409,5 @@ export default function UserDetailDialog({
     </Dialog>
   );
 }
+
+  
