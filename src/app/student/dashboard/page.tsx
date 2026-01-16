@@ -16,16 +16,19 @@ import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInpu
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { User } from "@/lib/data";
 
 export default function StudentDashboard() {
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
 
-  const { data: student, isLoading: isLoadingStudent } = useDoc<User>(
-    useMemoFirebase(() => (firestore && authUser) ? collection(firestore, "users").doc(authUser.uid) : null, [firestore, authUser])
-  );
+  const studentDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser || isUserLoading) return null;
+    return doc(firestore, "users", authUser.uid);
+  }, [firestore, authUser, isUserLoading]);
+
+  const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
   
   // This would need a more complex query in a real app, likely fetching orders. For now, we mock it.
   const spentToday = 0; 

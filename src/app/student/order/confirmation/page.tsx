@@ -10,7 +10,7 @@ import { CheckCircle, Download, Home, Loader2, AlertTriangle, QrCode } from "luc
 import QRCode from "react-qr-code";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 
 export default function OrderConfirmationPage() {
@@ -23,11 +23,14 @@ export default function OrderConfirmationPage() {
     const [isPosEnabled, setIsPosEnabled] = useState(true);
 
     const firestore = useFirestore();
-    const { user: authUser } = useUser();
+    const { user: authUser, isUserLoading } = useUser();
     
-    const { data: student, isLoading: isLoadingStudent } = useDoc<User>(
-      useMemoFirebase(() => authUser && firestore ? doc(firestore, 'users', authUser.uid) : null, [authUser, firestore])
-    );
+    const studentDocRef = useMemoFirebase(() => {
+      if (isUserLoading || !authUser || !firestore) return null;
+      return doc(firestore, 'users', authUser.uid);
+    }, [authUser, firestore, isUserLoading]);
+
+    const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
 
     const studentBalance = student && completedOrder ? student.balance : 0;
 
@@ -91,7 +94,7 @@ export default function OrderConfirmationPage() {
         };
     }, [pathname, setCompletedOrder, clearCart, router]);
 
-    if (isLoadingStudent) {
+    if (isLoadingStudent || isUserLoading) {
         return (
             <div className="container mx-auto flex flex-col items-center justify-center p-4 md:p-6 min-h-[calc(100vh-8rem)]">
                 <Card className="w-full max-w-lg text-center shadow-2xl">

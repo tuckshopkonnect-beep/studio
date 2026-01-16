@@ -25,7 +25,7 @@ import { useEffect, useState } from "react";
 import type { User, Order } from "@/lib/data";
 import { usePathname } from "next/navigation";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 
 export default function Header() {
@@ -34,9 +34,12 @@ export default function Header() {
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
   
-  const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(
-    useMemoFirebase(() => (firestore && authUser) ? doc(firestore, "users", authUser.uid) : null, [firestore, authUser])
-  );
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (isUserLoading || !firestore || !authUser) return null;
+    return doc(firestore, "users", authUser.uid);
+  }, [firestore, authUser, isUserLoading]);
+
+  const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
   // For spent today, you would typically query the orders collection.
   // This is a simplified placeholder.
@@ -142,7 +145,7 @@ export default function Header() {
                 <SheetHeader className="px-6 pt-6">
                   <SheetTitle>Your Order</SheetTitle>
                 </SheetHeader>
-                {isLoadingCurrentUser ? (
+                {isLoadingCurrentUser || isUserLoading ? (
                   <div className="flex h-full items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
                   </div>

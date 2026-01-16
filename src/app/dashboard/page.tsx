@@ -34,21 +34,21 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || isUserLoading || !user) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, user]);
+  }, [firestore, user, isUserLoading]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
   const usersCollection = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
+      if (!firestore || isUserLoading || !user) return null;
       return collection(firestore, "users")
-    }, [firestore, user]);
+    }, [firestore, user, isUserLoading]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
   
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
+      if (!firestore || isUserLoading || !user) return null;
       return collection(firestore, "menuItems");
-    }, [firestore, user]);
+    }, [firestore, user, isUserLoading]);
   const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 

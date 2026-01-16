@@ -53,9 +53,9 @@ export default function UsersPage() {
   const { user: authUser, isUserLoading } = useUser();
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !authUser || authUser.isAnonymous) return null;
+    if (!firestore || isUserLoading || !authUser || authUser.isAnonymous) return null;
     return collection(firestore, "users");
-  },[firestore, authUser]);
+  },[firestore, isUserLoading, authUser]);
 
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 

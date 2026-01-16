@@ -18,7 +18,7 @@ import FundWalletDialog from "@/components/FundWalletDialog";
 import type { User, Order } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, doc } from "firebase/firestore";
 import Link from "next/link";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -44,14 +44,17 @@ export default function ParentDashboard() {
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
 
-  const { data: parent, isLoading: isLoadingParent } = useDoc<User>(
-    useMemoFirebase(() => (firestore && authUser) ? collection(firestore, "users").doc(authUser.uid) : null, [firestore, authUser])
-  );
+  const parentDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser || isUserLoading) return null;
+    return doc(firestore, "users", authUser.uid);
+  }, [firestore, authUser, isUserLoading]);
+
+  const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
 
   const childrenQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
+    if (!firestore || !authUser || isUserLoading) return null;
     return query(collection(firestore, 'users'), where('parentId', '==', authUser.uid));
-  }, [firestore, authUser]);
+  }, [firestore, authUser, isUserLoading]);
 
   const { data: children, isLoading: isLoadingChildren } = useCollection<User>(childrenQuery);
   
