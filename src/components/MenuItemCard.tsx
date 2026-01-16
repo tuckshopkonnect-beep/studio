@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useCart } from '@/hooks/use-cart.tsx';
 import type { MenuItem } from '@/lib/data';
 import { PlusCircle, Check, XCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from './ui/skeleton';
 
@@ -17,18 +17,15 @@ interface MenuItemCardProps {
 }
 
 export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardProps) {
-  const { addToCart, getStock } = useCart();
+  const { cart, addToCart } = useCart();
   const [added, setAdded] = useState(false);
-  const [stock, setStock] = useState<number | null>(null);
+
+  // Correctly calculate available stock by subtracting the quantity already in the cart
+  // from the item's authoritative stock count from the database.
+  const quantityInCart = cart.find(cartItem => cartItem.id === item.id)?.quantity || 0;
+  const availableStock = item.stock - quantityInCart;
   
-  useEffect(() => {
-    // The stock value is now fetched on the client side after mount
-    // to prevent hydration mismatch.
-    setStock(getStock(item.id));
-  }, [getStock, item.id]);
-
-
-  const isInStock = stock !== null && stock > 0;
+  const isInStock = availableStock > 0;
 
   const handleAddToCart = () => {
     if (!isInStock) return;
@@ -49,8 +46,15 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
         Shop Closed
       </>
     );
-  } else if (stock !== null && !isInStock) {
+  } else if (!isInStock && quantityInCart > 0) {
     buttonContent = (
+      <>
+        <XCircle className="mr-2 h-4 w-4" />
+        All in Cart
+      </>
+    );
+  } else if (!isInStock) {
+      buttonContent = (
       <>
         <XCircle className="mr-2 h-4 w-4" />
         Out of Stock
@@ -87,15 +91,11 @@ export default function MenuItemCard({ item, isShopOpen = true }: MenuItemCardPr
           />
           {isShopOpen && (
             <div className="absolute top-2 right-2">
-              {stock === null ? (
-                <Skeleton className="h-6 w-14" />
-              ) : (
-                <Badge 
-                  variant={stock < 10 ? 'destructive' : 'secondary'}
+               <Badge 
+                  variant={availableStock < 10 ? 'destructive' : 'secondary'}
                 >
-                  {stock} left
+                  {availableStock} left
                 </Badge>
-              )}
             </div>
           )}
         </div>

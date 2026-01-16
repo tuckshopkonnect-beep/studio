@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useState, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
-import type { MenuItem, InventoryItem } from '@/lib/data';
+import type { MenuItem } from '@/lib/data';
 
 export interface CartItem extends MenuItem {
   quantity: number;
@@ -21,14 +21,12 @@ export interface CompletedOrder {
 
 interface CartContextType {
   cart: CartItem[];
-  inventory: InventoryItem[];
   completedOrder: CompletedOrder | null;
   setCompletedOrder: (order: CompletedOrder | null) => void;
   addOrderToHistory: (order: CompletedOrder) => void;
-  getStock: (itemId: number) => number;
   addToCart: (item: MenuItem) => void;
-  removeFromCart: (itemId: number) => void;
-  updateQuantity: (itemId: number, quantity: number) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -38,14 +36,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [clientInventory, setClientInventory] = useState<InventoryItem[] | null>(null);
-
 
   useEffect(() => {
-    // This effect is now just for sessionStorage and doesn't generate data
     if (typeof window === 'undefined') return;
-
     const savedOrder = sessionStorage.getItem('completedOrder');
     if (savedOrder) {
       setCompletedOrderState(JSON.parse(savedOrder));
@@ -65,81 +58,59 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addOrderToHistory = (order: CompletedOrder) => {
      if (typeof window === 'undefined') return;
-    // This is for the local student history page.
     const history = JSON.parse(localStorage.getItem('orderHistory') || '[]') as CompletedOrder[];
     const updatedHistory = [order, ...history];
     localStorage.setItem('orderHistory', JSON.stringify(updatedHistory));
   };
 
-
-  const getStock = useCallback((itemId: number): number => {
-    const currentInventory = clientInventory || inventory;
-    return currentInventory.find(i => i.id === itemId)?.stock ?? 0;
-  }, [inventory, clientInventory]);
-
   const addToCart = (item: MenuItem) => {
-    const stock = getStock(item.id);
-    if (stock <= 0) return;
-
     setCart(prevItems => {
       const existingItem = prevItems.find(i => i.id === item.id);
       if (existingItem) {
-        if (existingItem.quantity < stock) {
+        // Check against the item's original stock property
+        if (existingItem.quantity < existingItem.stock) {
           return prevItems.map(i =>
             i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
           );
         }
         return prevItems; // Don't add if it would exceed stock
       }
-      return [...prevItems, { ...item, quantity: 1 }];
+      // Can only add if stock is greater than 0
+      if (item.stock > 0) {
+        return [...prevItems, { ...item, quantity: 1 }];
+      }
+      return prevItems;
     });
   };
 
-  const removeFromCart = (itemId: number) => {
+  const removeFromCart = (itemId: string) => {
     setCart(prevItems => prevItems.filter(i => i.id !== itemId));
   };
 
-  const updateQuantity = (itemId: number, quantity: number) => {
-      const stock = getStock(itemId);
-      const cartItem = cart.find(i => i.id === itemId);
-      
-      const sourceInventory = clientInventory || [];
-      const originalStock = sourceInventory.find(i => i.id === itemId)?.stock ?? 0;
-      
-      if (quantity <= 0) {
-        removeFromCart(itemId);
-        return;
-      }
-      
-      if (quantity > originalStock) {
-        // Can't add more than what's available
-        return;
-      }
+  const updateQuantity = (itemId: string, quantity: number) => {
+    const cartItem = cart.find(i => i.id === itemId);
+    if (!cartItem) return;
 
-      setCart(prevItems =>
-        prevItems.map(i =>
-          i.id === itemId ? { ...i, quantity } : i
-        )
-      );
+    if (quantity <= 0) {
+      removeFromCart(itemId);
+      return;
+    }
+
+    // Do not allow quantity to exceed the original stock
+    if (quantity > cartItem.stock) {
+      return;
+    }
+
+    setCart(prevItems =>
+      prevItems.map(i =>
+        i.id === itemId ? { ...i, quantity } : i
+      )
+    );
   };
   
   const clearCart = () => {
     setCart([]);
   };
-
-  useEffect(() => {
-    if (!clientInventory) return;
-    // Recalculate inventory whenever cart changes
-    const newInventory = clientInventory.map(invItem => {
-        const cartItem = cart.find(ci => ci.id === invItem.id);
-        if (cartItem) {
-            return { ...invItem, stock: invItem.stock - cartItem.quantity };
-        }
-        return invItem;
-    });
-    setInventory(newInventory);
-  }, [cart, clientInventory])
-
 
   const totalItems = useMemo(() => {
     return cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -151,18 +122,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     cart,
-    inventory: clientInventory || inventory, // Use client inventory if available
     completedOrder,
     setCompletedOrder,
     addOrderToHistory,
-    getStock,
     addToCart,
     removeFromCart,
     updateQuantity,
     clearCart,
     totalItems,
     totalPrice
-  }), [cart, inventory, clientInventory, completedOrder, getStock, addOrderToHistory, setCompletedOrder, removeFromCart, updateQuantity, clearCart, totalItems, totalPrice]);
+  }), [cart, completedOrder, totalItems, totalPrice]);
 
   return (
     <CartContext.Provider value={value}>
