@@ -47,15 +47,39 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+
+    /**
+     * Checks if a document currently exists in Firestore.
+     * Crucial for protecting against writes to non-existent paths.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
     
     /**
      * Checks if the currently authenticated user has the 'Admin' role.
-     * It reads the user's profile from the /users collection.
-     * NOTE: Calls to get() and exists() in security rules are efficient and do
-     * not re-evaluate rules, thus preventing infinite loops here.
+     * It safely reads the user's profile from the /users collection.
      */
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      return isSignedIn() 
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    /**
+     * A composite check for state-changing operations (update, delete), ensuring
+     * the user is the owner AND the document actually exists.
+     */
+    function isOwnerOfExistingDoc(userId) {
+      return isOwner(userId) && isExistingDoc();
+    }
+    
+    /**
+     * Validates a user document on update.
+     * Ensures the user is the owner and that the `id` field is immutable.
+     */
+    function isUpdatingValidUser(userId) {
+      return isOwnerOfExistingDoc(userId) && request.resource.data.id == resource.data.id;
     }
 
     /**
@@ -71,33 +95,43 @@ service cloud.firestore {
     // User Data Rules (/users)
     // --------------------------------------------------------------------
 
+    /**
+     * @description Manages user profile documents.
+     * @path /users/{userId}
+     */
     match /users/{userId} {
-      // Admins can get any user's profile. A regular user can only get their own.
-      // This is safe because isAdmin() only needs to read the current user's document,
-      // which is permitted by isOwner(userId), breaking any potential circular dependency.
-      allow get: if isAdmin() || isOwner(userId);
+      // An authenticated user can read their own profile. Admins can read any profile.
+      allow get: if isOwner(userId) || isAdmin();
       
-      // Only admins can list multiple users.
+      // Allow list only for admins.
       allow list: if isAdmin();
       
-      // A user document can be created IF:
-      // 1. The request is from an existing admin (the standard flow for creating students/parents).
-      // OR
-      // 2. A new user is creating their OWN document AND is setting their role to 'Admin'.
-      //    This is the crucial bootstrap case that allows the very first admin to be created.
+      // Allow creation if the creator is an admin OR if it's a new user bootstrapping their own admin account.
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
-      // An admin can update any user's profile.
-      // A regular user can update their own profile, but cannot change their ID or role.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role);
-      
-      // Only admins can delete user documents.
+      // Allow update if the user is the owner (but can't change role/id) or if an admin is making the change.
+      allow update: if (isOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role) || isAdmin();
+
+      // Only an admin can delete a user.
       allow delete: if isAdmin();
 
-      // --- Nested Subcollection for User Orders ---
+      /**
+       * @description Manages a user's orders.
+       * @path /users/{userId}/orders/{orderId}
+       */
       match /orders/{orderId} {
-        allow get, list, update, delete: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isCreatingValidOrder(userId);
+        allow update, delete: if isOwner(userId) || isAdmin();
+
+        /**
+         * @description Manages the specific items within a user's order.
+         * @path /users/{userId}/orders/{orderId}/orderItems/{orderItemId}
+         */
+        match /orderItems/{orderItemId} {
+          allow get, list, create: if isOwner(userId);
+          allow update, delete: if isOwner(userId) || isAdmin();
+        }
       }
     }
     
@@ -105,22 +139,35 @@ service cloud.firestore {
     // Aggregated & Public Data Rules 
     // --------------------------------------------------------------------
 
-    // Top-level collection for admin-only order queries
+    /**
+     * @description Top-level orders collection for admin dashboard.
+     * @path /orders/{orderId}
+     */
     match /orders/{orderId} {
       allow read, write: if isAdmin();
     }
-
-    // Application-wide settings, admin-only
+    
+    /**
+     * @description Global application settings.
+     * @path /settings/{settingId}
+     */
     match /settings/{settingId} {
-        allow read, write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
-    // Publicly readable menu
+
+    /**
+     * @description Manages the publicly viewable tuckshop menu items.
+     * @path /menuItems/{menuItemId}
+     */
     match /menuItems/{menuItemId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
 
-      // Admin-only inventory subcollection
+      /**
+       * @description Manages inventory stock levels for menu items. THIS IS ADMIN-ONLY.
+       * @path /menuItems/{menuItemId}/inventory/{inventoryId}
+       */
       match /inventory/{inventoryId} {
         allow read, write: if isAdmin();
       }
