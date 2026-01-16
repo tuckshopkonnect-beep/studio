@@ -25,30 +25,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
+import { collection, query, doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !user) return null;
+    if (!firestore || !authUser || !isCurrentUserAdmin) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, user, isUserLoading]);
+  }, [firestore, authUser, isCurrentUserAdmin]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
   const usersCollection = useMemoFirebase(() => {
-      if (!firestore || isUserLoading || !user) return null;
+      if (!firestore || !authUser || !isCurrentUserAdmin) return null;
       return collection(firestore, "users")
-    }, [firestore, user, isUserLoading]);
+    }, [firestore, authUser, isCurrentUserAdmin]);
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
   
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore || isUserLoading || !user) return null;
+      if (!firestore || !authUser || !isCurrentUserAdmin) return null;
       return collection(firestore, "menuItems");
-    }, [firestore, user, isUserLoading]);
+    }, [firestore, authUser, isCurrentUserAdmin]);
   const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 
@@ -122,7 +129,41 @@ export default function DashboardPage() {
 
   const recentOrders = safeOrders.slice(0, 5);
 
-  if (isUserLoading || isLoadingOrders || isLoadingUsers || isLoadingMenuItems) {
+  if (isUserLoading || isLoadingCurrentUser) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to view this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This dashboard is for administrators only. If you are a parent or student, please navigate to your respective portal.</p>
+           <div className="flex gap-4 mt-4">
+             {currentUserProfile?.role === 'Parent' &&
+                <Button asChild>
+                    <Link href="/parent/dashboard">Go to Parent Dashboard</Link>
+                </Button>
+             }
+             {currentUserProfile?.role === 'Student' &&
+                <Button asChild>
+                    <Link href="/student/dashboard">Go to Student Dashboard</Link>
+                </Button>
+             }
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (isLoadingOrders || isLoadingUsers || isLoadingMenuItems) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -347,3 +388,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
