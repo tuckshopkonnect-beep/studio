@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Utensils, Twitter, Instagram, Facebook } from 'lucide-react';
@@ -30,6 +31,7 @@ const Footer = () => {
                         <li><a href="mailto:tuckshopkonnect@gmail.com" className="text-muted-foreground hover:text-primary">Contact Us</a></li>
                         <li><Link href="#" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
                         <li><Link href="#" className="text-muted-foreground hover:text-primary">Terms of Service</Link></li>
+                        <li><Link href="/vote-of-thanks" className="text-muted-foreground hover:text-primary">Vote of Thanks</Link></li>
                     </ul>
                 </div>
             </div>
