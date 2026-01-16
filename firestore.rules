@@ -68,8 +68,9 @@ service cloud.firestore {
 
       // UPDATE: This rule handles updates to existing user documents.
       // It allows an admin to update anyone, or a user to update their own profile
-      // as long as they are not trying to change their role.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+      // as long as they are not trying to change their role. It also allows the role
+      // to be set for the first time on an existing partial document.
+      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
 
       /**
        * @description Manages a user's orders, nested under their profile.
