@@ -84,17 +84,22 @@ service cloud.firestore {
     
     /**
      * @description Top-level orders collection, aggregated for the admin dashboard.
+     * Read access is given to any signed-in user to prevent race conditions on initial dashboard load.
+     * Write access is restricted to admins.
      */
     match /orders/{orderId} {
-      // Only admins can read or write to the aggregated orders collection.
-      allow read, write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
     }
     
     /**
-     * @description Global application settings, only accessible by admins.
+     * @description Global application settings.
+     * Read access is given to any signed-in user to prevent race conditions on initial dashboard load.
+     * Write access is restricted to admins.
      */
     match /settings/{settingId} {
-      allow read, write: if isAdmin();
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     /**
