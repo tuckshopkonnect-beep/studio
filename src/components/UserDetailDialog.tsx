@@ -151,7 +151,17 @@ export default function UserDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent 
+        className="sm:max-w-lg"
+        onInteractOutside={(e) => {
+          // This event is fired when the user clicks or focuses outside the dialog.
+          // We want to prevent the dialog from closing if the interaction is
+          // within our `Command` popover for parent selection.
+          if ((e.target as HTMLElement).closest('[cmdk-root]')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSaveClick)}>
             <DialogHeader>
@@ -332,6 +342,7 @@ export default function UserDetailDialog({
                                             <CommandEmpty>No parent found.</CommandEmpty>
                                             <CommandGroup>
                                                <CommandItem
+                                                  value="--unlink--"
                                                   onSelect={() => {
                                                     form.setValue("parentId", null, { shouldDirty: true });
                                                     setIsParentPopoverOpen(false);
@@ -411,3 +422,5 @@ export default function UserDetailDialog({
 }
 
   
+
+    
