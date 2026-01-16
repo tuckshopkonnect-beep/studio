@@ -31,12 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Badge } from './ui/badge';
 import { Edit, Save, X, Camera, Check, ChevronsUpDown, Eye, EyeOff, Search, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
+
 
 interface UserDetailDialogProps {
   user: User | null;
@@ -56,7 +56,7 @@ const emptyUser: Omit<User, 'id'> = {
   avatarUrl: '',
   balance: 0,
   class: '',
-  parentId: undefined,
+  parentId: null,
   dailyLimit: undefined
 };
 
@@ -70,7 +70,7 @@ const baseUserSchema = z.object({
   role: z.enum(['Student', 'Parent', 'Admin']),
   class: z.string().optional(),
   balance: z.number().optional(),
-  parentId: z.string().optional(),
+  parentId: z.string().optional().nullable(),
   avatarUrl: z.string().optional(),
 });
 
@@ -100,9 +100,9 @@ export default function UserDetailDialog({
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [parentSearchTerm, setParentSearchTerm] = useState('');
+  const [isParentPopoverOpen, setIsParentPopoverOpen] = useState(false);
 
-  const parentUsers = allUsers.filter(u => u.role === 'Parent' && u.name.toLowerCase().includes(parentSearchTerm.toLowerCase()));
+  const parentUsers = allUsers.filter(u => u.role === 'Parent');
   
   const form = useForm<z.infer<typeof baseUserSchema>>({
     resolver: zodResolver(isCreating ? createUserSchemaWithRefinement : userSchemaWithRefinement),
@@ -112,7 +112,6 @@ export default function UserDetailDialog({
   useEffect(() => {
     if (isOpen) {
       form.reset(isCreating ? { ...emptyUser, password: '' } : { ...(user || emptyUser), password: '' });
-      setParentSearchTerm('');
     }
   }, [isOpen, isCreating, user, form]);
 
@@ -146,12 +145,9 @@ export default function UserDetailDialog({
   const title = isCreating ? "Create New User" : isEditing ? `Edit User` : `User Details`;
   
   const watchRole = form.watch('role');
-  const watchParentId = form.watch('parentId');
   const avatarUrl = form.watch('avatarUrl');
   const name = form.watch('name');
   
-  const selectedParent = parentUsers.find((parent) => parent.id === watchParentId);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -306,46 +302,60 @@ export default function UserDetailDialog({
                             control={form.control}
                             name="parentId"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex flex-col">
                                     <FormLabel>Link to Parent</FormLabel>
-                                    <div className="rounded-md border">
-                                        <div className="p-2 border-b">
-                                          <div className="relative">
-                                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                            <Input 
-                                              placeholder="Search parents..." 
-                                              className="pl-8"
-                                              value={parentSearchTerm}
-                                              onChange={(e) => setParentSearchTerm(e.target.value)}
-                                              disabled={!isEditing}
-                                            />
-                                          </div>
-                                        </div>
-                                        <ScrollArea className="h-32">
-                                            <div className="p-2 space-y-1">
-                                                {parentUsers.map(parent => (
-                                                    <div key={parent.id} className="flex items-center space-x-2 rounded-md hover:bg-accent p-2">
-                                                        <Checkbox
-                                                            id={`parent-${parent.id}`}
-                                                            checked={field.value === parent.id}
-                                                            disabled={!isEditing}
-                                                            onCheckedChange={(checked) => {
-                                                                return checked
-                                                                    ? field.onChange(parent.id)
-                                                                    : field.onChange(undefined);
-                                                            }}
-                                                        />
-                                                        <label
-                                                            htmlFor={`parent-${parent.id}`}
-                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
-                                                        >
-                                                            {parent.name}
-                                                        </label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                    </div>
+                                    <Popover open={isParentPopoverOpen} onOpenChange={setIsParentPopoverOpen}>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className={cn(
+                                              "w-full justify-between",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                            disabled={!isEditing}
+                                          >
+                                            {field.value
+                                              ? parentUsers.find(
+                                                  (parent) => parent.id === field.value
+                                                )?.name
+                                              : "Select parent"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-full p-0">
+                                        <Command>
+                                          <CommandInput placeholder="Search parents..." />
+                                          <CommandList>
+                                            <CommandEmpty>No parent found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {parentUsers.map((parent) => (
+                                                <CommandItem
+                                                  value={parent.name}
+                                                  key={parent.id}
+                                                  onSelect={() => {
+                                                    form.setValue("parentId", parent.id);
+                                                    setIsParentPopoverOpen(false);
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      parent.id === field.value
+                                                        ? "opacity-100"
+                                                        : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {parent.name}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </CommandList>
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
                                     <FormMessage />
                                 </FormItem>
                             )}

@@ -46,7 +46,7 @@ export interface User {
   balance: number;
   class?: string;
   dailyLimit?: number;
-  parentId?: string;
+  parentId?: string | null;
   childIds?: string[];
 }
 
