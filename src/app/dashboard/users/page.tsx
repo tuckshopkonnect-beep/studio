@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -44,12 +43,13 @@ import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, arrayUnion, arrayRemove } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import { initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
 import AccessDenied from "@/components/AccessDenied";
 
 
 export default function UsersPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -78,7 +78,6 @@ export default function UsersPage() {
   const [isUserDetailOpen, setIsUserDetailOpen] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
-  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   // This is the critical change: determine if it's the initial setup.
   const isInitialSetup = !isLoadingUsers && isCurrentUserAdmin && (!users || users.length === 0);
@@ -160,33 +159,37 @@ export default function UsersPage() {
    });
    delete (sanitizedData as any).password;
    
-   const savedUserId = isCreating ? '' : selectedUser!.id; // Will get ID after creation
+   const savedUserId = isCreating ? '' : selectedUser!.id;
    const previousParentId = isCreating ? undefined : selectedUser?.parentId;
 
    if (isCreating) {
        try {
-           setIsRedirecting(true);
-           handleCloseDialog();
-           
-           const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
+           // Use a temporary auth instance to create the user without signing the admin out
+           const tempApp = initializeApp(firebaseConfig, `user-creation-${Date.now()}`);
+           const tempAuth = getAuth(tempApp);
+ 
+           const userCredential = await createUserWithEmailAndPassword(tempAuth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
-
+ 
+           // Now perform Firestore writes as the currently logged-in admin
            const userDataForFirestore = { ...sanitizedData, id: newUserId };
-
            const userDocRef = doc(firestore, 'users', newUserId);
+           // Creating the user's own document will pass rules because of isAdmin()
            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: true });
-
+ 
+           // Linking to parent is now done by the admin, so it will pass security rules
            if (userToSave.parentId) {
                const newParentRef = doc(firestore, 'users', userToSave.parentId);
                updateDocumentNonBlocking(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-           setTimeout(() => {
-                router.push('/portal');
-           }, 2000);
-
+           toast({
+               title: "User Created",
+               description: `${userToSave.name} has been successfully created.`,
+           });
+           handleCloseDialog();
            return true;
-
+ 
        } catch (error: any) {
            console.error("Error creating user:", error);
            toast({
@@ -194,7 +197,6 @@ export default function UsersPage() {
                title: 'Failed to create user',
                description: error.message || 'An unknown error occurred.',
            });
-           setIsRedirecting(false);
            return false;
        }
 
@@ -223,18 +225,6 @@ export default function UsersPage() {
         return true;
    }
  };
-
-  if (isRedirecting) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <div className="flex flex-col items-center justify-center rounded-lg border bg-card p-12 text-center shadow-lg">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <h2 className="mt-4 text-xl font-semibold">User Created</h2>
-          <p className="mt-2 text-muted-foreground">You are being logged out. Redirecting to the portal...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (isUserLoading || isLoadingCurrentUser) {
     return (
