@@ -154,6 +154,11 @@ export default function UserDetailDialog({
       <DialogContent 
         className="sm:max-w-lg"
         onPointerDownOutside={(e) => {
+          // This is the crucial part:
+          // When a popover is open inside a modal dialog, the dialog's overlay
+          // will try to capture clicks. This handler checks if a click
+          // happened inside the command popover (`[cmdk-root]`) and, if so,
+          // prevents the dialog from closing, allowing interaction with the popover.
           if ((e.target as HTMLElement).closest('[cmdk-root]')) {
             e.preventDefault();
           }
@@ -322,7 +327,6 @@ export default function UserDetailDialog({
                                               !field.value && "text-muted-foreground"
                                             )}
                                             disabled={!isEditing}
-                                            onClick={() => setIsParentPopoverOpen(true)}
                                           >
                                             {field.value
                                               ? parentUsers.find(
