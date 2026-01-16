@@ -64,9 +64,9 @@ export default function SettingsPage() {
 
   // Fetch settings from Firestore
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
+    if (!firestore) return null;
     return doc(firestore, "settings", "defaultLimits");
-  }, [firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
+  }, [firestore]);
 
   const { data: defaultLimits, isLoading: isLoadingLimits } = useDoc<AppSettings>(settingsDocRef);
 
