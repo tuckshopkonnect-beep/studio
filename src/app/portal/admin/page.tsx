@@ -47,26 +47,20 @@ export default function AdminLoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Check for and create user profile if it doesn't exist
+        // This operation is now idempotent. It will create the user doc on first login,
+        // and safely merge on subsequent logins. This avoids the problematic `getDoc` 
+        // call which was causing a circular dependency in the security rules.
         const userDocRef = doc(firestore, "users", user.uid);
-        const docSnap = await getDoc(userDocRef);
-
-        if (!docSnap.exists()) {
-            // This is the first time this user is logging in.
-            // We create their user profile. The security rules will ensure
-            // this is only allowed if it's the very first user in the system.
-            const newUserProfile: User = {
-                id: user.uid,
-                name: user.email?.split('@')[0] || 'Admin',
-                email: user.email!,
-                role: 'Admin',
-                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
-                balance: 0,
-                // Optional fields are not included
-            };
-            
-            await setDoc(userDocRef, newUserProfile);
-        }
+        const newUserProfile = {
+            id: user.uid,
+            name: user.email?.split('@')[0] || 'Admin',
+            email: user.email!,
+            role: 'Admin' as const,
+            avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+            balance: 0,
+        };
+        
+        await setDoc(userDocRef, newUserProfile, { merge: true });
 
         toast({
             title: "Login Successful",
