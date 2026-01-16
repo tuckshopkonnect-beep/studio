@@ -90,6 +90,8 @@ service cloud.firestore {
      * @description Global application settings.
      */
     match /settings/{settingId} {
+      // Allow any authenticated user to read settings. This is safe as the data is
+      // non-sensitive and it prevents client-side race conditions on app load.
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
