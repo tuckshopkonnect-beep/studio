@@ -64,9 +64,11 @@ export default function SettingsPage() {
 
   // Fetch settings from Firestore
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Wait for the initial user loading to complete before creating the doc reference.
+    // This prevents a race condition where the request is made before auth state is confirmed.
+    if (!firestore || isUserLoading) return null;
     return doc(firestore, "settings", "defaultLimits");
-  }, [firestore]);
+  }, [firestore, isUserLoading]);
 
   const { data: defaultLimits, isLoading: isLoadingLimits } = useDoc<AppSettings>(settingsDocRef);
 
@@ -489,3 +491,4 @@ export default function SettingsPage() {
   );
 
     
+
