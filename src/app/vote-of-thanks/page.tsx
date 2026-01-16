@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export default function VoteOfThanksPage() {
   const people = [
+    "God",
     "Mr. Joshua A.",
     "Mr. Daniel Kadri",
     "Mr. Tolulope M.",
