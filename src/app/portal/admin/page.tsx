@@ -17,8 +17,10 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import type { User } from "@/lib/data";
 
 export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,11 +29,12 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("AdminPassword123");
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
+    if (!auth || !firestore) {
         toast({
             variant: "destructive",
             title: "Authentication service not ready.",
@@ -41,7 +44,32 @@ export default function AdminLoginPage() {
     }
     setIsLoading(true);
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Check for and create user profile if it doesn't exist
+        const userDocRef = doc(firestore, "users", user.uid);
+        const docSnap = await getDoc(userDocRef);
+
+        if (!docSnap.exists()) {
+            // This is the first time this user is logging in.
+            // We create their user profile. The security rules will ensure
+            // this is only allowed if it's the very first user in the system.
+            const newUserProfile: User = {
+                id: user.uid,
+                name: user.email?.split('@')[0] || 'Admin',
+                email: user.email!,
+                role: 'Admin', // Set the role to Admin
+                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+                balance: 0,
+                class: undefined,
+                dailyLimit: undefined,
+                parentId: undefined
+            };
+            
+            await setDoc(userDocRef, newUserProfile);
+        }
+
         toast({
             title: "Login Successful",
             description: "Redirecting to your dashboard...",
@@ -52,7 +80,9 @@ export default function AdminLoginPage() {
         toast({
             variant: "destructive",
             title: "Login Failed",
-            description: "Invalid email or password. Please try again.",
+            description: error.code === 'auth/invalid-credential' 
+                ? "Invalid email or password. Please try again."
+                : error.message || "An unexpected error occurred."
         });
     } finally {
         setIsLoading(false);
