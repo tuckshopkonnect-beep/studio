@@ -2,11 +2,16 @@
 import { PlaceHolderImages } from './placeholder-images';
 
 export interface MenuItem {
-  id: string; // Changed to string to be Firestore-friendly
+  id: string;
   name: string;
   description: string;
   price: number;
-  image: (typeof PlaceHolderImages)[number];
+  image: {
+    id?: string;
+    imageUrl: string;
+    imageHint: string;
+    description?: string;
+  };
   category: 'Meals' | 'Snacks' | 'Drinks' | 'Fruit' | 'Other';
   stock: number;
   isAvailable: boolean;

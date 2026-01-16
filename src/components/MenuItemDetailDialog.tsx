@@ -34,9 +34,11 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Edit, Save, X, Camera, Loader2 } from 'lucide-react';
+import { Edit, Save, X, Camera, Loader2, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useToast } from '@/hooks/use-toast';
+import { generateMenuItemImageAction } from '@/app/actions';
 
 interface MenuItemDetailDialogProps {
   item: MenuItemType | null;
@@ -57,10 +59,10 @@ const formSchema = z.object({
   stock: z.coerce.number().int().min(0, "Stock must be a non-negative integer."),
   isAvailable: z.boolean(),
   image: z.object({
-    id: z.string(),
-    imageUrl: z.string(),
+    id: z.string().optional(),
+    imageUrl: z.string(), // Allow empty string
     imageHint: z.string(),
-    description: z.string(),
+    description: z.string().optional(),
   }),
 });
 
@@ -75,6 +77,8 @@ export default function MenuItemDetailDialog({
   isSaving = false,
 }: MenuItemDetailDialogProps) {
   const [isEditing, setIsEditing] = useState(isCreating);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const { toast } = useToast();
 
   const getNextId = () => {
     // In a real app, Firestore would generate this ID upon document creation.
@@ -90,7 +94,7 @@ export default function MenuItemDetailDialog({
     category: 'Other',
     stock: 0,
     isAvailable: true,
-    image: PlaceHolderImages[0],
+    image: { imageUrl: '', imageHint: '', id: 'no-image'},
   };
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -104,15 +108,62 @@ export default function MenuItemDetailDialog({
     form.reset(defaultValues as any);
   }, [isOpen, isCreating, item, menuItems, form]);
 
+  const handleGenerateImage = async () => {
+    const watchName = form.getValues('name');
+    if (!watchName) {
+      toast({
+        variant: 'destructive',
+        title: 'Item Name Required',
+        description: 'Please enter a name for the item before generating an image.',
+      });
+      return;
+    }
+    setIsGeneratingImage(true);
+    try {
+      const result = await generateMenuItemImageAction({ itemName: watchName });
+      if (result.success && result.data) {
+        form.setValue('image', {
+          imageUrl: result.data.imageUrl,
+          imageHint: watchName,
+          id: 'generated',
+        }, { shouldDirty: true });
+        toast({
+          title: 'Image Generated!',
+          description: 'A new image has been generated for your item.',
+        });
+      } else {
+        throw new Error(result.error || 'Failed to generate image.');
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Image Generation Failed',
+        description: error.message || 'An unknown error occurred.',
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleSaveClick = async (values: z.infer<typeof formSchema>) => {
-    // In a real scenario, you'd handle image uploads separately.
-    // Here we just use the selected placeholder.
-    const imagePlaceholder = PlaceHolderImages.find(p => p.id === values.image.id);
+    let finalData = { ...values };
+
+    // If a placeholder was selected, find the full object
+    if (finalData.image.id && finalData.image.id !== 'generated' && finalData.image.id !== 'no-image') {
+        const imagePlaceholder = PlaceHolderImages.find(p => p.id === finalData.image.id);
+        if (imagePlaceholder) {
+            finalData.image = imagePlaceholder;
+        }
+    }
     
-    const finalData = {
-      ...values,
-      image: imagePlaceholder || PlaceHolderImages[0], // Fallback to first image
-    };
+    // If no image is selected or generated, use a default placeholder
+    if (!finalData.image.imageUrl) {
+        finalData.image = {
+            imageUrl: `https://placehold.co/600x400/EFEFEF/333333?text=${encodeURIComponent(finalData.name) || 'No Image'}`,
+            imageHint: finalData.name,
+            id: 'placeholder'
+        }
+    }
 
     const success = await onSave(finalData as unknown as MenuItemType);
     if (success) {
@@ -146,11 +197,15 @@ export default function MenuItemDetailDialog({
                   name="image.id"
                   render={({ field }) => (
                     <FormItem className="w-full">
-                      <FormLabel>Image</FormLabel>
+                      <FormLabel>Placeholder</FormLabel>
                       <Select 
                         onValueChange={(value) => {
-                          const selectedImage = PlaceHolderImages.find(p => p.id === value);
-                          if(selectedImage) form.setValue('image', selectedImage as any, { shouldDirty: true });
+                          if (value === 'no-image') {
+                              form.setValue('image', { imageUrl: '', imageHint: watchName, id: 'no-image'}, { shouldDirty: true });
+                          } else {
+                              const selectedImage = PlaceHolderImages.find(p => p.id === value);
+                              if(selectedImage) form.setValue('image', selectedImage as any, { shouldDirty: true });
+                          }
                         }} 
                         value={field.value} 
                         disabled={!isEditing}
@@ -159,6 +214,7 @@ export default function MenuItemDetailDialog({
                           <SelectTrigger><SelectValue placeholder="Select an image" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="no-image">-- No Image --</SelectItem>
                           {PlaceHolderImages.map(img => (
                             <SelectItem key={img.id} value={img.id}>{img.id.replace(/-/g, ' ')}</SelectItem>
                           ))}
@@ -168,6 +224,20 @@ export default function MenuItemDetailDialog({
                     </FormItem>
                   )}
                 />
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleGenerateImage}
+                    disabled={!isEditing || isGeneratingImage}
+                >
+                    {isGeneratingImage ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                    <Wand2 className="mr-2 h-4 w-4" />
+                    )}
+                    Generate with AI
+                </Button>
               </div>
 
               {/* --- Details Column --- */}
