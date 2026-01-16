@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { User } from "@/lib/data";
 import { CompletedOrder } from "@/hooks/use-cart";
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 
@@ -25,9 +25,8 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
   const { toast } = useToast();
   const router = useRouter();
   const firestore = useFirestore();
-  const { user } = useUser();
 
-  if (!student || !user) {
+  if (!student) {
       return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
   }
 
@@ -63,13 +62,13 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return;
     }
     
-    const studentDocRef = doc(firestore, 'users', user.uid);
+    const studentDocRef = doc(firestore, 'users', student.id);
     updateDocumentNonBlocking(studentDocRef, { balance: potentialBalance });
 
 
     const newOrder: CompletedOrder = {
       id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      userId: user.uid,
+      userId: student.id,
       items: [...cartItems],
       total: totalPrice,
       status: 'Ready for Pickup',
@@ -78,7 +77,7 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
     };
     
     // Write to user's private orders subcollection
-    const userOrdersColRef = collection(firestore, 'users', user.uid, 'orders');
+    const userOrdersColRef = collection(firestore, 'users', student.id, 'orders');
     addDocumentNonBlocking(userOrdersColRef, newOrder);
 
     // Write to the top-level orders collection for admin view
@@ -174,5 +173,3 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
     </>
   );
 }
-
-    
