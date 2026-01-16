@@ -94,12 +94,10 @@ service cloud.firestore {
     
     /**
      * @description Global application settings.
-     * Read access is given to any signed-in user to prevent race conditions on initial dashboard load.
-     * Write access is restricted to admins.
+     * Read and write access is restricted to admins.
      */
     match /settings/{settingId} {
-      allow get, list: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     /**
