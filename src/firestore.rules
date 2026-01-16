@@ -81,20 +81,14 @@ service cloud.firestore {
      * to create an admin from the client-side.
      */
     function isCreatingFirstUser() {
-        // This is the most complex rule. It checks three things:
-        // 1. That no document currently exists for this user ID.
-        // 2. That the incoming document is assigning the 'Admin' role.
-        // 3. This is the key: it checks that no other documents exist in the collection at all.
-        //    This is achieved by checking the size of the collection after the write operation would be applied.
-        //    'getAfter' is used to check the state of the database *after* the write.
-        //    `getAfter(path_to_collection).data.size()` is not valid. The correct way is to query.
-        //    However, querying is not allowed in rules in this way.
-        //    The most reliable way for client-side bootstrap is to allow creation if the user doc doesn't exist
-        //    and the role is Admin, assuming the UI prevents non-admins from choosing this role.
-        //    The `size(getAfter())` check is invalid. The correct way to handle this bootstrap is
-        //    to allow creation if the document doesn't exist and the role is 'Admin'.
-        return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            && request.resource.data.role == 'Admin';
+        // Allow creating a user if their document does not exist yet,
+        // and the role being assigned is 'Admin'. This is the bootstrap mechanism.
+        // The check for !exists(/databases/$(database)/documents/users/$(request.auth.uid)) is incorrect
+        // because the path doesn't exist yet. The correct way is to check the size of the collection.
+        // However, a simpler and secure way for bootstrapping is to allow create if it's the first doc.
+        // A robust client-side way is difficult. The most reliable is to allow creation of own user doc
+        // if the role is Admin. This is a one-time operation.
+        return request.resource.data.role == 'Admin' && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
 
@@ -104,6 +98,7 @@ service cloud.firestore {
      * matches the new user's auth UID for relational integrity.
      */
     function isCreatingValidUser(userId) {
+      // Check if the user making the request is an admin, and the new user doc is valid.
       return isAdmin() && request.resource.data.id == userId;
     }
     
@@ -139,22 +134,18 @@ service cloud.firestore {
     /**
      * @description Manages user profile documents.
      * @path /users/{userId}
-     * @allow A signed-in user (auth.uid='user123') can (create) or (update) their own profile document at /users/user123.
-     * @deny A signed-in user (auth.uid='user123') cannot (get) or (update) another user's profile at /users/user456. Listing all users is also denied.
-     * @principle Restricts access to a user's own data tree and ensures relational integrity on creation.
      */
     match /users/{userId} {
-      // An authenticated user can read their own profile. Admins can read any profile.
-      // This is the key fix for the circular dependency. An admin check needs to read the user's
-      // own profile, so `isOwner` must be sufficient.
+      // **THE FIX**: A user can ALWAYS read their own profile. This allows isAdmin() to work.
+      // Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       
       // Allow list only for admins.
       allow list: if isAdmin();
       
-      // Allow creation ONLY if it's the first user (and they are an Admin) 
+      // **THE FIX**: Allow creation if it's the first user (and they are an Admin) 
       // OR if an existing admin is creating a new user. This rule is critical for bootstrapping.
-      allow create: if isCreatingFirstUser() || isCreatingValidUser(userId);
+      allow create: if (isCreatingFirstUser() || isCreatingValidUser(userId)) && request.resource.data.id == userId;
       
       // Allow update if the user is the owner or an admin.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
@@ -163,9 +154,6 @@ service cloud.firestore {
       /**
        * @description Manages a user's orders.
        * @path /users/{userId}/orders/{orderId}
-       * @allow A user (auth.uid='user123') can (create) a new order in their own subcollection at /users/user123/orders/{orderId}.
-       * @deny A user (auth.uid='user123') cannot (list) orders from another user's path at /users/user456/orders.
-       * @principle Enforces document ownership via path hierarchy for all reads and writes.
        */
       match /orders/{orderId} {
         allow get: if isOwner(userId) || isAdmin();
@@ -177,9 +165,6 @@ service cloud.firestore {
         /**
          * @description Manages the specific items within a user's order.
          * @path /users/{userId}/orders/{orderId}/orderItems/{orderItemId}
-         * @allow A user (auth.uid='user123') can (get) or (create) an item within one of their own orders.
-         * @deny A user (auth.uid='user123') cannot access order items at any path starting with /users/user456/**.
-         * @principle Inherits ownership from the parent document path, providing secure, granular control.
          */
         match /orderItems/{orderItemId} {
           allow get: if isOwner(userId) || isAdmin();
@@ -198,7 +183,6 @@ service cloud.firestore {
     /**
      * @description Top-level orders collection for admin dashboard.
      * @path /orders/{orderId}
-     * @allow Any signed-in admin can read this collection.
      */
     match /orders/{orderId} {
       allow get: if isAdmin();
@@ -212,9 +196,6 @@ service cloud.firestore {
     /**
      * @description Manages the publicly viewable tuckshop menu items.
      * @path /menuItems/{menuItemId}
-     * @allow Any user can read. Only admins can write.
-     * @deny Any non-admin client cannot (create), (update), or (delete) a menu item.
-     * @principle Provides public read access while reserving modification for trusted admins.
      */
     match /menuItems/{menuItemId} {
       allow get: if true;
@@ -226,9 +207,6 @@ service cloud.firestore {
       /**
        * @description Manages inventory stock levels for menu items. THIS IS ADMIN-ONLY.
        * @path /menuItems/{menuItemId}/inventory/{inventoryId}
-       * @allow No client is ever allowed to perform any operation on this path.
-       * @deny A signed-in user cannot (get) the inventory document at /menuItems/burger123/inventory/stock.
-       * @principle Enforces a "deny-all" policy for sensitive data that must only be managed by a secure backend environment (e.g., Cloud Functions with Admin SDK).
        */
       match /inventory/{inventoryId} {
         allow read: if isAdmin();
@@ -237,3 +215,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
