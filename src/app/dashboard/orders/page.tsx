@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import AccessDenied from "@/components/AccessDenied";
 
 export default function OrdersPage() {
   const { toast } = useToast();
@@ -104,17 +105,7 @@ export default function OrdersPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to access this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} />;
   }
 
   return (

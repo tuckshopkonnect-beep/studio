@@ -45,6 +45,7 @@ import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { collection, deleteDoc, doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import AccessDenied from "@/components/AccessDenied";
 
 
 export default function UsersPage() {
@@ -194,8 +195,8 @@ export default function UsersPage() {
            
             // 5. Inform the admin about the session switch and redirect.
             toast({
-                title: "User Created Successfully",
-                description: "Session switched to the new user. Redirecting to the login portal...",
+                title: "User Created & Session Switched",
+                description: "You have been logged out as admin and are now logged in as the new user. Redirecting to the portal...",
                 duration: 5000,
             });
            handleCloseDialog();
@@ -267,17 +268,7 @@ export default function UsersPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to access this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} />;
   }
   
 

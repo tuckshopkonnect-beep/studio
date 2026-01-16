@@ -36,6 +36,7 @@ import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@
 import { collection, query, where, doc, updateDoc, setDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
+import AccessDenied from "@/components/AccessDenied";
 
 
 // Define the settings type
@@ -233,17 +234,7 @@ export default function SettingsPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to access this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} />;
   }
 
 

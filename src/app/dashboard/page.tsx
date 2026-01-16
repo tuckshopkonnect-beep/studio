@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
 import { collection, query, doc } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import AccessDenied from '@/components/AccessDenied';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -132,29 +133,10 @@ export default function DashboardPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to view this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This dashboard is for administrators only. If you are a parent or student, please navigate to your respective portal.</p>
-           <div className="flex gap-4 mt-4">
-             {currentUserProfile?.role === 'Parent' &&
-                <Button asChild>
-                    <Link href="/parent/dashboard">Go to Parent Dashboard</Link>
-                </Button>
-             }
-             {currentUserProfile?.role === 'Student' &&
-                <Button asChild>
-                    <Link href="/student/dashboard">Go to Student Dashboard</Link>
-                </Button>
-             }
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied 
+        currentUserProfile={currentUserProfile} 
+        message="This dashboard is for administrators only. If you are a parent or student, please navigate to your respective portal." 
+    />;
   }
   
   if (isLoadingOrders || isLoadingMenuItems) {

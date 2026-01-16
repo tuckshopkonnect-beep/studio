@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import type { Order, User } from "@/lib/data";
+import AccessDenied from "@/components/AccessDenied";
 
 export default function ScannerPage() {
   const [transactionId, setTransactionId] = useState("");
@@ -201,17 +202,7 @@ export default function ScannerPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to access this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} />;
   }
 
   return (

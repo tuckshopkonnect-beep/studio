@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, query, doc } from "firebase/firestore";
 import type { Order, User, MenuItem, InventoryItem } from "@/lib/data";
+import AccessDenied from "@/components/AccessDenied";
 
 const chartConfig = {
   revenue: {
@@ -316,17 +317,7 @@ export default function ReportsPage() {
   }
 
   if (!isCurrentUserAdmin) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-destructive">Access Denied</CardTitle>
-          <CardDescription>You do not have permission to access this page.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
-        </CardContent>
-      </Card>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} />;
   }
 
 
