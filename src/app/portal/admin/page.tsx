@@ -19,8 +19,7 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
-import type { User } from "@/lib/data";
+import { doc, setDoc } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
 
 export default function AdminLoginPage() {
@@ -49,30 +48,20 @@ export default function AdminLoginPage() {
         const user = userCredential.user;
 
         const userDocRef = doc(firestore, "users", user.uid);
-        const docSnap = await getDoc(userDocRef);
 
-        if (!docSnap.exists()) {
-            // Document does not exist, so we create it.
-            // This is governed by the 'create' rule.
-            const newUserProfile = {
-                id: user.uid,
-                name: user.email?.split('@')[0] || 'Admin',
-                email: user.email!,
-                role: 'Admin' as const,
-                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
-                balance: 0,
-            };
-            await setDoc(userDocRef, newUserProfile);
-        } else {
-            // Document exists, check if the role needs to be set.
-            // This is governed by the 'update' rule.
-            const existingData = docSnap.data();
-            if (existingData.role !== 'Admin') {
-                await updateDoc(userDocRef, {
-                    role: 'Admin'
-                });
-            }
-        }
+        // Prepare the user profile data. This is idempotent.
+        const userProfile = {
+            id: user.uid,
+            name: user.email?.split('@')[0] || 'Admin',
+            email: user.email!,
+            role: 'Admin' as const,
+            avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+            balance: 0,
+        };
+
+        // Use setDoc with merge to either create or update the document.
+        // This single operation is now handled by a robust `write` rule in firestore.rules.
+        await setDoc(userDocRef, userProfile, { merge: true });
 
         toast({
             title: "Login Successful",

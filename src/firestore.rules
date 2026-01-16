@@ -7,38 +7,21 @@ service cloud.firestore {
     // Helper Functions
     // --------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the currently authenticated user has the 'Admin' role.
-     * It safely reads the user's profile from the /users collection.
-     * CRITICAL: This uses `exists()` to prevent errors on first-time login
-     * when the user document may not have been created yet.
-     */
     function isAdmin() {
+      // This check is safe because the `get` rule for a user's own profile is non-recursive.
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
-    /**
-     * Validates a new order document on creation.
-     * Ensures the creator is the owner and the denormalized `userId` field
-     * inside the document matches the owner's UID in the path.
-     */
     function isCreatingValidOrder(userId) {
       return isOwner(userId) && request.resource.data.userId == userId;
     }
@@ -48,29 +31,27 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------------------------------------------
 
-    /**
-     * @description Manages user profile documents.
-     */
     match /users/{userId} {
-      // A user can always get their own document. This is critical to allow isAdmin() to work without circular dependencies.
+      // READ: A user can read their own profile. Admins can list all users.
       allow get: if isOwner(userId);
-      
-      // Only an admin can list all users.
       allow list: if isAdmin();
       
-      // Allow creation if it's an admin doing it, OR if it's the user creating their own 'Admin' account (bootstrap).
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
-      
-      // DEFINITIVE FIX:
-      // An update is allowed if:
-      // 1. The user is an admin.
-      // OR
-      // 2. The user is updating their own document AND (the document has no role yet OR they are not changing their role).
-      // This is crucial for bootstrapping the first admin user, as their first login might be an "update" on a partially created document.
-      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
-      
-      // Only an admin can delete a user.
+      // DELETE: Only an admin can delete a user profile.
       allow delete: if isAdmin();
+
+      // WRITE (CREATE/UPDATE): This is the critical rule for bootstrapping the first admin
+      // and managing all other user profile writes.
+      allow write: if
+        // 1. Admins can write to any user profile.
+        isAdmin() ||
+        // 2. A user can write to their own profile if one of the bootstrap/update conditions is met.
+        (isOwner(userId) && (
+          // 2a. BOOTSTRAP: Allow creation of the very first admin.
+          // This is true on CREATE if `resource` is null and the incoming role is 'Admin'.
+          (resource == null && request.resource.data.role == 'Admin') ||
+          // 2b. UPDATE: Allow a user to update their own profile if they are NOT changing their role.
+          (resource != null && request.resource.data.role == resource.data.role)
+        ));
 
       /**
        * @description Manages a user's orders, nested under their profile.
@@ -100,8 +81,10 @@ service cloud.firestore {
      * @description Publicly viewable tuckshop menu items.
      */
     match /menuItems/{menuItemId} {
+      // Anyone can view the menu.
       allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      // Only admins can modify the menu.
+      allow write: if isAdmin();
 
       /**
        * @description Inventory is admin-only.
