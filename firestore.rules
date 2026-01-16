@@ -90,7 +90,8 @@ service cloud.firestore {
      * @description Global application settings.
      */
     match /settings/{settingId} {
-      allow read, write: if isAdmin();
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     /**
