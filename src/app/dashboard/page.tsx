@@ -46,12 +46,6 @@ export default function DashboardPage() {
   }, [firestore, authUser, isCurrentUserAdmin]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
-  const usersCollection = useMemoFirebase(() => {
-      if (!firestore || !authUser || !isCurrentUserAdmin) return null;
-      return collection(firestore, "users")
-    }, [firestore, authUser, isCurrentUserAdmin]);
-  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
-  
   const menuItemsCollection = useMemoFirebase(() => {
       if (!firestore || !authUser || !isCurrentUserAdmin) return null;
       return collection(firestore, "menuItems");
@@ -100,7 +94,7 @@ export default function DashboardPage() {
   const monthlyRevenueChange = calculatePercentageChange(revenueThisMonth, revenueLastMonth);
   const weeklyOrderChange = calculatePercentageChange(ordersLast7Days, ordersPrevious7Days);
 
-  const totalUsers = users?.length ?? 0;
+  const totalUsers = '–';
   
   // Mock low stock count as we cannot query inventory directly
   const lowStockItemsCount = 5;
@@ -163,7 +157,7 @@ export default function DashboardPage() {
     );
   }
   
-  if (isLoadingOrders || isLoadingUsers || isLoadingMenuItems) {
+  if (isLoadingOrders || isLoadingMenuItems) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -229,7 +223,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Total registered users</p>
+            <p className="text-xs text-muted-foreground">Go to Users page for count</p>
           </CardContent>
         </Card>
          <Card>
@@ -388,5 +382,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
