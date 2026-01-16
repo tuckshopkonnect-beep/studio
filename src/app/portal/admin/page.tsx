@@ -59,9 +59,10 @@ export default function AdminLoginPage() {
                 id: user.uid,
                 name: user.email?.split('@')[0] || 'Admin',
                 email: user.email!,
-                role: 'Admin', // Set the role to Admin
+                role: 'Admin',
                 avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
                 balance: 0,
+                // Optional fields are not included
             };
             
             await setDoc(userDocRef, newUserProfile);
