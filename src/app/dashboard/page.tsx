@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
   const safeOrders = orders || [];
+  const safeMenuItems = menuItems || [];
 
   const ordersThisMonth = safeOrders.filter(o => new Date(o.orderDate) >= startOfThisMonth);
 
@@ -97,8 +98,10 @@ export default function DashboardPage() {
 
   const totalUsers = '–';
   
-  // Mock low stock count as we cannot query inventory directly
-  const lowStockItemsCount = 5;
+  // Calculate low stock items. Threshold is 15, consistent with inventory page.
+  const lowStockItemsCount = safeMenuItems.filter(
+    (item) => item.stock > 0 && item.stock < 15
+  ).length;
   
   const averageOrderValue = ordersThisMonth.length > 0 ? revenueThisMonth / ordersThisMonth.length : 0;
 
