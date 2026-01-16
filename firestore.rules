@@ -25,11 +25,23 @@ service cloud.firestore {
     /**
      * Checks if the currently authenticated user has the 'Admin' role.
      * It safely reads the user's profile from the /users collection.
+     * CRITICAL: This uses `exists()` to prevent errors on first-time login
+     * when the user document may not have been created yet.
      */
     function isAdmin() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+    
+    /**
+     * Validates a new order document on creation.
+     * Ensures the creator is the owner and the denormalized `userId` field
+     * inside the document matches the owner's UID in the path.
+     */
+    function isCreatingValidOrder(userId) {
+      // Ensure the user is the owner and the payload's userId matches.
+      return isOwner(userId) && request.resource.data.userId == userId;
     }
 
 
@@ -41,32 +53,31 @@ service cloud.firestore {
      * @description Manages user profile documents.
      */
     match /users/{userId} {
-      // A user can always get their own document. This is critical to allow isAdmin() to work without circular dependencies.
+      // READ: A user can always get their own document. This is critical to allow isAdmin() to work.
       allow get: if isOwner(userId);
-      
-      // Only an admin can list all users.
+      // LIST: Only an admin can list all users.
       allow list: if isAdmin();
-      
-      // Allow creation if it's an admin doing it, OR if it's the user creating their own 'Admin' account (bootstrap).
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
-      
-      // DEFINITIVE FIX:
-      // An update is allowed if:
+      // DELETE: Only an admin can delete a user.
+      allow delete: if isAdmin();
+
+      // WRITE (Create/Update): This is the definitive fix for the bootstrap problem.
+      // A write is allowed if:
       // 1. The user is an admin.
       // OR
-      // 2. The user is updating their own document AND (the document has no role yet OR they are not changing their role).
-      // This is crucial for bootstrapping the first admin user, as their first login might be an "update" on a partially created document.
-      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
-      
-      // Only an admin can delete a user.
-      allow delete: if isAdmin();
+      // 2. The user is creating their own 'Admin' account for the first time (the bootstrap case).
+      //    - `resource` is null on create, so `resource.data.role` is null.
+      // OR
+      // 3. The user is updating their own document, but NOT changing their role.
+      allow write: if isAdmin() || 
+                     (isOwner(userId) && request.resource.data.role == 'Admin' && resource.data.role == null) ||
+                     (isOwner(userId) && request.resource.data.role == resource.data.role);
 
       /**
        * @description Manages a user's orders, nested under their profile.
        */
       match /orders/{orderId} {
         allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow create: if isCreatingValidOrder(userId);
         allow update, delete: if isOwner(userId) || isAdmin();
       }
     }
@@ -75,6 +86,7 @@ service cloud.firestore {
      * @description Top-level orders collection, aggregated for the admin dashboard.
      */
     match /orders/{orderId} {
+      // Only admins can read or write to the aggregated orders collection.
       allow read, write: if isAdmin();
     }
     
@@ -89,7 +101,9 @@ service cloud.firestore {
      * @description Publicly viewable tuckshop menu items.
      */
     match /menuItems/{menuItemId} {
+      // Anyone can view the menu.
       allow get, list: if true;
+      // Only admins can modify the menu.
       allow create, update, delete: if isAdmin();
 
       /**
