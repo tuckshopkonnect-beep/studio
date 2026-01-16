@@ -16,8 +16,9 @@ import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInpu
 import { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, doc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import type { User } from "@/lib/data";
+import { useTodaysSpending } from "@/hooks/use-spending";
 
 export default function StudentDashboard() {
   const firestore = useFirestore();
@@ -30,8 +31,9 @@ export default function StudentDashboard() {
 
   const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
   
-  // This would need a more complex query in a real app, likely fetching orders. For now, we mock it.
-  const spentToday = 0; 
+  // Use the new hook to get today's spending
+  const { spentToday, isLoadingSpending } = useTodaysSpending(authUser?.uid);
+
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function StudentDashboard() {
   }, [student]);
 
 
-  if (isUserLoading || isLoadingStudent) {
+  if (isUserLoading || isLoadingStudent || isLoadingSpending) {
     return (
         <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />

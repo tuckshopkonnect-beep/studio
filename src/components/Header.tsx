@@ -26,6 +26,7 @@ import type { User, Order } from "@/lib/data";
 import { usePathname } from "next/navigation";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
+import { useTodaysSpending } from "@/hooks/use-spending";
 
 
 export default function Header() {
@@ -41,9 +42,10 @@ export default function Header() {
 
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
-  // For spent today, you would typically query the orders collection.
-  // This is a simplified placeholder.
-  const [spentToday, setSpentToday] = useState(0);
+  // Use the hook to get today's spending for the student role
+  const isStudent = currentUser?.role === 'Student';
+  const { spentToday, isLoadingSpending } = useTodaysSpending(isStudent ? authUser?.uid : null);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -145,7 +147,7 @@ export default function Header() {
                 <SheetHeader className="px-6 pt-6">
                   <SheetTitle>Your Order</SheetTitle>
                 </SheetHeader>
-                {isLoadingCurrentUser || isUserLoading ? (
+                {isLoadingCurrentUser || isUserLoading || isLoadingSpending ? (
                   <div className="flex h-full items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
                   </div>

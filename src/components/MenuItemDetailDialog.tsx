@@ -49,7 +49,7 @@ interface MenuItemDetailDialogProps {
 }
 
 const formSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   name: z.string().min(1, "Name is required."),
   description: z.string().min(1, "Description is required."),
   price: z.coerce.number().min(0, "Price must be a positive number."),
@@ -77,8 +77,9 @@ export default function MenuItemDetailDialog({
   const [isEditing, setIsEditing] = useState(isCreating);
 
   const getNextId = () => {
-    if (menuItems.length === 0) return 1;
-    return Math.max(...menuItems.map(item => item.id)) + 1;
+    // In a real app, Firestore would generate this ID upon document creation.
+    // For this client-side demo, we generate a reasonably unique temporary ID.
+    return String(Date.now() + Math.random());
   };
 
   const emptyItem: Omit<MenuItemType, 'image'> & { stock: number, image: any } = {
