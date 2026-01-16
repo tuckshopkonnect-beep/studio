@@ -78,6 +78,7 @@ export default function UsersPage() {
   const [isUserDetailOpen, setIsUserDetailOpen] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
 
   // This is the critical change: determine if it's the initial setup.
   const isInitialSetup = !isLoadingUsers && isCurrentUserAdmin && (!users || users.length === 0);
@@ -193,10 +194,11 @@ export default function UsersPage() {
                await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-            // 5. Inform the admin about the session switch and redirect.
+            // 5. Set redirecting state and inform admin
+            setIsRedirecting(true);
             toast({
-                title: "User Created & Session Switched",
-                description: "You have been logged out as admin and are now logged in as the new user. Redirecting to the portal...",
+                title: "User Created Successfully",
+                description: "You've been logged in as the new user. Redirecting to portal...",
                 duration: 5000,
             });
            handleCloseDialog();
@@ -204,7 +206,7 @@ export default function UsersPage() {
            // 6. Redirect to portal page after a short delay
            setTimeout(() => {
                 router.push('/portal');
-           }, 2000);
+           }, 3000);
 
            return true;
 
@@ -258,6 +260,17 @@ export default function UsersPage() {
    }
  };
 
+  if (isRedirecting) {
+    return (
+      <div className="flex h-full items-center justify-center rounded-lg border bg-card p-6 text-center">
+        <div>
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+          <h2 className="mt-4 text-xl font-semibold">User Created</h2>
+          <p className="mt-2 text-muted-foreground">Redirecting you back to the portal to log in again...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isUserLoading || isLoadingCurrentUser) {
     return (
