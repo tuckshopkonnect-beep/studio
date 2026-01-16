@@ -49,6 +49,14 @@ export default function SettingsPage() {
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
 
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
+
+
   // State for default limits
   const [jssLimit, setJssLimit] = useState("");
   const [sssLimit, setSssLimit] = useState("");
@@ -215,6 +223,28 @@ export default function SettingsPage() {
     });
     setIsPromoteConfirmOpen(false);
   };
+
+  if (isUserLoading || isLoadingCurrentUser) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to access this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
 
   return (

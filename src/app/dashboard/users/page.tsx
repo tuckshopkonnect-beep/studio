@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -47,6 +48,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 
 
 export default function UsersPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -190,13 +192,19 @@ export default function UsersPage() {
                await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-            // 5. Inform the admin about the session switch.
+            // 5. Inform the admin about the session switch and redirect.
             toast({
                 title: "User Created Successfully",
-                description: "Session has been switched to the new user. Please log out and sign back in as an administrator to continue.",
-                duration: 10000,
+                description: "Session switched to the new user. Redirecting to the login portal...",
+                duration: 5000,
             });
            handleCloseDialog();
+           
+           // 6. Redirect to portal page after a short delay
+           setTimeout(() => {
+                router.push('/portal');
+           }, 2000);
+
            return true;
 
        } catch (error: any) {

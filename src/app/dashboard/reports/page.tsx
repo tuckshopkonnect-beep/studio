@@ -51,8 +51,8 @@ import {
 } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
-import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, doc } from "firebase/firestore";
 import type { Order, User, MenuItem, InventoryItem } from "@/lib/data";
 
 const chartConfig = {
@@ -88,8 +88,15 @@ const getCategory = (itemName: string): keyof typeof chartConfig => {
 };
 
 export default function ReportsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user: authUser, isUserLoading } = useUser();
   const firestore = useFirestore();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const [date, setDate] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
@@ -98,15 +105,15 @@ export default function ReportsPage() {
 
   // Firestore Queries
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !authUser) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, user]);
+  }, [firestore, authUser]);
   const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
   const menuItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !authUser) return null;
     return query(collection(firestore, "menuItems"));
-  }, [firestore, user]);
+  }, [firestore, authUser]);
   const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsQuery);
   
   // Filter data based on date range
@@ -300,11 +307,25 @@ export default function ReportsPage() {
     generateFullReportPDF(date, reportData, jsPDF, autoTable);
   };
   
-  if (isUserLoading || isLoadingOrders || isLoadingMenu) {
+  if (isUserLoading || isLoadingOrders || isLoadingMenu || isLoadingCurrentUser) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to access this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
+        </CardContent>
+      </Card>
     );
   }
 

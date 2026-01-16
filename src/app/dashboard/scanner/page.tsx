@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import { QrCode, Search, VideoOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import type { Order } from "@/lib/data";
+import type { Order, User } from "@/lib/data";
 
 export default function ScannerPage() {
   const [transactionId, setTransactionId] = useState("");
@@ -33,8 +33,18 @@ export default function ScannerPage() {
 
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
+
 
   useEffect(() => {
+    if (!isCurrentUserAdmin) return;
     let isMounted = true;
     const startScan = async () => {
       try {
@@ -88,7 +98,7 @@ export default function ScannerPage() {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [toast]);
+  }, [toast, isCurrentUserAdmin]);
   
 
   const tick = () => {
@@ -182,6 +192,27 @@ export default function ScannerPage() {
     }
   };
 
+  if (isUserLoading || isLoadingCurrentUser) {
+    return (
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to access this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid gap-6">
