@@ -8,6 +8,7 @@ export default function VoteOfThanksPage() {
   const people = [
     "Mr. Joshua A.",
     "Mr. Daniel Kadri",
+    "Mr. Tolulope M.",
     "Samuel Ayomide",
     "Staffs of DLHS (2024/25 session)",
     "Miss Patience",
