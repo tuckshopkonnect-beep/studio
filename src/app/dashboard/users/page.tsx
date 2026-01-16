@@ -144,71 +144,78 @@ export default function UsersPage() {
   };
 
   const handleSaveUser = async (userToSave: User & {password?: string}): Promise<boolean> => {
-     if (!auth || !firestore) return false;
-    
-    if (isCreating) {
-        // --- Create a new user ---
-        try {
-            // 1. Create user in Firebase Authentication
-            const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
-            const newUserId = userCredential.user.uid;
+    if (!auth || !firestore) return false;
+   
+   // Sanitize the data to remove undefined fields which Firestore doesn't support.
+   const sanitizedData = { ...userToSave };
+   Object.keys(sanitizedData).forEach(key => {
+       const K = key as keyof typeof sanitizedData;
+       if (sanitizedData[K] === undefined) {
+           delete sanitizedData[K];
+       }
+   });
+   delete (sanitizedData as any).password;
 
-            // 2. Prepare user data for Firestore, ensuring the ID from Auth is used
-            const userDataForFirestore = {
-                ...userToSave,
-                id: newUserId, // Use the UID from Auth as the document ID
-            };
-            delete (userDataForFirestore as any).password; // Never store the password in Firestore
+   if (isCreating) {
+       // --- Create a new user ---
+       try {
+           // 1. Create user in Firebase Authentication
+           const userCredential = await createUserWithEmailAndPassword(auth, userToSave.email, userToSave.password!);
+           const newUserId = userCredential.user.uid;
 
-            // 3. Create user document in Firestore with the correct ID
-            const userDocRef = doc(firestore, 'users', newUserId);
-            await setDoc(userDocRef, userDataForFirestore);
+           // 2. Prepare user data for Firestore, ensuring the ID from Auth is used
+           const userDataForFirestore = {
+               ...sanitizedData,
+               id: newUserId, // Use the UID from Auth as the document ID
+           };
+
+           // 3. Create user document in Firestore with the correct ID
+           const userDocRef = doc(firestore, 'users', newUserId);
+           await setDoc(userDocRef, userDataForFirestore);
+           
+           toast({
+               title: "User Created",
+               description: `${userToSave.name} has been added successfully.`,
+           });
+           handleCloseDialog();
+           return true;
+
+       } catch (error: any) {
+           console.error("Error creating user:", error);
+           toast({
+               variant: 'destructive',
+               title: 'Failed to create user',
+               description: error.message || 'An unknown error occurred.',
+           });
+           return false;
+       }
+
+   } else {
+       // --- Update an existing user ---
+       if (!selectedUser) return false;
+       try {
+            const userDocRef = doc(firestore, 'users', selectedUser.id);
             
+            await setDoc(userDocRef, sanitizedData, { merge: true });
+
             toast({
-                title: "User Created",
-                description: `${userToSave.name} has been added successfully.`,
+               title: "User Updated",
+               description: `${userToSave.name}'s details have been saved.`,
             });
             handleCloseDialog();
             return true;
 
-        } catch (error: any) {
-            console.error("Error creating user:", error);
+       } catch (error: any) {
+            console.error("Error updating user:", error);
             toast({
-                variant: 'destructive',
-                title: 'Failed to create user',
-                description: error.message || 'An unknown error occurred.',
-            });
-            return false;
-        }
-
-    } else {
-        // --- Update an existing user ---
-        if (!selectedUser) return false;
-        try {
-             const userDocRef = doc(firestore, 'users', selectedUser.id);
-             const updateData = { ...userToSave };
-             delete (updateData as any).password;
-             
-             await setDoc(userDocRef, updateData, { merge: true });
-
-             toast({
-                title: "User Updated",
-                description: `${userToSave.name}'s details have been saved.`,
-             });
-             handleCloseDialog();
-             return true;
-
-        } catch (error: any) {
-             console.error("Error updating user:", error);
-             toast({
-                variant: 'destructive',
-                title: 'Failed to update user',
-                description: error.message || 'An unknown error occurred.',
-            });
-            return false;
-        }
-    }
-  };
+               variant: 'destructive',
+               title: 'Failed to update user',
+               description: error.message || 'An unknown error occurred.',
+           });
+           return false;
+       }
+   }
+ };
 
 
   if (isUserLoading) {
