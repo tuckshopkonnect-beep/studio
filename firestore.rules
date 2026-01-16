@@ -7,40 +7,31 @@ service cloud.firestore {
     // Helper Functions
     // --------------------------------------------------------------------
 
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the currently authenticated user has the 'Admin' role.
-     * It safely reads the user's profile from the /users collection.
-     * CRITICAL: This uses `exists()` to prevent errors on first-time login
-     * when the user document may not have been created yet.
-     */
     function isAdmin() {
+      // This check is safe because the `get` rule for a user's own profile is non-recursive.
       return isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
-    /**
-     * Validates a new order document on creation.
-     * Ensures the creator is the owner and the denormalized `userId` field
-     * inside the document matches the owner's UID in the path.
-     */
+    function isParentOf(childId) {
+      // Check if the requester is the parent of the document being accessed,
+      // by looking at the childIds array in the requester's own document.
+      let parentDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return isSignedIn()
+             && 'childIds' in parentDoc
+             && parentDoc.childIds.includes(childId);
+    }
+    
     function isCreatingValidOrder(userId) {
-      // Ensure the user is the owner and the payload's userId matches.
       return isOwner(userId) && request.resource.data.userId == userId;
     }
 
@@ -49,28 +40,33 @@ service cloud.firestore {
     // Collection Rules
     // --------------------------------------------------------------------
 
-    /**
-     * @description Manages user profile documents.
-     */
     match /users/{userId} {
-      // READ: A user can always get their own document. This is critical for isAdmin() to work.
-      // An admin can get any document via the `list` rule.
-      allow get: if isOwner(userId);
+      // READ: 
+      // A user can get their own document.
+      // An admin can get any document.
+      // A parent can get the document of a user listed in their childIds.
+      allow get: if isOwner(userId) || isAdmin() || isParentOf(userId);
+      
+      // LIST:
+      // Only admins can list/query the entire users collection.
+      // Parents will fetch their children via specific GETs (through an 'in' query), not a broad LIST.
       allow list: if isAdmin();
+      
+      // CREATE:
+      // An admin can create any user.
+      // A new user can create their own 'Admin' profile (for initial setup).
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
+      
+      // UPDATE:
+      // An admin can update any user.
+      // A user can update their own profile as long as they are not changing their role.
+      // This also allows a role to be set for the first time on a partially created document.
+      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
 
-      // DELETE: Only an admin can delete a user.
+      // DELETE:
+      // Only an admin can delete a user profile.
       allow delete: if isAdmin();
 
-      // CREATE: This rule handles the initial creation of any user.
-      // It allows an existing admin to create users, and crucially, allows the VERY FIRST
-      // user to create their own account if they are setting the role to 'Admin'.
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
-
-      // UPDATE: This rule handles updates to existing user documents.
-      // It allows an admin to update anyone, or a user to update their own profile
-      // as long as they are not trying to change their role. It also allows the role
-      // to be set for the first time on an existing partial document.
-      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
 
       /**
        * @description Manages a user's orders, nested under their profile.
@@ -84,8 +80,6 @@ service cloud.firestore {
     
     /**
      * @description Top-level orders collection, aggregated for the admin dashboard.
-     * Read access is given to any signed-in user to prevent race conditions on initial dashboard load.
-     * Write access is restricted to admins.
      */
     match /orders/{orderId} {
       allow get, list: if isSignedIn();
@@ -94,7 +88,6 @@ service cloud.firestore {
     
     /**
      * @description Global application settings.
-     * Read and write access is restricted to admins.
      */
     match /settings/{settingId} {
       allow read, write: if isAdmin();
@@ -107,7 +100,7 @@ service cloud.firestore {
       // Anyone can view the menu.
       allow get, list: if true;
       // Only admins can modify the menu.
-      allow create, update, delete: if isAdmin();
+      allow write: if isAdmin();
 
       /**
        * @description Inventory is admin-only.
