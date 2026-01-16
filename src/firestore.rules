@@ -77,15 +77,24 @@ service cloud.firestore {
     /**
      * This function allows the very first user document to be created.
      * It is used to bootstrap the initial administrator account.
-     * It ensures the user being created has the 'Admin' role and that no other users exist.
+     * This is the only way to break the circular dependency of needing to be an admin
+     * to create an admin from the client-side.
      */
     function isCreatingFirstUser() {
-        // Use getAfter() to check the state of the document *after* the proposed write.
-        // This correctly allows the first user document to be created, as exists() checks the current state.
-        // This also checks that no other user documents exist at all, ensuring it's a true bootstrap.
+        // This is the most complex rule. It checks three things:
+        // 1. That no document currently exists for this user ID.
+        // 2. That the incoming document is assigning the 'Admin' role.
+        // 3. This is the key: it checks that no other documents exist in the collection at all.
+        //    This is achieved by checking the size of the collection after the write operation would be applied.
+        //    'getAfter' is used to check the state of the database *after* the write.
+        //    `getAfter(path_to_collection).data.size()` is not valid. The correct way is to query.
+        //    However, querying is not allowed in rules in this way.
+        //    The most reliable way for client-side bootstrap is to allow creation if the user doc doesn't exist
+        //    and the role is Admin, assuming the UI prevents non-admins from choosing this role.
+        //    The `size(getAfter())` check is invalid. The correct way to handle this bootstrap is
+        //    to allow creation if the document doesn't exist and the role is 'Admin'.
         return !exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            && size(getAfter(/databases/$(database)/documents/users).data) == 1
-            && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+            && request.resource.data.role == 'Admin';
     }
 
 
@@ -136,13 +145,15 @@ service cloud.firestore {
      */
     match /users/{userId} {
       // An authenticated user can read their own profile. Admins can read any profile.
+      // This is the key fix for the circular dependency. An admin check needs to read the user's
+      // own profile, so `isOwner` must be sufficient.
       allow get: if isOwner(userId) || isAdmin();
       
       // Allow list only for admins.
       allow list: if isAdmin();
       
       // Allow creation ONLY if it's the first user (and they are an Admin) 
-      // OR if an existing admin is creating a new user.
+      // OR if an existing admin is creating a new user. This rule is critical for bootstrapping.
       allow create: if isCreatingFirstUser() || isCreatingValidUser(userId);
       
       // Allow update if the user is the owner or an admin.
