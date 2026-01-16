@@ -41,7 +41,7 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
-import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc } from "@/firebase";
 import { collection, deleteDoc, doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -52,10 +52,18 @@ export default function UsersPage() {
   const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
 
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
+
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !authUser || authUser.isAnonymous) return null;
+    if (!firestore || !isCurrentUserAdmin) return null;
     return collection(firestore, "users");
-  },[firestore, isUserLoading, authUser]);
+  },[firestore, isCurrentUserAdmin]);
 
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
@@ -69,7 +77,7 @@ export default function UsersPage() {
   const [isCreating, setIsCreating] = React.useState(false);
 
   // This is the critical change: determine if it's the initial setup.
-  const isInitialSetup = !isLoadingUsers && (!users || users.length === 0);
+  const isInitialSetup = !isLoadingUsers && isCurrentUserAdmin && (!users || users.length === 0);
 
   const filteredUsers = React.useMemo(() => {
     if (isInitialSetup || !users) return [];
@@ -240,11 +248,25 @@ export default function UsersPage() {
  };
 
 
-  if (isUserLoading) {
+  if (isUserLoading || isLoadingCurrentUser) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-destructive">Access Denied</CardTitle>
+          <CardDescription>You do not have permission to access this page.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>This section is for administrators only. If you believe this is an error, please contact support.</p>
+        </CardContent>
+      </Card>
     );
   }
   
