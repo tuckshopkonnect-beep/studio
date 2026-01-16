@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const GenerateMenuItemImageInputSchema = z.object({
   itemName: z.string().describe('The name of the menu item to generate an image for.'),
@@ -33,7 +34,7 @@ const generateMenuItemImageFlow = ai.defineFlow(
     },
     async (input) => {
         const { media } = await ai.generate({
-            model: 'googleai/imagen-4.0-fast-generate-001',
+            model: googleAI.model('imagen-4.0-fast-generate-001'),
             prompt: `A professional, appetizing photo of "${input.itemName}", on a clean, simple, light-colored background, studio lighting. The food should look fresh and delicious. Suitable for a restaurant menu.`,
         });
 
