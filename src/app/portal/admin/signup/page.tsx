@@ -17,14 +17,15 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useAuth, useFirestore } from "@/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
 
-export default function AdminLoginPage() {
+export default function AdminSignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
@@ -32,69 +33,76 @@ export default function AdminLoginPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
+      toast({
+        variant: "destructive",
+        title: "Authentication service not ready.",
+        description: "Please try again in a moment.",
+      });
+      return;
+    }
+    if (password.length < 6) {
         toast({
             variant: "destructive",
-            title: "Authentication service not ready.",
-            description: "Please try again in a moment.",
+            title: "Password Too Short",
+            description: "Password must be at least 6 characters.",
         });
         return;
     }
     setIsLoading(true);
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
+      // 1. Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-        // If user document doesn't exist or doesn't have an admin role, create/update it.
-        // This handles the first-time login for an admin.
-        if (!userDoc.exists() || userDoc.data()?.role !== 'Admin') {
-            const userProfile = {
-                id: user.uid,
-                name: user.email?.split('@')[0] || 'Admin',
-                email: user.email!,
-                role: 'Admin' as const,
-                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
-                balance: 0,
-            };
-            await setDoc(userDocRef, userProfile, { merge: true });
-        }
+      // 2. Prepare user profile data
+      const userProfile = {
+        id: user.uid,
+        name: name,
+        email: user.email!,
+        role: 'Admin' as const,
+        avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
+        balance: 0,
+      };
 
+      // 3. Create user document in Firestore. The security rules allow this for a new admin.
+      await setDoc(doc(firestore, "users", user.uid), userProfile);
 
-        toast({
-            title: "Login Successful",
-            description: "Redirecting to your dashboard...",
-        });
-        router.push("/dashboard");
+      toast({
+        title: "Account Created",
+        description: "Redirecting to your dashboard...",
+      });
+      router.push("/dashboard");
 
     } catch (error: any) {
-      console.error("Login or profile creation failed:", error);
-
-      let title = "Login Failed";
+      console.error("Sign up or profile creation failed:", error);
+      let title = "Sign-up Failed";
       let description = "An unexpected error occurred. Please try again.";
 
       if (error instanceof FirebaseError) {
-        if (error.code.startsWith('auth/')) {
-          description = "Invalid email or password. Please check your credentials.";
-        } else if (error.code === 'permission-denied') {
-          title = "Profile Creation Failed";
-          description = "Your account exists, but we couldn't set up your admin profile. This is likely a security rule issue.";
-        } else {
-          description = error.message;
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            description = "This email address is already in use by another account.";
+            break;
+          case 'auth/invalid-email':
+            description = "The email address is not valid.";
+            break;
+          case 'auth/weak-password':
+            description = "The password is too weak.";
+            break;
+          default:
+            description = error.message;
         }
       }
-
       toast({
         variant: "destructive",
         title: title,
         description: description,
       });
-
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -111,14 +119,26 @@ export default function AdminLoginPage() {
 
       <Card className="mx-auto max-w-sm w-full bg-black/30 backdrop-blur-xl border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">Admin Portal</CardTitle>
+          <CardTitle className="text-3xl font-bold">Create Admin Account</CardTitle>
           <CardDescription className="text-white/80 pt-2">
-            Enter your credentials to access the dashboard.
+            This will create a new administrator account.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSignUp}>
             <div className="grid gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -138,6 +158,7 @@ export default function AdminLoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
+                      placeholder="••••••••"
                       className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -158,18 +179,18 @@ export default function AdminLoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Signing In...
+                    Creating Account...
                   </>
                 ) : (
-                  "Sign In"
+                  "Sign Up"
                 )}
               </Button>
             </div>
           </form>
           <div className="mt-6 text-center text-sm">
-            Don't have an account?{" "}
-            <Link href="/portal/admin/signup" className="underline hover:text-primary">
-              Sign Up
+            Already have an account?{" "}
+            <Link href="/portal/admin" className="underline hover:text-primary">
+              Sign In
             </Link>
           </div>
         </CardContent>
