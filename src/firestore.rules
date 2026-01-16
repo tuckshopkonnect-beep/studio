@@ -47,7 +47,6 @@ service cloud.firestore {
     /**
      * Checks if the currently authenticated user has the 'Admin' role.
      * It safely reads the user's profile from the /users collection.
-     * This function's own read access is granted by the isOwner() check in the /users/{userId} rule.
      */
     function isAdmin() {
       return isSignedIn()
@@ -73,24 +72,24 @@ service cloud.firestore {
      * @description Manages user profile documents.
      */
     match /users/{userId} {
-      // CRITICAL FIX: The `get` rule MUST NOT call `isAdmin()` to avoid a circular dependency.
-      // `isAdmin()` needs to `get` a user document, but if the `get` rule also calls `isAdmin()`,
-      // it creates an infinite recursion that Firestore denies.
-      // A user can always get their own document, which is what allows `isAdmin()` to work.
+      // A user can always get their own document. This allows isAdmin() to work without circular dependencies.
       allow get: if isOwner(userId);
       
-      // Admins can list all users for the dashboard.
+      // Only an admin can list all users.
       allow list: if isAdmin();
       
-      // Allow a user to be created if:
-      // 1. The request is from an existing admin.
-      // 2. OR it's the very first user, who is creating their own 'Admin' account (bootstrapping).
+      // Allow creation if it's an admin doing it, OR if it's the user creating their own 'Admin' account.
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
-      // Allow a user to update their own profile (but not their role), or an admin to update any profile.
-      allow update: if (isOwner(userId) && request.resource.data.id == resource.data.id && request.resource.data.role == resource.data.role) || isAdmin();
+      // DEFINITIVE FIX:
+      // An update is allowed if:
+      // 1. The user is an admin.
+      // OR
+      // 2. The user is updating their own document AND (the document has no role yet OR they are not changing their role).
+      // This rule is crucial for bootstrapping the first admin user, as their first login might be an "update" on a partially created document.
+      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
       
-      // Only an admin can delete a user document.
+      // Only an admin can delete a user.
       allow delete: if isAdmin();
 
       /**
