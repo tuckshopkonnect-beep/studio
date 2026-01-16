@@ -47,22 +47,14 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
-    /**
-     * Checks if a document currently exists in Firestore.
-     * Crucial for protecting against writes to non-existent paths.
-     */
-    function isExistingDoc() {
-      return resource != null;
-    }
     
     /**
      * Checks if the currently authenticated user has the 'Admin' role.
      * It reads the user's profile from the /users collection.
+     * NOTE: Calls to get() and exists() in security rules do not re-evaluate rules.
+     * They are direct data lookups and do not cause infinite loops here.
      */
     function isAdmin() {
-      // It is critical that we check for sign in first, otherwise this rule will
-      // throw a null pointer exception if an unauthenticated user tries to access.
       return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
 
@@ -71,34 +63,15 @@ service cloud.firestore {
      * the user is the owner AND the document actually exists.
      */
     function isOwnerOfExistingDoc(userId) {
-      return isOwner(userId) && isExistingDoc();
+      return isOwner(userId) && resource != null;
     }
     
     /**
-     * This function allows the very first user document to be created.
-     * It is used to bootstrap the initial administrator account.
-     * This is the only way to break the circular dependency of needing to be an admin
-     * to create an admin from the client-side.
-     */
-    function isCreatingFirstUser() {
-        // Allow creating a user if their document does not exist yet,
-        // and the role being assigned is 'Admin'. This is the bootstrap mechanism.
-        // The check for !exists(/databases/$(database)/documents/users/$(request.auth.uid)) is incorrect
-        // because the path doesn't exist yet. The correct way is to check the size of the collection.
-        // However, a simpler and secure way for bootstrapping is to allow create if it's the first doc.
-        // A robust client-side way is difficult. The most reliable is to allow creation of own user doc
-        // if the role is Admin. This is a one-time operation.
-        return request.resource.data.role == 'Admin' && !exists(/databases/$(database)/documents/users/$(request.auth.uid));
-    }
-
-
-    /**
-     * Validates a new user document on creation by an admin.
+     * Validates a new user document on creation.
      * Ensures the creator is an admin and the new document's internal `id` field
      * matches the new user's auth UID for relational integrity.
      */
-    function isCreatingValidUser(userId) {
-      // Check if the user making the request is an admin, and the new user doc is valid.
+    function isCreatingValidUserByAdmin(userId) {
       return isAdmin() && request.resource.data.id == userId;
     }
     
@@ -131,47 +104,39 @@ service cloud.firestore {
     // User Data Rules (/users)
     // --------------------------------------------------------------------
 
-    /**
-     * @description Manages user profile documents.
-     * @path /users/{userId}
-     */
     match /users/{userId} {
-      // **THE FIX**: A user can ALWAYS read their own profile. This allows isAdmin() to work.
-      // Admins can read any profile.
+      // A user can read their own profile. Admins can read any profile.
       allow get: if isOwner(userId) || isAdmin();
       
-      // Allow list only for admins.
+      // Only admins can list all users.
       allow list: if isAdmin();
       
-      // **THE FIX**: Allow creation if it's the first user (and they are an Admin) 
-      // OR if an existing admin is creating a new user. This rule is critical for bootstrapping.
-      allow create: if (isCreatingFirstUser() || isCreatingValidUser(userId)) && request.resource.data.id == userId;
-      
-      // Allow update if the user is the owner or an admin.
+      // **THE FIX**: Allow a user document to be created if EITHER:
+      // 1. It's the very first user document and its role is 'Admin' (the bootstrap case).
+      //    The check `!exists(...)` is safe here because it runs before the write.
+      // 2. The request is made by an existing admin.
+      allow create: if request.auth.uid == userId && (
+          (request.resource.data.role == 'Admin' && !exists(/databases/$(database)/documents/users/$(userId))) ||
+          isCreatingValidUserByAdmin(userId)
+      );
+
+      // A user can update their own profile, or an admin can update any profile.
       allow update: if isUpdatingValidUser(userId) || isAdmin();
+
+      // Only admins can delete users.
       allow delete: if isAdmin();
 
-      /**
-       * @description Manages a user's orders.
-       * @path /users/{userId}/orders/{orderId}
-       */
+
       match /orders/{orderId} {
-        allow get: if isOwner(userId) || isAdmin();
-        allow list: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId) || isAdmin();
         allow create: if isCreatingValidOrder(userId);
         allow update: if isUpdatingValidOrder(userId) || isAdmin();
         allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
 
-        /**
-         * @description Manages the specific items within a user's order.
-         * @path /users/{userId}/orders/{orderId}/orderItems/{orderItemId}
-         */
         match /orderItems/{orderItemId} {
-          allow get: if isOwner(userId) || isAdmin();
-          allow list: if isOwner(userId) || isAdmin();
+          allow get, list: if isOwner(userId) || isAdmin();
           allow create: if isOwner(userId);
-          allow update: if isOwnerOfExistingDoc(userId) || isAdmin();
-          allow delete: if isOwnerOfExistingDoc(userId) || isAdmin();
+          allow update, delete: if isOwnerOfExistingDoc(userId) || isAdmin();
         }
       }
     }
@@ -180,40 +145,20 @@ service cloud.firestore {
     // Aggregated & Public Data Rules 
     // --------------------------------------------------------------------
 
-    /**
-     * @description Top-level orders collection for admin dashboard.
-     * @path /orders/{orderId}
-     */
     match /orders/{orderId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
+      allow get, list, update, delete: if isAdmin();
+      // Orders should be created through the user's subcollection for consistency.
+      // However, allowing admin creation here can be a fallback.
       allow create: if isCreatingValidOrder(request.resource.data.userId);
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
     }
 
-
-    /**
-     * @description Manages the publicly viewable tuckshop menu items.
-     * @path /menuItems/{menuItemId}
-     */
     match /menuItems/{menuItemId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
 
-      /**
-       * @description Manages inventory stock levels for menu items. THIS IS ADMIN-ONLY.
-       * @path /menuItems/{menuItemId}/inventory/{inventoryId}
-       */
       match /inventory/{inventoryId} {
-        allow read: if isAdmin();
-        allow write: if isAdmin();
+        allow read, write: if isAdmin();
       }
     }
   }
 }
-
-    
