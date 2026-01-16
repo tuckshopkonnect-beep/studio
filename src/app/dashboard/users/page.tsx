@@ -189,15 +189,9 @@ export default function UsersPage() {
                await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
-            toast({
-                title: "User Created Successfully",
-                description: "Redirecting you to the portal to log back in...",
-                duration: 5000,
-            });
-           
            setTimeout(() => {
                 router.push('/portal');
-           }, 3000);
+           }, 2000);
 
            return true;
 
