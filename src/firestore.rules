@@ -1,26 +1,4 @@
 
-/**
- * Core Philosophy: This ruleset enforces a hybrid security model. It provides public,
- * read-only access to shared data like the tuckshop menu (/menuItems), while
- * enforcing strict user ownership for all personal data, such as user profiles
- * (/users/{userId}) and their corresponding orders (/users/{userId}/orders).
- *
- * Data Structure: The data is organized into two main top-level collections:
- * - /menuItems: A public collection containing all available food and drink items.
- * - /users: A collection where each user's private data is stored under a
- *   document matching their unique user ID (UID). All user-specific subcollections,
- *   like 'orders', are nested under this path.
- *
- * Key Security Decisions:
- * - Admin-Managed Content: The menu (/menuItems) and inventory data are now managed
- *   by authenticated admins directly from the client. The rules ensure only users
- *   with the 'Admin' role can perform write operations.
- * - Strict Ownership: A user can only access the data tree located under their
- *   own user ID path (/users/{userId}/**). This prevents users from reading or
- *   writing another user's profile information or order history.
- * - No User Listing: To protect user privacy, listing the entire /users
- *   collection is disallowed for non-admins.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -47,6 +25,8 @@ service cloud.firestore {
     /**
      * Checks if the currently authenticated user has the 'Admin' role.
      * It safely reads the user's profile from the /users collection.
+     * CRITICAL: This uses `exists()` to prevent errors on first-time login
+     * when the user document may not have been created yet.
      */
     function isAdmin() {
       return isSignedIn()
@@ -72,13 +52,13 @@ service cloud.firestore {
      * @description Manages user profile documents.
      */
     match /users/{userId} {
-      // A user can always get their own document. This allows isAdmin() to work without circular dependencies.
+      // A user can always get their own document. This is critical to allow isAdmin() to work without circular dependencies.
       allow get: if isOwner(userId);
       
       // Only an admin can list all users.
       allow list: if isAdmin();
       
-      // Allow creation if it's an admin doing it, OR if it's the user creating their own 'Admin' account.
+      // Allow creation if it's an admin doing it, OR if it's the user creating their own 'Admin' account (bootstrap).
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
       // DEFINITIVE FIX:
@@ -86,7 +66,7 @@ service cloud.firestore {
       // 1. The user is an admin.
       // OR
       // 2. The user is updating their own document AND (the document has no role yet OR they are not changing their role).
-      // This rule is crucial for bootstrapping the first admin user, as their first login might be an "update" on a partially created document.
+      // This is crucial for bootstrapping the first admin user, as their first login might be an "update" on a partially created document.
       allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
       
       // Only an admin can delete a user.

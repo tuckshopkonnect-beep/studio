@@ -19,8 +19,9 @@ import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import type { User } from "@/lib/data";
+import { FirebaseError } from "firebase/app";
 
 export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -47,9 +48,6 @@ export default function AdminLoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // This operation is now idempotent. It will create the user doc on first login,
-        // and safely merge on subsequent logins. This avoids the problematic `getDoc` 
-        // call which was causing a circular dependency in the security rules.
         const userDocRef = doc(firestore, "users", user.uid);
         const newUserProfile = {
             id: user.uid,
@@ -60,6 +58,7 @@ export default function AdminLoginPage() {
             balance: 0,
         };
         
+        // This write operation is critical for bootstrapping the admin role.
         await setDoc(userDocRef, newUserProfile, { merge: true });
 
         toast({
@@ -67,15 +66,30 @@ export default function AdminLoginPage() {
             description: "Redirecting to your dashboard...",
         });
         router.push("/dashboard");
+
     } catch (error: any) {
-        console.error("Login failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: error.code === 'auth/invalid-credential' 
-                ? "Invalid email or password. Please try again."
-                : error.message || "An unexpected error occurred."
-        });
+      console.error("Login or profile creation failed:", error);
+
+      let title = "Login Failed";
+      let description = "An unexpected error occurred. Please try again.";
+
+      if (error instanceof FirebaseError) {
+        if (error.code.startsWith('auth/')) {
+          description = "Invalid email or password. Please check your credentials.";
+        } else if (error.code === 'permission-denied') {
+          title = "Profile Creation Failed";
+          description = "Your account exists, but we couldn't set up your admin profile. This is likely a security rule issue.";
+        } else {
+          description = error.message;
+        }
+      }
+
+      toast({
+        variant: "destructive",
+        title: title,
+        description: description,
+      });
+
     } finally {
         setIsLoading(false);
     }
