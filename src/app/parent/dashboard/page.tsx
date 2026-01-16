@@ -1,25 +1,23 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, History, Phone, Loader2, UserX } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Loader2, UserX, Phone } from "lucide-react";
 import FundWalletDialog from "@/components/FundWalletDialog";
-import type { User, Order } from "@/lib/data";
+import type { User } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, documentId } from "firebase/firestore";
+import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 import Link from "next/link";
+import ParentChildCard from "@/components/ParentChildCard";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -52,23 +50,9 @@ export default function ParentDashboard() {
   const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
   
   const childrenIds = parent?.childIds;
-
-  const childrenQuery = useMemoFirebase(() => {
-      if (!firestore || !childrenIds || childrenIds.length === 0) return null;
-      return query(collection(firestore, 'users'), where(documentId(), 'in', childrenIds));
-  }, [firestore, childrenIds]);
-
-  const { data: children, isLoading: isLoadingChildren } = useCollection<User>(childrenQuery);
   
   const [fundingChild, setFundingChild] = useState<User | null>(null);
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);
-
-  // Note: Spending data would require fetching all orders for each child, which can be inefficient.
-  // A better real-world solution would be a separate 'spending' summary document updated by a cloud function.
-  // For this demo, we'll assume spending is 0 for simplicity.
-  const getSpending = (childId: string) => {
-    return 0; 
-  }
 
   const handleOpenFundDialog = (child: User) => {
     setFundingChild(child);
@@ -87,7 +71,7 @@ export default function ParentDashboard() {
   };
 
 
-  if (isUserLoading || isLoadingParent || isLoadingChildren) {
+  if (isUserLoading || isLoadingParent) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -127,50 +111,12 @@ export default function ParentDashboard() {
         </div>
         
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {children && children.map((child) => {
-              const spent = getSpending(child.id);
-              const limit = child.dailyLimit || 0;
-              const progress = limit > 0 ? (spent / limit) * 100 : 0;
-
-              return (
-                <Card key={child.id} className="flex flex-col transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-                    <CardHeader className="flex flex-row items-center gap-4">
-                        <Avatar className="h-16 w-16 border-2 border-primary/20">
-                            <AvatarImage src={child.avatarUrl} alt={child.name} />
-                            <AvatarFallback>{child.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <CardTitle className="text-xl">{child.name}</CardTitle>
-                            <CardDescription>{child.class} - Student Account</CardDescription>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow space-y-6">
-                        <div>
-                            <p className="text-sm font-medium text-muted-foreground">Current Balance</p>
-                            <p className="text-3xl font-bold text-primary">₦{child.balance.toFixed(2)}</p>
-                        </div>
-                        <div>
-                            <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                                <span>Daily Spending</span>
-                                <span>₦{spent.toFixed(2)} / ₦{limit > 0 ? limit.toFixed(2) : 'No Limit'}</span>
-                            </div>
-                            <Progress value={progress} />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="grid grid-cols-2 gap-2">
-                        <Button className="w-full" onClick={() => handleOpenFundDialog(child)}>
-                            <PlusCircle className="mr-2 h-4 w-4" /> Fund
-                        </Button>
-                        <Button variant="outline" className="w-full">
-                            <History className="mr-2 h-4 w-4" /> History
-                        </Button>
-                    </CardFooter>
-                </Card>
-              )
-            })}
-
-             {children?.length === 0 && (
-                <Card className="md:col-span-2 lg:col-span-3">
+            {childrenIds && childrenIds.length > 0 ? (
+                childrenIds.map((childId) => (
+                    <ParentChildCard key={childId} childId={childId} onFundWallet={handleOpenFundDialog} />
+                ))
+            ) : (
+                <Card className="md:col-span-2 lg:col-span-3 xl:col-span-4">
                     <CardContent className="flex flex-col items-center justify-center p-10 text-center">
                         <UserX className="h-12 w-12 text-muted-foreground" />
                         <h3 className="mt-4 text-lg font-semibold">No Children Linked</h3>
@@ -206,3 +152,4 @@ export default function ParentDashboard() {
     </div>
     </>
   );
+}
