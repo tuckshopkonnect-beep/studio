@@ -42,8 +42,8 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
-import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc } from "@/firebase";
-import { collection, deleteDoc, doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { collection, doc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -114,24 +114,16 @@ export default function UsersPage() {
     exportUsersCSV(filteredUsers);
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (!userToDelete || !firestore) return;
-    try {
-      // Deleting a Firestore document is the primary action for the admin.
-      // Deleting the Auth user from the client is restricted and often fails.
-      // This action is best handled by a server-side function.
-      await deleteDoc(doc(firestore, "users", userToDelete.id));
-      toast({
-        title: "User Profile Deleted",
-        description: `${userToDelete.name}'s profile has been deleted from Firestore. The authentication record may still exist.`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error Deleting User Profile",
-        description: error.message || "Could not delete user document.",
-      });
-    }
+    
+    deleteDocumentNonBlocking(doc(firestore, "users", userToDelete.id));
+
+    toast({
+      title: "User Profile Deleted",
+      description: `${userToDelete.name}'s profile has been deleted. The authentication record may still exist.`,
+    });
+    
     setUserToDelete(null);
   };
 
@@ -182,11 +174,11 @@ export default function UsersPage() {
            const userDataForFirestore = { ...sanitizedData, id: newUserId };
 
            const userDocRef = doc(firestore, 'users', newUserId);
-           await setDoc(userDocRef, userDataForFirestore);
+           setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: true });
 
            if (userToSave.parentId) {
                const newParentRef = doc(firestore, 'users', userToSave.parentId);
-               await updateDoc(newParentRef, { childIds: arrayUnion(newUserId) });
+               updateDocumentNonBlocking(newParentRef, { childIds: arrayUnion(newUserId) });
            }
            
            setTimeout(() => {
@@ -208,37 +200,27 @@ export default function UsersPage() {
 
    } else {
        if (!selectedUser) return false;
-       try {
-            const userDocRef = doc(firestore, 'users', selectedUser.id);
-            await setDoc(userDocRef, sanitizedData, { merge: true });
+       
+        const userDocRef = doc(firestore, 'users', selectedUser.id);
+        setDocumentNonBlocking(userDocRef, sanitizedData, { merge: true });
 
-            if (userToSave.parentId !== previousParentId) {
-                if (previousParentId) {
-                    const oldParentRef = doc(firestore, 'users', previousParentId);
-                    await updateDoc(oldParentRef, { childIds: arrayRemove(savedUserId) });
-                }
-                if (userToSave.parentId) {
-                    const newParentRef = doc(firestore, 'users', userToSave.parentId);
-                    await updateDoc(newParentRef, { childIds: arrayUnion(savedUserId) });
-                }
+        if (userToSave.parentId !== previousParentId) {
+            if (previousParentId) {
+                const oldParentRef = doc(firestore, 'users', previousParentId);
+                updateDocumentNonBlocking(oldParentRef, { childIds: arrayRemove(savedUserId) });
             }
+            if (userToSave.parentId) {
+                const newParentRef = doc(firestore, 'users', userToSave.parentId);
+                updateDocumentNonBlocking(newParentRef, { childIds: arrayUnion(savedUserId) });
+            }
+        }
 
-            toast({
-               title: "User Updated",
-               description: `${userToSave.name}'s details have been saved.`,
-            });
-            handleCloseDialog();
-            return true;
-
-       } catch (error: any) {
-            console.error("Error updating user:", error);
-            toast({
-               variant: 'destructive',
-               title: 'Failed to update user',
-               description: error.message || 'An unknown error occurred.',
-           });
-           return false;
-       }
+        toast({
+            title: "User Updated",
+            description: `${userToSave.name}'s details have been saved.`,
+        });
+        handleCloseDialog();
+        return true;
    }
  };
 

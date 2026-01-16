@@ -17,8 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/lib/data";
 import { usePaystackPayment } from 'react-paystack';
 import { CreditCard, Loader2 } from "lucide-react";
-import { useFirestore } from "@/firebase";
-import { doc, updateDoc, increment } from "firebase/firestore";
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { doc, increment } from "firebase/firestore";
 
 interface FundWalletDialogProps {
   isOpen: boolean;
@@ -44,25 +44,17 @@ export default function FundWalletDialog({
 
   const amountInKobo = Number(amount) * 100;
 
-  const handlePaystackSuccess = async () => {
+  const handlePaystackSuccess = () => {
     if (!firestore) return;
     const numericAmount = Number(amount);
-    try {
-      const childDocRef = doc(firestore, 'users', child.id);
-      await updateDoc(childDocRef, {
-        balance: increment(numericAmount)
-      });
-      onSuccess(numericAmount, child.id);
-    } catch (e) {
-      console.error("Failed to update balance:", e);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: "Payment was successful but we failed to update the wallet balance. Please contact support."
-      })
-    } finally {
-      resetAndClose();
-    }
+    
+    const childDocRef = doc(firestore, 'users', child.id);
+    updateDocumentNonBlocking(childDocRef, {
+      balance: increment(numericAmount)
+    });
+    
+    onSuccess(numericAmount, child.id);
+    resetAndClose();
   }
 
   const config = {
@@ -130,7 +122,7 @@ export default function FundWalletDialog({
         <DialogHeader>
           <DialogTitle>Fund {child.name}'s Wallet</DialogTitle>
           <DialogDescription>
-            Enter the amount you want to add to their account. Current balance is ₦{child.balance.toFixed(2)}.
+            Current balance is ₦{child.balance.toFixed(2)}. Add funds below.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

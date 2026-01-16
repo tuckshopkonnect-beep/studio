@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { QrCode, Search, VideoOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { useFirestore, useDoc, useMemoFirebase, useUser, updateDocumentNonBlocking, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { doc } from "firebase/firestore";
 import type { Order, User } from "@/lib/data";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -151,46 +151,45 @@ export default function ScannerPage() {
     }
     
     const orderDocRef = doc(firestore, "orders", lookupId);
-    try {
-        const { getDoc } = await import("firebase/firestore");
-        const docSnap = await getDoc(orderDocRef);
+    const { getDoc } = await import("firebase/firestore");
+
+    getDoc(orderDocRef).then(docSnap => {
         if (docSnap.exists()) {
             setScannedOrder({ id: docSnap.id, ...docSnap.data() } as Order);
         } else {
             setError("Transaction ID not found.");
         }
-    } catch(e) {
-        setError("Error fetching transaction details.");
-        console.error(e);
-    }
+    }).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: orderDocRef.path,
+            operation: 'get',
+          });
+        errorEmitter.emit('permission-error', permissionError);
+        setError("Error fetching transaction details."); // Keep local error for UI
+    });
   };
 
-  const handleMarkAsCompleted = async () => {
+  const handleMarkAsCompleted = () => {
     if (!scannedOrder || !firestore) return;
     
-    try {
-        const orderDocRef = doc(firestore, "orders", scannedOrder.id);
-        await updateDoc(orderDocRef, { status: 'Completed' });
+    const dataToUpdate = { status: 'Completed' };
+    
+    const orderDocRef = doc(firestore, "orders", scannedOrder.id);
+    updateDocumentNonBlocking(orderDocRef, dataToUpdate);
 
+    if (scannedOrder.userId) {
         const userOrderDocRef = doc(firestore, "users", scannedOrder.userId, "orders", scannedOrder.id);
-        await updateDoc(userOrderDocRef, { status: 'Completed' });
-
-        toast({
-            title: "Order Completed",
-            description: `Order #${scannedOrder.id} has been marked as completed.`
-        });
-
-        setScannedOrder(null);
-        setTransactionId("");
-        // Let useEffect restart scanning if needed, or implement a manual restart button
-    } catch (e) {
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: "Could not mark the order as completed. Please check permissions."
-        })
-        console.error(e);
+        updateDocumentNonBlocking(userOrderDocRef, dataToUpdate);
     }
+    
+    toast({
+        title: "Order Completed",
+        description: `Order #${scannedOrder.id} has been marked as completed.`
+    });
+
+    setScannedOrder(null);
+    setTransactionId("");
+    // Let useEffect restart scanning if needed, or implement a manual restart button
   };
 
   if (isUserLoading || isLoadingCurrentUser) {
