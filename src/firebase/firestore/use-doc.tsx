@@ -45,7 +45,7 @@ export function useDoc<T = any>(
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -58,7 +58,6 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -91,10 +90,17 @@ export function useDoc<T = any>(
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+        try {
+            unsubscribe();
+        } catch (e) {
+            // This is a defensive catch. In some cases, especially with hot-reloading,
+            // the SDK can get into an inconsistent state and throw on unsubscribe.
+            // We log the error but prevent it from crashing the app.
+            console.error('Firestore: Failed to unsubscribe from document listener.', e);
+        }
+    };
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
 
   return { data, isLoading, error };
 }
-
-    
