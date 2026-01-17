@@ -56,9 +56,9 @@ export default function OrdersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
   
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !authUser || !isCurrentUserAdmin) return null;
+    if (!firestore || !isCurrentUserAdmin) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, isUserLoading, authUser, isCurrentUserAdmin]);
+  }, [firestore, isCurrentUserAdmin]);
 
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
@@ -252,3 +252,5 @@ export default function OrdersPage() {
     </>
   );
 }
+
+    

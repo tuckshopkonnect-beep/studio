@@ -64,9 +64,9 @@ export default function UsersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
+    if (!firestore || !isCurrentUserAdmin) return null;
     return collection(firestore, "users");
-  },[firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
+  },[firestore, isCurrentUserAdmin]);
 
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
@@ -404,3 +404,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

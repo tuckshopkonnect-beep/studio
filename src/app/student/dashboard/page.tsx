@@ -25,9 +25,9 @@ export default function StudentDashboard() {
   const { user: authUser, isUserLoading } = useUser();
 
   const studentDocRef = useMemoFirebase(() => {
-    if (!firestore || !authUser || isUserLoading) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "users", authUser.uid);
-  }, [firestore, authUser, isUserLoading]);
+  }, [firestore, authUser]);
 
   const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
   
@@ -177,3 +177,5 @@ export default function StudentDashboard() {
         </div>
     </div>
   );
+
+    

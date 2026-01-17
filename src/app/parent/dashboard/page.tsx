@@ -43,9 +43,9 @@ export default function ParentDashboard() {
   const { user: authUser, isUserLoading } = useUser();
 
   const parentDocRef = useMemoFirebase(() => {
-    if (!firestore || !authUser || isUserLoading) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "users", authUser.uid);
-  }, [firestore, authUser, isUserLoading]);
+  }, [firestore, authUser]);
 
   const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
   
@@ -153,3 +153,5 @@ export default function ParentDashboard() {
     </>
   );
 }
+
+    

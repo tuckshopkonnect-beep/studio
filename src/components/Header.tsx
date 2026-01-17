@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -36,9 +37,9 @@ export default function Header() {
   const [theme, setThemeState] = useState<'light' | 'dark' | null>(null);
   
   const currentUserDocRef = useMemoFirebase(() => {
-    if (isUserLoading || !firestore || !authUser) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "users", authUser.uid);
-  }, [firestore, authUser, isUserLoading]);
+  }, [firestore, authUser]);
 
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
@@ -174,3 +175,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

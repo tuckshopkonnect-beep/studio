@@ -59,9 +59,9 @@ export default function InventoryPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore || isUserLoading || !authUser) return null;
+    if (!firestore) return null;
     return collection(firestore, "menuItems");
-  }, [firestore, isUserLoading, authUser]);
+  }, [firestore]);
 
   const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
@@ -303,3 +303,5 @@ export default function InventoryPage() {
     </>
   );
 }
+
+    

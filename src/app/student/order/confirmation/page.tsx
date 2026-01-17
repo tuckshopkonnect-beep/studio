@@ -26,9 +26,9 @@ export default function OrderConfirmationPage() {
     const { user: authUser, isUserLoading } = useUser();
     
     const studentDocRef = useMemoFirebase(() => {
-      if (isUserLoading || !authUser || !firestore) return null;
+      if (!authUser || !firestore) return null;
       return doc(firestore, 'users', authUser.uid);
-    }, [authUser, firestore, isUserLoading]);
+    }, [authUser, firestore]);
 
     const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
 
@@ -189,3 +189,5 @@ export default function OrderConfirmationPage() {
         </div>
     );
 }
+
+    

@@ -42,15 +42,15 @@ export default function DashboardPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser || !isCurrentUserAdmin) return null;
+    if (!firestore || !isCurrentUserAdmin) return null;
     return query(collection(firestore, "orders"));
-  }, [firestore, authUser, isCurrentUserAdmin]);
+  }, [firestore, isCurrentUserAdmin]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore || !authUser || !isCurrentUserAdmin) return null;
+      if (!firestore) return null;
       return collection(firestore, "menuItems");
-    }, [firestore, authUser, isCurrentUserAdmin]);
+    }, [firestore]);
   const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 
@@ -367,3 +367,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
