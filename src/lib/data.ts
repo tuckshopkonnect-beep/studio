@@ -47,7 +47,7 @@ export interface User {
   class?: string;
   dailyLimit?: number;
   parentId?: string | null;
-  childIds?: string[];
+  childIds?: { [key: string]: boolean };
 }
 
 export interface PasswordResetRequest {
