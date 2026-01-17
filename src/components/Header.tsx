@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -22,7 +21,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
-import type { User, Order } from "@/lib/data";
+import type { User } from "@/lib/data";
 import { usePathname } from "next/navigation";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
@@ -34,6 +33,7 @@ export default function Header() {
   const pathname = usePathname();
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
+  const [theme, setThemeState] = useState<'light' | 'dark' | null>(null);
   
   const currentUserDocRef = useMemoFirebase(() => {
     if (isUserLoading || !firestore || !authUser) return null;
@@ -47,22 +47,23 @@ export default function Header() {
 
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const storedTheme = localStorage.getItem("theme") || "light";
-        if (storedTheme === 'dark') {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+    const storedTheme = (localStorage.getItem("theme") as "light" | "dark") || "light";
+    setThemeState(storedTheme);
+    if (storedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
     }
   }, []);
 
-  const setTheme = (theme: "light" | "dark") => {
-    localStorage.setItem("theme", theme);
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setThemeState(newTheme);
+    localStorage.setItem("theme", newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.remove('dark');
     }
   };
 
@@ -73,6 +74,21 @@ export default function Header() {
   
   const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSpending;
   const canDisplayCart = !isCartDataLoading && studentUser;
+  
+  if (!theme) {
+      // Render a placeholder or skeleton while theme is loading to avoid flash
+    return (
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-16 items-center justify-end">
+                <div className="flex items-center gap-2">
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-muted"></div>
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-muted"></div>
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-muted"></div>
+                </div>
+            </div>
+        </header>
+    )
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -88,23 +104,11 @@ export default function Header() {
           <Link href="/portal" className="transition-colors hover:text-primary">User Portals</Link>
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2">
-           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Toggle theme</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                 <DropdownMenuItem onClick={() => setTheme("light")}>
-                    Light
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    Dark
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+            </Button>
 
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
