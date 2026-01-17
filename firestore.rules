@@ -72,7 +72,7 @@ service cloud.firestore {
        * @description Manages a user's orders, nested under their profile.
        */
       match /orders/{orderId} {
-        allow get, list: if isOwner(userId) || isAdmin();
+        allow get, list: if isOwner(userId) || isAdmin() || isParent(userId);
         allow create: if isCreatingValidOrder(userId);
         allow update, delete: if isOwner(userId) || isAdmin();
       }
