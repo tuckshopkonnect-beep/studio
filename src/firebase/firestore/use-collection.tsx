@@ -113,10 +113,10 @@ export function useCollection<T = any>(
         try {
             unsubscribe();
         } catch (e) {
-            // This is a defensive catch. In some cases, especially with hot-reloading,
-            // the SDK can get into an inconsistent state and throw on unsubscribe.
-            // We log the error but prevent it from crashing the app.
-            console.error('Firestore: Failed to unsubscribe from collection listener.', e);
+            // This is a defensive catch for a known issue in the Firestore SDK
+            // where fast re-renders in dev environments can cause an internal assertion error.
+            // We log it as a warning instead of an error to prevent it from crashing the app.
+            console.warn('Firestore: A non-critical error occurred while unsubscribing from a collection listener.', e);
         }
     };
   }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
