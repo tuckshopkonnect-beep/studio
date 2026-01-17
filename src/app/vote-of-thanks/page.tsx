@@ -10,7 +10,7 @@ export default function VoteOfThanksPage() {
     "Mr. Joshua A.",
     "Mr. Daniel Kadri",
     "Mr. Tolulope M.",
-    "Samuel Ayomide",
+    "Samuel Mofunlewi",
     "Staffs of DLHS (2024/25 session)",
     "Miss Patience",
     "My Parents",
