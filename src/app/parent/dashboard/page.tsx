@@ -49,7 +49,7 @@ export default function ParentDashboard() {
 
   const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
   
-  const childrenIds = parent?.childIds;
+  const childrenIds = parent?.childIds ? Object.keys(parent.childIds) : [];
   
   const [fundingChild, setFundingChild] = useState<User | null>(null);
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);

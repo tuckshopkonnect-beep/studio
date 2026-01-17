@@ -23,12 +23,12 @@ service cloud.firestore {
     }
     
     function isParent(childUserId) {
-      // A user is a parent of the child if the child's document has a 'parentId' field
-      // that matches the requester's UID. This is more direct and reliable.
-      let childDoc = get(/databases/$(database)/documents/users/$(childUserId)).data;
+      // A user is a parent of the child if their own document's `childIds` map
+      // contains the child's UID as a key. This is a secure and non-recursive check.
+      let parentDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isSignedIn()
-             && 'parentId' in childDoc
-             && childDoc.parentId == request.auth.uid;
+             && 'childIds' in parentDoc
+             && childUserId in parentDoc.childIds;
     }
     
     function isCreatingValidOrder(userId) {

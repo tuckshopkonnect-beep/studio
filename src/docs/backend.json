@@ -217,10 +217,10 @@
           "description": "The user ID of the parent linked to this student account."
         },
         "childIds": {
-          "type": "array",
-          "description": "An array of user IDs for the children linked to this parent account.",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "description": "A map of user IDs for the children linked to this parent account, where keys are child UIDs and values are true.",
+          "additionalProperties": {
+            "type": "boolean"
           }
         }
       },

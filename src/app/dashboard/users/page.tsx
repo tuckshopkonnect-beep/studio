@@ -42,7 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { collection, doc, deleteField } from "firebase/firestore";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
@@ -149,7 +149,6 @@ export default function UsersPage() {
   const handleSaveUser = async (userToSave: User & {password?: string}): Promise<boolean> => {
     if (!auth || !firestore) return false;
    
-   // Sanitize the data to remove undefined fields which Firestore doesn't support.
    const sanitizedData = { ...userToSave };
    Object.keys(sanitizedData).forEach(key => {
        const K = key as keyof typeof sanitizedData;
@@ -159,28 +158,21 @@ export default function UsersPage() {
    });
    delete (sanitizedData as any).password;
    
-   const savedUserId = isCreating ? '' : selectedUser!.id;
-   const previousParentId = isCreating ? undefined : selectedUser?.parentId;
-
    if (isCreating) {
        try {
-           // Use a temporary auth instance to create the user without signing the admin out
            const tempApp = initializeApp(firebaseConfig, `user-creation-${Date.now()}`);
            const tempAuth = getAuth(tempApp);
  
            const userCredential = await createUserWithEmailAndPassword(tempAuth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
  
-           // Now perform Firestore writes as the currently logged-in admin
-           const userDataForFirestore = { ...sanitizedData, id: newUserId };
+           const userDataForFirestore = { ...sanitizedData, id: newUserId, childIds: {} };
            const userDocRef = doc(firestore, 'users', newUserId);
-           // Creating the user's own document will pass rules because of isAdmin()
            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: true });
  
-           // Linking to parent is now done by the admin, so it will pass security rules
            if (userToSave.parentId) {
                const newParentRef = doc(firestore, 'users', userToSave.parentId);
-               updateDocumentNonBlocking(newParentRef, { childIds: arrayUnion(newUserId) });
+               updateDocumentNonBlocking(newParentRef, { [`childIds.${newUserId}`]: true });
            }
            
            toast({
@@ -205,15 +197,18 @@ export default function UsersPage() {
        
         const userDocRef = doc(firestore, 'users', selectedUser.id);
         setDocumentNonBlocking(userDocRef, sanitizedData, { merge: true });
+        
+        const previousParentId = selectedUser.parentId;
+        const savedUserId = selectedUser.id;
 
         if (userToSave.parentId !== previousParentId) {
             if (previousParentId) {
                 const oldParentRef = doc(firestore, 'users', previousParentId);
-                updateDocumentNonBlocking(oldParentRef, { childIds: arrayRemove(savedUserId) });
+                updateDocumentNonBlocking(oldParentRef, { [`childIds.${savedUserId}`]: deleteField() });
             }
             if (userToSave.parentId) {
                 const newParentRef = doc(firestore, 'users', userToSave.parentId);
-                updateDocumentNonBlocking(newParentRef, { childIds: arrayUnion(savedUserId) });
+                updateDocumentNonBlocking(newParentRef, { [`childIds.${savedUserId}`]: true });
             }
         }
 
