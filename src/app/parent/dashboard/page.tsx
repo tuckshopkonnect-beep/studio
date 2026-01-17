@@ -49,7 +49,23 @@ export default function ParentDashboard() {
 
   const { data: parent, isLoading: isLoadingParent } = useDoc<User>(parentDocRef);
   
-  const childrenIds = parent?.childIds ? Object.keys(parent.childIds) : [];
+  const getChildrenIds = (childIds: any): string[] => {
+    if (!childIds) {
+        return [];
+    }
+    // Check if it's an array (the old, incorrect format)
+    if (Array.isArray(childIds)) {
+        return childIds;
+    }
+    // If it's an object/map (the new, correct format), get the keys
+    if (typeof childIds === 'object') {
+        return Object.keys(childIds);
+    }
+    // Fallback for unexpected types
+    return [];
+  };
+
+  const childrenIds = getChildrenIds(parent?.childIds);
   
   const [fundingChild, setFundingChild] = useState<User | null>(null);
   const [isFundDialogOpen, setIsFundDialogOpen] = useState(false);
@@ -153,5 +169,3 @@ export default function ParentDashboard() {
     </>
   );
 }
-
-    
