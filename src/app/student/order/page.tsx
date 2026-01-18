@@ -193,7 +193,7 @@ export default function OrderPage() {
 
   if (isLoadingMenu || isLoadingSettings) {
     return (
-      <div>
+      <div className="container mx-auto p-4 py-8 md:p-6 md:py-12">
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
         <Skeleton className="h-16 w-full mb-8" />
         <MenuSkeleton />
@@ -202,7 +202,7 @@ export default function OrderPage() {
   }
 
   return (
-    <div>
+    <div className="container mx-auto p-4 py-8 md:p-6 md:py-12">
       <section>
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
         

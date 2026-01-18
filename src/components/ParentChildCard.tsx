@@ -18,6 +18,7 @@ import { doc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Skeleton } from "./ui/skeleton";
 import { useTodaysSpending } from "@/hooks/use-spending";
+import Link from 'next/link';
 
 interface ParentChildCardProps {
   childId: string;
@@ -110,8 +111,10 @@ export default function ParentChildCard({ childId, onFundWallet }: ParentChildCa
                 <Button className="w-full" onClick={() => onFundWallet(child)}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Fund
                 </Button>
-                <Button variant="outline" className="w-full">
-                    <History className="mr-2 h-4 w-4" /> History
+                <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/parent/history/${child.id}`}>
+                        <History className="mr-2 h-4 w-4" /> History
+                    </Link>
                 </Button>
             </CardFooter>
         </Card>
