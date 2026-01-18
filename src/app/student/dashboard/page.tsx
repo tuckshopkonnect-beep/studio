@@ -76,6 +76,17 @@ export default function StudentDashboard() {
     fetchRecommendations();
   }, [student]);
 
+  const defaultDailyLimit = useMemo(() => {
+    if (!appSettings || !student || !student.class) return null;
+    if (student.class.startsWith('JSS')) {
+      return appSettings.jssLimit ?? null;
+    }
+    if (student.class.startsWith('SSS')) {
+      return appSettings.sssLimit ?? null;
+    }
+    return null;
+  }, [appSettings, student]);
+
 
   if (isUserLoading || isLoadingStudent || isLoadingSpending || isLoadingSettings) {
     return (
@@ -97,17 +108,6 @@ export default function StudentDashboard() {
         </div>
       );
   }
-
-  const defaultDailyLimit = useMemo(() => {
-    if (!appSettings || !student || !student.class) return null;
-    if (student.class.startsWith('JSS')) {
-      return appSettings.jssLimit ?? null;
-    }
-    if (student.class.startsWith('SSS')) {
-      return appSettings.sssLimit ?? null;
-    }
-    return null;
-  }, [appSettings, student]);
 
   const effectiveDailyLimit = student.dailyLimit ?? defaultDailyLimit;
 
