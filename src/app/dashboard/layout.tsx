@@ -47,6 +47,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
@@ -57,11 +59,15 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
-    { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner", feature: "posScanner" },
+    { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner", feature: "posScannerEnabled" },
     { href: "/dashboard/appearance", icon: Palette, label: "Appearance" },
     { href: "/dashboard/password-resets", icon: KeyRound, label: "Password Resets" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
+
+interface AppSettings {
+  posScannerEnabled?: boolean;
+}
 
 export default function DashboardLayout({
   children,
@@ -69,8 +75,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const firestore = useFirestore();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [featureSettings, setFeatureSettings] = useState({ posScanner: true });
+
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  
+  const { data: appSettings } = useDoc<AppSettings>(settingsDocRef);
   
   useEffect(() => {
     // Ensure this code runs only on the client
@@ -84,8 +97,6 @@ export default function DashboardLayout({
     }
     document.documentElement.style.setProperty("--primary", storedColor);
     
-    const posScannerEnabled = localStorage.getItem('posScannerEnabled') === 'true';
-    setFeatureSettings({ posScanner: posScannerEnabled });
   }, []);
 
   const setTheme = (theme: "light" | "dark") => {
@@ -99,7 +110,10 @@ export default function DashboardLayout({
 
   const breadcrumbItems = pathname.split('/').filter(Boolean);
 
-  const visibleSecondaryNavItems = secondaryNavItems.filter(item => !item.feature || featureSettings[item.feature as keyof typeof featureSettings]);
+  const visibleSecondaryNavItems = secondaryNavItems.filter(item => {
+    if (!item.feature) return true;
+    return appSettings?.[item.feature as keyof AppSettings] !== false;
+  });
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -309,4 +323,3 @@ export default function DashboardLayout({
     
 
     
-

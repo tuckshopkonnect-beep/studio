@@ -171,19 +171,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the TuckshopKonnect application.",
+      "description": "Represents a user of the TuckshopKonnect application (student, parent, or admin).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user, matching their Firebase Auth UID."
         },
-        "firstName": {
+        "name": {
           "type": "string",
-          "description": "First name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the user."
+          "description": "Full name of the user."
         },
         "email": {
           "type": "string",
@@ -192,21 +188,45 @@
         },
         "role": {
           "type": "string",
-          "description": "Role of the user (e.g., student, staff, admin)."
+          "description": "Role of the user.",
+          "enum": [
+            "Student",
+            "Parent",
+            "Admin"
+          ]
         },
-        "schoolId": {
+        "avatarUrl": {
           "type": "string",
-          "description": "Identifier of the school that the user belongs to."
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
         },
-        "dietaryRestrictions": {
+        "balance": {
+          "type": "number",
+          "description": "Current wallet balance for the user (typically a student)."
+        },
+        "class": {
           "type": "string",
-          "description": "Dietary restrictions of the user."
+          "description": "Class level of the user, if they are a student."
+        },
+        "dailyLimit": {
+          "type": "number",
+          "description": "Individual daily spending limit for a student, which overrides default limits."
+        },
+        "parentId": {
+          "type": "string",
+          "description": "The user ID of the parent linked to this student account."
+        },
+        "childIds": {
+          "type": "object",
+          "description": "A map of user IDs for the children linked to this parent account, where keys are child UIDs and values are true.",
+          "additionalProperties": {
+            "type": "boolean"
+          }
         }
       },
       "required": [
         "id",
-        "firstName",
-        "lastName",
+        "name",
         "email",
         "role"
       ]
@@ -214,7 +234,7 @@
     "AppSettings": {
       "title": "Application Settings",
       "type": "object",
-      "description": "Stores global configuration for the application, such as default spending limits.",
+      "description": "Stores global configuration for the application.",
       "properties": {
         "jssLimit": {
           "type": "number",
@@ -223,12 +243,31 @@
         "sssLimit": {
           "type": "number",
           "description": "Default daily spending limit for Senior Secondary School students."
+        },
+        "orderTimerEnabled": {
+          "type": "boolean",
+          "description": "Whether the automated shop open/close timer is active."
+        },
+        "orderOpenTime": {
+          "type": "string",
+          "format": "time",
+          "description": "The time the shop opens for orders (e.g., '08:00')."
+        },
+        "orderCloseTime": {
+          "type": "string",
+          "format": "time",
+          "description": "The time the shop closes for orders (e.g., '14:00')."
+        },
+        "stopOrders": {
+          "type": "boolean",
+          "description": "A master override to stop all new orders immediately."
+        },
+        "posScannerEnabled": {
+          "type": "boolean",
+          "description": "Whether the POS QR Code scanner feature is enabled for admins."
         }
       },
-      "required": [
-        "jssLimit",
-        "sssLimit"
-      ]
+      "required": []
     }
   },
   "auth": {
@@ -354,11 +393,11 @@
           "schema": {
             "$ref": "#/backend/entities/AppSettings"
           },
-          "description": "Stores global application settings. Writable only by admins.",
+          "description": "Stores global application settings. Writable only by admins. Use a single document with a known ID like 'global' to store all settings.",
           "params": [
             {
               "name": "settingId",
-              "description": "The unique identifier for the setting document (e.g., 'defaultLimits')."
+              "description": "The unique identifier for the setting document (e.g., 'global')."
             }
           ]
         }

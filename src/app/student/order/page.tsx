@@ -3,13 +3,20 @@
 
 import MenuItemCard from '@/components/MenuItemCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Timer, AlertTriangle } from 'lucide-react';
+import { Timer, AlertTriangle, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { MenuItem } from '@/lib/data';
+
+interface AppSettings {
+  orderTimerEnabled?: boolean;
+  orderOpenTime?: string;
+  orderCloseTime?: string;
+  stopOrders?: boolean;
+}
 
 // --- StopOrdersAlert Component ---
 const StopOrdersAlert = () => {
@@ -26,25 +33,17 @@ const StopOrdersAlert = () => {
 
 
 // --- OrderTimer Component ---
-const OrderTimer = () => {
-    const [timerState, setTimerState] = useState({
-        isEnabled: false,
-        isOpen: false,
-        countdown: '',
-        openTimeStr: '8:00 AM',
-        closeTimeStr: '2:00 PM',
-    });
+const OrderTimer = ({ settings }: { settings: AppSettings }) => {
+    const [countdown, setCountdown] = useState('');
+    const [openTimeStr, setOpenTimeStr] = useState('');
+    const [closeTimeStr, setCloseTimeStr] = useState('');
+    const [isOpen, setIsOpen] = useState(true);
 
     useEffect(() => {
-        const timerEnabled = localStorage.getItem('orderTimerEnabled') === 'true';
+        if (!settings.orderTimerEnabled) return;
 
-        if (!timerEnabled) {
-            setTimerState(prev => ({ ...prev, isEnabled: false, isOpen: true }));
-            return;
-        }
-
-        const openTimeValue = localStorage.getItem('orderOpenTime') || '08:00';
-        const closeTimeValue = localStorage.getItem('orderCloseTime') || '14:00';
+        const openTimeValue = settings.orderOpenTime || '08:00';
+        const closeTimeValue = settings.orderCloseTime || '14:00';
         
         const [openHour, openMinute] = openTimeValue.split(':').map(Number);
         const [closeHour, closeMinute] = closeTimeValue.split(':').map(Number);
@@ -54,6 +53,9 @@ const OrderTimer = () => {
             const hour12 = h % 12 || 12;
             return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
         };
+        
+        setOpenTimeStr(formatTime(openHour, openMinute));
+        setCloseTimeStr(formatTime(closeHour, closeMinute));
 
         const calculateTimer = () => {
             const now = new Date();
@@ -64,20 +66,19 @@ const OrderTimer = () => {
             const closeTime = new Date();
             closeTime.setHours(closeHour, closeMinute, 0, 0);
 
-            let isOpen = now >= openTime && now < closeTime;
+            let isShopOpen = now >= openTime && now < closeTime;
+            setIsOpen(isShopOpen);
+            
             let targetTime;
             let messagePrefix;
 
             if (now < openTime) {
-                // Before opening
                 targetTime = openTime;
                 messagePrefix = 'Opens in:';
             } else if (now >= closeTime) {
-                // After closing
                 targetTime = new Date(openTime.getTime() + 24 * 60 * 60 * 1000); // Tomorrow's opening
                 messagePrefix = 'Opens in:';
             } else {
-                // During open hours
                 targetTime = closeTime;
                 messagePrefix = 'Closes in:';
             }
@@ -88,34 +89,27 @@ const OrderTimer = () => {
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
             
             const countdownStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-            setTimerState({
-                isEnabled: true,
-                isOpen,
-                countdown: `${messagePrefix} ${countdownStr}`,
-                openTimeStr: formatTime(openHour, openMinute),
-                closeTimeStr: formatTime(closeHour, closeMinute),
-            });
+            setCountdown(`${messagePrefix} ${countdownStr}`);
         };
         
         calculateTimer();
         const interval = setInterval(calculateTimer, 1000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [settings]);
 
-    if (!timerState.isEnabled) {
+    if (!settings.orderTimerEnabled) {
         return null; // Don't show anything if the timer is not enabled by the admin
     }
 
     return (
-        <Alert variant={timerState.isOpen ? 'default' : 'destructive'} className="mb-8">
+        <Alert variant={isOpen ? 'default' : 'destructive'} className="mb-8">
             <Timer className="h-4 w-4" />
             <AlertTitle>
-                {timerState.isOpen ? 'Shop is Open!' : 'Shop is Currently Closed'}
+                {isOpen ? 'Shop is Open!' : 'Shop is Currently Closed'}
             </AlertTitle>
             <AlertDescription>
-                Orders are accepted between {timerState.openTimeStr} and {timerState.closeTimeStr}. {timerState.countdown}
+                Orders are accepted between {openTimeStr} and {closeTimeStr}. {countdown}
             </AlertDescription>
         </Alert>
     );
@@ -146,8 +140,6 @@ const MenuSkeleton = () => (
 
 export default function OrderPage() {
   const firestore = useFirestore();
-  const [shopOpen, setShopOpen] = useState(true);
-  const [ordersStopped, setOrdersStopped] = useState(false);
   
   const menuItemsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -156,22 +148,27 @@ export default function OrderPage() {
   
   const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
 
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+
+  const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
+  
+  const [shopOpen, setShopOpen] = useState(true);
+
   useEffect(() => {
-    // Check for master override first
-    const stopOrders = localStorage.getItem('stopOrders') === 'true';
-    setOrdersStopped(stopOrders);
-    
-    if (stopOrders) {
+    if (!appSettings) return;
+
+    if (appSettings.stopOrders) {
       setShopOpen(false);
-      return; // No need to check timer if orders are stopped globally
+      return;
     }
 
-    // If not globally stopped, check the timer
-    const timerEnabled = localStorage.getItem('orderTimerEnabled') === 'true';
-    if(timerEnabled) {
+    if (appSettings.orderTimerEnabled) {
       const checkShopStatus = () => {
-        const openTimeValue = localStorage.getItem('orderOpenTime') || '08:00';
-        const closeTimeValue = localStorage.getItem('orderCloseTime') || '14:00';
+        const openTimeValue = appSettings.orderOpenTime || '08:00';
+        const closeTimeValue = appSettings.orderCloseTime || '14:00';
         const [openHour, openMinute] = openTimeValue.split(':').map(Number);
         const [closeHour, closeMinute] = closeTimeValue.split(':').map(Number);
 
@@ -183,29 +180,43 @@ export default function OrderPage() {
 
         setShopOpen(now >= openTime && now < closeTime);
       };
-      checkShopStatus();
-      const interval = setInterval(checkShopStatus, 1000 * 60); // Check every minute
+      
+      checkShopStatus(); // Initial check
+      const interval = setInterval(checkShopStatus, 30000); // Check every 30 seconds
       return () => clearInterval(interval);
     } else {
+      // If timer is not enabled and orders are not stopped, shop is open
       setShopOpen(true);
     }
-  }, []);
+  }, [appSettings]);
+
+
+  if (isLoadingMenu || isLoadingSettings) {
+    return (
+      <div>
+        <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
+        <Skeleton className="h-16 w-full mb-8" />
+        <MenuSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div>
       <section>
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
-        {ordersStopped ? <StopOrdersAlert /> : <OrderTimer />}
         
-        {isLoadingMenu ? (
-          <MenuSkeleton />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+        {appSettings?.stopOrders ? (
+          <StopOrdersAlert />
+        ) : appSettings ? (
+          <OrderTimer settings={appSettings} />
+        ) : null}
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             {(menuItems || []).map(item => (
               <MenuItemCard key={(item as any).id} item={item} isShopOpen={shopOpen} />
             ))}
-          </div>
-        )}
+        </div>
       </section>
     </div>
   );

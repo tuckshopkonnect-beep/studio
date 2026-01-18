@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/command";
 import type { User } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc, updateDoc, setDoc } from "firebase/firestore";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,8 +41,13 @@ import AccessDenied from "@/components/AccessDenied";
 
 // Define the settings type
 interface AppSettings {
-  jssLimit: number;
-  sssLimit: number;
+  jssLimit?: number;
+  sssLimit?: number;
+  orderTimerEnabled?: boolean;
+  orderOpenTime?: string;
+  orderCloseTime?: string;
+  stopOrders?: boolean;
+  posScannerEnabled?: boolean;
 }
 
 export default function SettingsPage() {
@@ -64,27 +69,20 @@ export default function SettingsPage() {
 
   // Fetch settings from Firestore
   const settingsDocRef = useMemoFirebase(() => {
-    // This query is only run when the user is authenticated.
-    // The security rules allow any signed-in user to read this document.
-    if (!firestore || !authUser) return null;
-    return doc(firestore, "settings", "defaultLimits");
-  }, [firestore, authUser]);
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
 
-  const { data: defaultLimits, isLoading: isLoadingLimits } = useDoc<AppSettings>(settingsDocRef);
+  const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 
   useEffect(() => {
-    if (defaultLimits) {
-      setJssLimit(String(defaultLimits.jssLimit || ""));
-      setSssLimit(String(defaultLimits.sssLimit || ""));
+    if (appSettings) {
+      setJssLimit(String(appSettings.jssLimit || ""));
+      setSssLimit(String(appSettings.sssLimit || ""));
     }
-  }, [defaultLimits]);
+  }, [appSettings]);
 
 
-  const [posScannerEnabled, setPosScannerEnabled] = useState(true);
-  const [orderTimerEnabled, setOrderTimerEnabled] = useState(false);
-  const [orderOpenTime, setOrderOpenTime] = useState("08:00");
-  const [orderCloseTime, setOrderCloseTime] = useState("14:00");
-  const [stopOrders, setStopOrders] = useState(false);
   const [isPromoteConfirmOpen, setIsPromoteConfirmOpen] = useState(false);
 
   // State for individual limits
@@ -110,51 +108,26 @@ export default function SettingsPage() {
     }
   }, [selectedStudent]);
 
-
-  useEffect(() => {
-    const storedPosScanner = localStorage.getItem('posScannerEnabled');
-    setPosScannerEnabled(storedPosScanner !== 'false');
-    
-    const storedOrderTimer = localStorage.getItem('orderTimerEnabled');
-    setOrderTimerEnabled(storedOrderTimer === 'true');
-
-    const storedOpenTime = localStorage.getItem('orderOpenTime') || "08:00";
-    setOrderOpenTime(storedOpenTime);
-    
-    const storedCloseTime = localStorage.getItem('orderCloseTime') || "14:00";
-    setOrderCloseTime(storedCloseTime);
-
-    const storedStopOrders = localStorage.getItem('stopOrders');
-    setStopOrders(storedStopOrders === 'true');
-
-  }, []);
-
-  const handlePosScannerToggle = (enabled: boolean) => {
-    setPosScannerEnabled(enabled);
-    localStorage.setItem('posScannerEnabled', String(enabled));
-     window.location.reload(); 
-  };
-
-  const handleOrderTimerToggle = (enabled: boolean) => {
-    setOrderTimerEnabled(enabled);
-    localStorage.setItem('orderTimerEnabled', String(enabled));
+  const handleSettingToggle = (key: keyof AppSettings, enabled: boolean) => {
+    if (!settingsDocRef) return;
+    updateDocumentNonBlocking(settingsDocRef, { [key]: enabled });
+    if(key === "posScannerEnabled") {
+      toast({
+        title: "Setting Saved",
+        description: "POS Scanner has been updated. The navigation will refresh on the next page load."
+      });
+    }
   };
   
   const handleTimeChange = () => {
-    localStorage.setItem('orderOpenTime', orderOpenTime);
-    localStorage.setItem('orderCloseTime', orderCloseTime);
+    if (!settingsDocRef) return;
+     updateDocumentNonBlocking(settingsDocRef, { 
+      orderOpenTime: appSettings?.orderOpenTime,
+      orderCloseTime: appSettings?.orderCloseTime
+     });
     toast({
         title: "Order times saved",
         description: "The shop open and close times have been updated."
-    });
-  };
-
-  const handleStopOrdersToggle = (enabled: boolean) => {
-    setStopOrders(enabled);
-    localStorage.setItem('stopOrders', String(enabled));
-    toast({
-        title: enabled ? "All orders have been stopped" : "Ordering has been re-enabled",
-        variant: enabled ? "destructive" : "default"
     });
   };
 
@@ -164,7 +137,7 @@ export default function SettingsPage() {
       return;
     }
     
-    const settingsData: AppSettings = {
+    const settingsData = {
       jssLimit: Number(jssLimit),
       sssLimit: Number(sssLimit),
     };
@@ -227,7 +200,12 @@ export default function SettingsPage() {
     setIsPromoteConfirmOpen(false);
   };
 
-  if (isUserLoading || isLoadingCurrentUser) {
+  const handleTimeInputChange = (field: keyof AppSettings, value: string) => {
+    if (!settingsDocRef) return;
+    updateDocumentNonBlocking(settingsDocRef, { [field]: value });
+  };
+
+  if (isUserLoading || isLoadingCurrentUser || isLoadingSettings) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -262,7 +240,7 @@ export default function SettingsPage() {
             <form className="grid gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="jss-limit">Junior Students (JSS)</Label>
-                {isLoadingLimits ? (
+                {isLoadingSettings ? (
                     <Skeleton className="h-10 w-full" />
                 ) : (
                     <div className="relative">
@@ -273,7 +251,7 @@ export default function SettingsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="sss-limit">Senior Students (SSS)</Label>
-                {isLoadingLimits ? (
+                {isLoadingSettings ? (
                     <Skeleton className="h-10 w-full" />
                 ) : (
                     <div className="relative">
@@ -389,8 +367,8 @@ export default function SettingsPage() {
                 <Switch 
                     id="stop-orders" 
                     aria-label="Stop all orders" 
-                    checked={stopOrders}
-                    onCheckedChange={handleStopOrdersToggle}
+                    checked={appSettings?.stopOrders || false}
+                    onCheckedChange={(checked) => handleSettingToggle('stopOrders', checked)}
                 />
             </div>
              <div className="space-y-4 rounded-lg border p-4">
@@ -404,22 +382,22 @@ export default function SettingsPage() {
                 <Switch 
                     id="order-timer" 
                     aria-label="Enable order timer" 
-                    checked={orderTimerEnabled}
-                    onCheckedChange={handleOrderTimerToggle}
-                    disabled={stopOrders}
+                    checked={appSettings?.orderTimerEnabled || false}
+                    onCheckedChange={(checked) => handleSettingToggle('orderTimerEnabled', checked)}
+                    disabled={appSettings?.stopOrders}
                 />
               </div>
-              {orderTimerEnabled && (
+              {appSettings?.orderTimerEnabled && (
                 <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="grid gap-2">
                         <Label htmlFor="open-time">Open Time</Label>
                         <Input 
                             id="open-time" 
                             type="time" 
-                            value={orderOpenTime}
-                            onChange={(e) => setOrderOpenTime(e.target.value)}
+                            value={appSettings?.orderOpenTime || "08:00"}
+                            onChange={(e) => handleTimeInputChange('orderOpenTime', e.target.value)}
                             onBlur={handleTimeChange}
-                            disabled={stopOrders}
+                            disabled={appSettings?.stopOrders}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -427,10 +405,10 @@ export default function SettingsPage() {
                         <Input 
                             id="close-time" 
                             type="time" 
-                            value={orderCloseTime}
-                            onChange={(e) => setOrderCloseTime(e.target.value)}
+                            value={appSettings?.orderCloseTime || "14:00"}
+                            onChange={(e) => handleTimeInputChange('orderCloseTime', e.target.value)}
                             onBlur={handleTimeChange}
-                            disabled={stopOrders}
+                            disabled={appSettings?.stopOrders}
                         />
                     </div>
                 </div>
@@ -446,8 +424,8 @@ export default function SettingsPage() {
               <Switch 
                 id="pos-scanner" 
                 aria-label="Enable POS Scanner" 
-                checked={posScannerEnabled}
-                onCheckedChange={handlePosScannerToggle}
+                checked={appSettings?.posScannerEnabled !== false}
+                onCheckedChange={(checked) => handleSettingToggle('posScannerEnabled', checked)}
               />
             </div>
           </CardContent>

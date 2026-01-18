@@ -13,6 +13,10 @@ import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 
+interface AppSettings {
+  posScannerEnabled?: boolean;
+}
+
 export default function OrderConfirmationPage() {
     const router = useRouter();
     const pathname = usePathname();
@@ -20,7 +24,6 @@ export default function OrderConfirmationPage() {
     const qrCodeRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
     const downloadTriggered = useRef(false);
-    const [isPosEnabled, setIsPosEnabled] = useState(true);
 
     const firestore = useFirestore();
     const { user: authUser, isUserLoading } = useUser();
@@ -32,14 +35,15 @@ export default function OrderConfirmationPage() {
 
     const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
 
+    const settingsDocRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, "settings", "global");
+    }, [firestore]);
+    
+    const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
+    const isPosEnabled = appSettings?.posScannerEnabled !== false;
+
     const studentBalance = student && completedOrder ? student.balance : 0;
-
-    useEffect(() => {
-        // Check if POS scanner is enabled from localStorage
-        const posEnabled = localStorage.getItem('posScannerEnabled') !== 'false';
-        setIsPosEnabled(posEnabled);
-    }, []);
-
 
     const handleDownloadReceipt = async () => {
         if (completedOrder && student && qrCodeRef.current) {
@@ -94,7 +98,7 @@ export default function OrderConfirmationPage() {
         };
     }, [pathname, setCompletedOrder, clearCart, router]);
 
-    if (isLoadingStudent || isUserLoading) {
+    if (isLoadingStudent || isUserLoading || isLoadingSettings) {
         return (
             <div className="container mx-auto flex flex-col items-center justify-center p-4 md:p-6 min-h-[calc(100vh-8rem)]">
                 <Card className="w-full max-w-lg text-center shadow-2xl">
@@ -189,5 +193,3 @@ export default function OrderConfirmationPage() {
         </div>
     );
 }
-
-    
