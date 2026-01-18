@@ -120,11 +120,8 @@ export default function SettingsPage() {
   };
   
   const handleTimeChange = () => {
-    if (!settingsDocRef) return;
-     updateDocumentNonBlocking(settingsDocRef, { 
-      orderOpenTime: appSettings?.orderOpenTime,
-      orderCloseTime: appSettings?.orderCloseTime
-     });
+    // The `onChange` handler (`handleTimeInputChange`) already saves the data.
+    // This `onBlur` handler is now only responsible for showing the confirmation toast.
     toast({
         title: "Order times saved",
         description: "The shop open and close times have been updated."
@@ -473,3 +470,4 @@ export default function SettingsPage() {
 
 
     
+
