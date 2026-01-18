@@ -18,9 +18,10 @@ import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 interface OrderSummaryProps {
   student?: User;
   spentToday: number;
+  defaultDailyLimit: number | null;
 }
 
-export default function OrderSummary({ student, spentToday }: OrderSummaryProps) {
+export default function OrderSummary({ student, spentToday, defaultDailyLimit }: OrderSummaryProps) {
   const { cart: cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
   const { toast } = useToast();
   const router = useRouter();
@@ -30,9 +31,10 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
   }
 
+  const effectiveDailyLimit = student.dailyLimit ?? defaultDailyLimit;
   const potentialBalance = student.balance - totalPrice;
   const potentialSpentToday = spentToday + totalPrice;
-  const remainingLimit = student.dailyLimit ? student.dailyLimit - spentToday : Infinity;
+  const remainingLimit = effectiveDailyLimit ? effectiveDailyLimit - spentToday : Infinity;
 
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
@@ -53,7 +55,7 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
       return;
     }
 
-    if (student.dailyLimit && potentialSpentToday > student.dailyLimit) {
+    if (effectiveDailyLimit && potentialSpentToday > effectiveDailyLimit) {
       toast({
         variant: "destructive",
         title: "Daily Limit Exceeded",
@@ -146,7 +148,7 @@ export default function OrderSummary({ student, spentToday }: OrderSummaryProps)
              <div className="flex justify-between">
               <span className="text-muted-foreground">Daily Limit Remaining</span>
               <span className={remainingLimit < totalPrice ? "text-destructive" : ""}>
-                {student.dailyLimit ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
+                {effectiveDailyLimit ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
               </span>
             </div>
             <div className="flex justify-between">

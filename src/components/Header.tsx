@@ -21,13 +21,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { User } from "@/lib/data";
 import { usePathname } from "next/navigation";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import { useTodaysSpending } from "@/hooks/use-spending";
 
+interface AppSettings {
+  jssLimit?: number;
+  sssLimit?: number;
+}
 
 export default function Header() {
   const { totalItems } = useCart();
@@ -42,6 +46,12 @@ export default function Header() {
   }, [firestore, authUser]);
 
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+  
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 
   const isStudent = currentUser?.role === 'Student';
   const { spentToday, isLoadingSpending } = useTodaysSpending(isStudent ? authUser?.uid : null);
@@ -73,8 +83,19 @@ export default function Header() {
 
   const studentUser = currentUser?.role === 'Student' ? currentUser : undefined;
   
-  const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSpending;
+  const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSpending || isLoadingSettings;
   const canDisplayCart = !isCartDataLoading && studentUser;
+
+  const defaultDailyLimit = useMemo(() => {
+    if (!appSettings || !studentUser || !studentUser.class) return null;
+    if (studentUser.class.startsWith('JSS')) {
+      return appSettings.jssLimit ?? null;
+    }
+    if (studentUser.class.startsWith('SSS')) {
+      return appSettings.sssLimit ?? null;
+    }
+    return null;
+  }, [appSettings, studentUser]);
   
   if (!theme) {
       // Render a placeholder or skeleton while theme is loading to avoid flash
@@ -160,7 +181,7 @@ export default function Header() {
                   </div>
                 )}
                 {canDisplayCart && (
-                  <OrderSummary student={studentUser} spentToday={spentToday} />
+                  <OrderSummary student={studentUser} spentToday={spentToday} defaultDailyLimit={defaultDailyLimit} />
                 )}
                 {!isCartDataLoading && !studentUser && (
                    <div className="p-6 text-center text-muted-foreground">
@@ -175,5 +196,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

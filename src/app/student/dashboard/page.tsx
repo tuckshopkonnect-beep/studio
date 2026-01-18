@@ -13,12 +13,17 @@ import { Progress } from "@/components/ui/progress";
 import { DollarSign, History, ShoppingCart, TrendingUp, Loader2, UserX } from "lucide-react";
 import Link from "next/link";
 import { getPersonalizedFoodRecommendations, PersonalizedFoodRecommendationsInput, PersonalizedFoodRecommendationsOutput } from "@/app/actions";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { User } from "@/lib/data";
 import { useTodaysSpending } from "@/hooks/use-spending";
+
+interface AppSettings {
+  jssLimit?: number;
+  sssLimit?: number;
+}
 
 export default function StudentDashboard() {
   const firestore = useFirestore();
@@ -33,6 +38,12 @@ export default function StudentDashboard() {
   
   // Use the new hook to get today's spending
   const { spentToday, isLoadingSpending } = useTodaysSpending(authUser?.uid);
+
+  const settingsDocRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 
   const [recommendations, setRecommendations] = useState<PersonalizedFoodRecommendationsOutput | null>(null);
   const [isLoadingRecs, setIsLoadingRecs] = useState(true);
@@ -66,7 +77,7 @@ export default function StudentDashboard() {
   }, [student]);
 
 
-  if (isUserLoading || isLoadingStudent || isLoadingSpending) {
+  if (isUserLoading || isLoadingStudent || isLoadingSpending || isLoadingSettings) {
     return (
         <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -86,6 +97,19 @@ export default function StudentDashboard() {
         </div>
       );
   }
+
+  const defaultDailyLimit = useMemo(() => {
+    if (!appSettings || !student || !student.class) return null;
+    if (student.class.startsWith('JSS')) {
+      return appSettings.jssLimit ?? null;
+    }
+    if (student.class.startsWith('SSS')) {
+      return appSettings.sssLimit ?? null;
+    }
+    return null;
+  }, [appSettings, student]);
+
+  const effectiveDailyLimit = student.dailyLimit ?? defaultDailyLimit;
 
   return (
     <div className="container mx-auto p-4 md:p-6">
@@ -111,8 +135,8 @@ export default function StudentDashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{spentToday.toFixed(2)} / ₦{(student.dailyLimit || 0).toFixed(2)}</div>
-            <Progress value={(spentToday / (student.dailyLimit || 1)) * 100} className="mt-2" />
+            <div className="text-2xl font-bold">₦{spentToday.toFixed(2)} / ₦{(effectiveDailyLimit || 0).toFixed(2)}</div>
+            <Progress value={(spentToday / (effectiveDailyLimit || 1)) * 100} className="mt-2" />
           </CardContent>
         </Card>
       </div>
@@ -177,5 +201,4 @@ export default function StudentDashboard() {
         </div>
     </div>
   );
-
-    
+}
