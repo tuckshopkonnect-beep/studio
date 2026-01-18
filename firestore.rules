@@ -42,11 +42,9 @@ service cloud.firestore {
 
     match /users/{userId} {
       // READ:
-      // Any authenticated user can get an individual user profile. This is necessary
-      // to allow the isAdmin() helper function to read a user's role without causing
-      // a recursive loop in the security rules. The more restrictive `list` rule
-      // below prevents downloading the entire collection.
-      allow get: if isSignedIn();
+      // A user can always get their own profile. This is necessary for the
+      // isAdmin() helper function to read a user's role without causing a recursive loop.
+      allow get: if isOwner(userId);
       
       // LIST:
       // Only admins can list/query the entire users collection.
