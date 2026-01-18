@@ -55,7 +55,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return;
     }
 
-    if (effectiveDailyLimit && potentialSpentToday > effectiveDailyLimit) {
+    if (effectiveDailyLimit !== null && potentialSpentToday > effectiveDailyLimit) {
       toast({
         variant: "destructive",
         title: "Daily Limit Exceeded",
@@ -92,6 +92,17 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
     clearCart();
     router.push('/student/order/confirmation');
   };
+
+  const isBalanceInsufficient = totalPrice > student.balance;
+  const isLimitExceeded = effectiveDailyLimit !== null && potentialSpentToday > effectiveDailyLimit;
+  const isButtonDisabled = cartItems.length === 0 || isBalanceInsufficient || isLimitExceeded;
+
+  let buttonText = `Place Order (₦${totalPrice.toFixed(2)})`;
+  if (isBalanceInsufficient) {
+      buttonText = 'Insufficient Balance';
+  } else if (isLimitExceeded) {
+      buttonText = 'Daily Limit Exceeded';
+  }
 
 
   return (
@@ -148,7 +159,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
              <div className="flex justify-between">
               <span className="text-muted-foreground">Daily Limit Remaining</span>
               <span className={remainingLimit < totalPrice ? "text-destructive" : ""}>
-                {effectiveDailyLimit ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
+                {effectiveDailyLimit !== null ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -167,8 +178,13 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
               </span>
             </div>
           </div>
-          <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg" onClick={handlePlaceOrder}>
-            Place Order (₦{totalPrice.toFixed(2)})
+          <Button 
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90" 
+            size="lg" 
+            onClick={handlePlaceOrder}
+            disabled={isButtonDisabled}
+          >
+            {buttonText}
           </Button>
         </div>
       )}
