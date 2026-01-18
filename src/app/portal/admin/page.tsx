@@ -166,12 +166,6 @@ export default function AdminLoginPage() {
               </Button>
             </div>
           </form>
-          <div className="mt-6 text-center text-sm">
-            Don't have an account?{" "}
-            <Link href="/portal/admin/signup" className="underline hover:text-primary">
-              Sign Up
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
