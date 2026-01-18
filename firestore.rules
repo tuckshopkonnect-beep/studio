@@ -16,9 +16,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // This check is safe because the `get` rule for a user's own profile is non-recursive.
+      // The `exists()` check is removed as it is redundant and may cause evaluation issues.
+      // The subsequent `get()` call will safely fail if the document does not exist.
       return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
@@ -42,12 +42,13 @@ service cloud.firestore {
 
     match /users/{userId} {
       // READ:
-      // A user can always get their own profile. This is necessary for the
-      // isAdmin() helper function to read a user's role without causing a recursive loop.
-      allow get: if isOwner(userId);
+      // Allow any signed-in user to GET a document. This is required to break
+      // the recursion in the isAdmin() function.
+      allow get: if isSignedIn();
       
       // LIST:
-      // Only admins can list/query the entire users collection.
+      // Only admins can list/query the entire users collection. This is now safe
+      // because isAdmin() can successfully perform its GET operation.
       allow list: if isAdmin();
       
       // CREATE:
