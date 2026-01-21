@@ -223,10 +223,6 @@
           "additionalProperties": {
             "type": "boolean"
           }
-        },
-        "schoolId": {
-          "type": "string",
-          "description": "The ID of the school this user belongs to."
         }
       },
       "required": [
@@ -273,31 +269,6 @@
         }
       },
       "required": []
-    },
-    "School": {
-      "title": "School",
-      "type": "object",
-      "description": "Represents a school registered to use the application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the school."
-        },
-        "name": {
-          "type": "string",
-          "description": "The official name of the school."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "The date the school was registered.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "createdAt"
-      ]
     }
   },
   "auth": {
@@ -308,22 +279,6 @@
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/schools/{schoolId}",
-        "definition": {
-          "entityName": "School",
-          "schema": {
-            "$ref": "#/backend/entities/School"
-          },
-          "description": "Stores information about registered schools.",
-          "params": [
-            {
-              "name": "schoolId",
-              "description": "Unique identifier for the school."
-            }
-          ]
-        }
-      },
       {
         "path": "/menuItems/{menuItemId}",
         "definition": {

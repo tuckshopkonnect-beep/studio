@@ -76,11 +76,6 @@ export default function Home() {
                   <Utensils className="mr-2" /> Go to Portal
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="bg-background/20 border-white/50 text-white hover:bg-background/30 hover:text-white backdrop-blur-sm">
-                <Link href="/register-school">
-                  Register Your School <ArrowRight className="ml-2" />
-                </Link>
-              </Button>
             </div>
           </div>
         </section>

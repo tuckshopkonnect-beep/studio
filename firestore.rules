@@ -16,10 +16,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // The `exists()` check is removed as it is redundant and may cause evaluation issues.
-      // The subsequent `get()` call will safely fail if the document does not exist.
-      return isSignedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      // A user is an admin if their user document has the 'Admin' role.
+      // This rule allows this function to read any user's profile to check their role.
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
     
     function isParent(childUserId) {
@@ -39,20 +38,12 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     // Collection Rules
     // --------------------------------------------------------------------
-    
-    match /schools/{schoolId} {
-      // Any signed-in user can create a school during registration.
-      // Reading is allowed for any signed-in user to check subscription status (future).
-      // Only admins can update it.
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
-    }
 
     match /users/{userId} {
       // A user can read their own profile. An admin function needs to read any profile.
-      // This is safe because get() is not recursive and only returns a single document.
+      // `get` is safe for `isAdmin()` because it's non-recursive and only returns one document.
       allow get: if isSignedIn();
+      // Only admins can list all users.
       allow list: if isAdmin();
       
       // CREATE: An admin can create any user profile, or a user can create their own 'Admin' profile.
