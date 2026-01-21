@@ -41,20 +41,13 @@ service cloud.firestore {
     // --------------------------------------------------------------------
 
     match /users/{userId} {
-      // READ:
-      // Allow any signed-in user to GET a document. This is required to break
-      // the recursion in the isAdmin() function.
-      allow get: if isSignedIn();
-      
-      // LIST:
-      // Only admins can list/query the entire users collection. This is now safe
-      // because isAdmin() can successfully perform its GET operation.
+      allow get: if isOwner(userId);
       allow list: if isAdmin();
       
       // CREATE:
       // An admin can create any user.
-      // A new user can create their own 'Admin' profile (for initial setup).
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
+      // A new user can create their own 'Admin' profile (for initial setup), if they provide a schoolId.
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin' && 'schoolId' in request.resource.data);
       
       // UPDATE:
       // An admin can update any user.
@@ -110,6 +103,17 @@ service cloud.firestore {
       match /inventory/{inventoryId} {
         allow read, write: if isAdmin();
       }
+    }
+
+    /**
+     * @description Stores information about each school.
+     */
+    match /schools/{schoolId} {
+      // Any authenticated user can register a new school.
+      // Once created, only an admin can modify or delete it.
+      allow create: if isSignedIn();
+      allow read: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
   }
 }

@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, SlidersHorizontal, BookUser, Twitter, Instagram, Facebook, Mail } from 'lucide-react';
+import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, SlidersHorizontal, BookUser, Twitter, Instagram, Facebook, Mail, ArrowRight } from 'lucide-react';
 import { menuItems } from '@/lib/data';
 import MenuItemCard from '@/components/MenuItemCard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -136,6 +136,21 @@ export default function Home() {
             </div>
         </section>
         
+        {/* For Schools Section */}
+        <section className="py-16 md:py-24 bg-primary/5 text-center">
+            <div className="container px-4">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Are you a School Administrator?</h2>
+                <p className="text-muted-foreground mt-3 max-w-2xl mx-auto">
+                    Modernize your tuckshop operations with our powerful, easy-to-use platform. Manage your menu, track sales, and provide a seamless cashless experience for your students.
+                </p>
+                <Button size="lg" asChild className="mt-8">
+                    <Link href="/register-school">
+                        Register Your School Today <ArrowRight className="ml-2" />
+                    </Link>
+                </Button>
+            </div>
+        </section>
+
         {/* Testimonials Section */}
         <section className="py-16 md:py-24 bg-background">
             <div className="container px-4">
