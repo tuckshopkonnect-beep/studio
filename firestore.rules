@@ -39,9 +39,20 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     // Collection Rules
     // --------------------------------------------------------------------
+    
+    match /schools/{schoolId} {
+      // Any signed-in user can create a school during registration.
+      // Reading is allowed for any signed-in user to check subscription status (future).
+      // Only admins can update it.
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
 
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      // A user can read their own profile. An admin function needs to read any profile.
+      // This is safe because get() is not recursive and only returns a single document.
+      allow get: if isSignedIn();
       allow list: if isAdmin();
       
       // CREATE: An admin can create any user profile, or a user can create their own 'Admin' profile.

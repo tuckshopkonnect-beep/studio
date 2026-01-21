@@ -70,11 +70,18 @@ export default function Home() {
             <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-8 text-shadow">
               A modern, cashless solution for school tuckshops. Easy for students, peace of mind for parents, and efficient for schools.
             </p>
-            <Button size="lg" asChild>
-              <Link href="/portal">
-                <Utensils className="mr-2" /> Get Started
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button size="lg" asChild>
+                <Link href="/portal">
+                  <Utensils className="mr-2" /> Go to Portal
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="bg-background/20 border-white/50 text-white hover:bg-background/30 hover:text-white backdrop-blur-sm">
+                <Link href="/register-school">
+                  Register Your School <ArrowRight className="ml-2" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
 
