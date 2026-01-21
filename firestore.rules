@@ -44,19 +44,15 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if isAdmin();
       
-      // CREATE:
-      // An admin can create any user.
-      // A new user can create their own 'Admin' profile (for initial setup), if they provide a schoolId.
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin' && 'schoolId' in request.resource.data);
+      // CREATE: An admin can create any user profile, or a user can create their own 'Admin' profile.
+      // This is intended to allow the very first user to establish themselves as the administrator.
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
-      // UPDATE:
-      // An admin can update any user.
-      // A user can update their own profile as long as they are not changing their role.
-      // This also allows a role to be set for the first time on a partially created document.
-      allow update: if isAdmin() || (isOwner(userId) && (!('role' in resource.data) || request.resource.data.role == resource.data.role));
+      // UPDATE: An admin can update any user. A user can update their own profile
+      // as long as they are not changing their role.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
 
-      // DELETE:
-      // Only an admin can delete a user profile.
+      // DELETE: Only an admin can delete a user profile.
       allow delete: if isAdmin();
 
 
@@ -103,17 +99,6 @@ service cloud.firestore {
       match /inventory/{inventoryId} {
         allow read, write: if isAdmin();
       }
-    }
-
-    /**
-     * @description Stores information about each school.
-     */
-    match /schools/{schoolId} {
-      // Any authenticated user can register a new school.
-      // Once created, only an admin can modify or delete it.
-      allow create: if isSignedIn();
-      allow read: if isSignedIn();
-      allow update, delete: if isAdmin();
     }
   }
 }

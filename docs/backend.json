@@ -223,18 +223,13 @@
           "additionalProperties": {
             "type": "boolean"
           }
-        },
-        "schoolId": {
-            "type": "string",
-            "description": "The ID of the school this user belongs to."
         }
       },
       "required": [
         "id",
         "name",
         "email",
-        "role",
-        "schoolId"
+        "role"
       ]
     },
     "AppSettings": {
@@ -274,27 +269,6 @@
         }
       },
       "required": []
-    },
-    "School": {
-        "title": "School",
-        "type": "object",
-        "description": "Represents a school using the platform.",
-        "properties": {
-            "id": {
-                "type": "string",
-                "description": "Unique identifier for the school."
-            },
-            "name": {
-                "type": "string",
-                "description": "The official name of the school."
-            },
-            "createdAt": {
-                "type": "string",
-                "format": "date-time",
-                "description": "The date and time the school was registered."
-            }
-        },
-        "required": ["id", "name", "createdAt"]
     }
   },
   "auth": {
@@ -425,22 +399,6 @@
             {
               "name": "settingId",
               "description": "The unique identifier for the setting document (e.g., 'global')."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/schools/{schoolId}",
-        "definition": {
-          "entityName": "School",
-          "schema": {
-            "$ref": "#/backend/entities/School"
-          },
-          "description": "Stores information about each school registered on the platform.",
-          "params": [
-            {
-              "name": "schoolId",
-              "description": "Unique identifier for the school."
             }
           ]
         }
