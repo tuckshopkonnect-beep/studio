@@ -73,7 +73,10 @@ service cloud.firestore {
      */
     match /orders/{orderId} {
       allow get, list: if isSignedIn();
-      allow write: if isAdmin();
+      // Any signed-in user can create their own order record in this master list.
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Only admins can modify or delete from this master list.
+      allow update, delete: if isAdmin();
     }
     
     /**
