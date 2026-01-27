@@ -63,7 +63,7 @@ export default function WeeklySalesChart({ orders }: WeeklySalesChartProps) {
           content={
             <ChartTooltipContent 
               indicator="dot" 
-              formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'NGN' }).format(value)}
+              formatter={(value: number) => `₦${value.toLocaleString()}`}
             />
           }
         />
