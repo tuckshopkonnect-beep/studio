@@ -52,6 +52,7 @@ const Footer = () => {
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
             <p>&copy; {new Date().getFullYear()} TuckshopKonnect. All rights reserved.</p>
+            <p className="mt-2">TuckshopKonnect is one of the productions of seme productions.</p>
           </div>
         </div>
       </footer>
@@ -59,5 +60,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
-    
