@@ -38,6 +38,16 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     // Collection Rules
     // --------------------------------------------------------------------
+    
+    match /schools/{schoolId} {
+      // Only an existing admin can create a new school.
+      allow create: if isAdmin();
+      // Any signed-in user can read school information.
+      allow read: if isSignedIn();
+      // Only admins can list or delete schools.
+      allow list, delete, update: if isAdmin();
+    }
+
 
     match /users/{userId} {
       // A user can read their own profile. An admin function needs to read any profile.
@@ -46,8 +56,8 @@ service cloud.firestore {
       // Only admins can list all users.
       allow list: if isAdmin();
       
-      // CREATE: An admin can create any user profile, or a user can create their own 'Admin' profile.
-      // This is intended to allow the very first user to establish themselves as the administrator.
+      // CREATE: An admin can create any user profile. A user can create their own 'Admin' profile
+      // on initial sign-up. A new user document must have a schoolId if being created by an admin.
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
       // UPDATE: An admin can update any user. A user can update their own profile

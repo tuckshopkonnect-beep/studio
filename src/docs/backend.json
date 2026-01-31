@@ -1,5 +1,22 @@
+
 {
   "entities": {
+    "School": {
+      "title": "School",
+      "type": "object",
+      "description": "Represents an individual school or institution using the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the school."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the school."
+        }
+      },
+      "required": ["id", "name"]
+    },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
@@ -177,6 +194,10 @@
           "type": "string",
           "description": "Unique identifier for the user, matching their Firebase Auth UID."
         },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school this user belongs to. This enables multi-tenancy."
+        },
         "name": {
           "type": "string",
           "description": "Full name of the user."
@@ -234,7 +255,7 @@
     "AppSettings": {
       "title": "Application Settings",
       "type": "object",
-      "description": "Stores global configuration for the application, such as default spending limits.",
+      "description": "Stores global configuration for the application.",
       "properties": {
         "jssLimit": {
           "type": "number",
@@ -243,12 +264,31 @@
         "sssLimit": {
           "type": "number",
           "description": "Default daily spending limit for Senior Secondary School students."
+        },
+        "orderTimerEnabled": {
+          "type": "boolean",
+          "description": "Whether the automated shop open/close timer is active."
+        },
+        "orderOpenTime": {
+          "type": "string",
+          "format": "time",
+          "description": "The time the shop opens for orders (e.g., '08:00')."
+        },
+        "orderCloseTime": {
+          "type": "string",
+          "format": "time",
+          "description": "The time the shop closes for orders (e.g., '14:00')."
+        },
+        "stopOrders": {
+          "type": "boolean",
+          "description": "A master override to stop all new orders immediately."
+        },
+        "posScannerEnabled": {
+          "type": "boolean",
+          "description": "Whether the POS QR Code scanner feature is enabled for admins."
         }
       },
-      "required": [
-        "jssLimit",
-        "sssLimit"
-      ]
+      "required": []
     }
   },
   "auth": {
@@ -259,6 +299,20 @@
   },
   "firestore": {
     "structure": [
+      {
+        "path": "/schools/{schoolId}",
+        "definition": {
+          "entityName": "School",
+          "schema": { "$ref": "#/backend/entities/School" },
+          "description": "Collection of all schools registered in the application.",
+           "params": [
+            {
+              "name": "schoolId",
+              "description": "Unique identifier for the school."
+            }
+          ]
+        }
+      },
       {
         "path": "/menuItems/{menuItemId}",
         "definition": {
@@ -374,16 +428,16 @@
           "schema": {
             "$ref": "#/backend/entities/AppSettings"
           },
-          "description": "Stores global application settings. Writable only by admins.",
+          "description": "Stores global application settings. Writable only by admins. Use a single document with a known ID like 'global' to store all settings.",
           "params": [
             {
               "name": "settingId",
-              "description": "The unique identifier for the setting document (e.g., 'defaultLimits')."
+              "description": "The unique identifier for the setting document (e.g., 'global')."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, focusing on menu display, order placement, order management, and inventory control. It leverages path-based ownership for user-specific data (orders) and a top-level collection for menu items accessible to all users. A top-level `/orders` collection is included for admin-level querying of all orders. Authorization Independence is achieved by storing the `userId` directly within the `Order` documents, eliminating the need for security rules to traverse to parent documents. QAPs are supported by segregating data based on ownership (orders under user IDs) and providing a flat, easily queryable structure for menu items and all orders."
+    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, and is being updated to support multi-tenancy (multiple schools). A new top-level `schools` collection is added. The `User` entity is updated with a `schoolId` to associate users with their respective institutions. For now, other collections remain unchanged to support existing data, with the plan to partition them by school in a future iteration. Authorization independence is maintained by storing the `userId` directly within `Order` documents."
   }
 }

@@ -1,6 +1,11 @@
 
 import { PlaceHolderImages } from './placeholder-images';
 
+export interface School {
+  id: string;
+  name: string;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -39,6 +44,7 @@ export interface InventoryItem {
 
 export interface User {
   id: string; 
+  schoolId?: string;
   name: string;
   email: string;
   role: 'Admin' | 'Parent' | 'Student';
