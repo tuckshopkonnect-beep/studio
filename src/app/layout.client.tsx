@@ -14,6 +14,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
     '/parent/dashboard',
     '/student/dashboard',
     '/portal',
+    '/schools',
   ];
 
   // A more robust check to see if the path starts with any of the noHeaderPaths

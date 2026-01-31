@@ -40,10 +40,10 @@ export default function SchoolsPage() {
             <div className="bg-primary/20 p-3 rounded-full border border-primary/30">
                 <University className="h-8 w-8 text-primary" />
             </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black">
             Select Your School
           </h1>
-          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-black max-w-2xl mx-auto">
             Please choose your school to proceed to the correct portal.
           </p>
         </div>
