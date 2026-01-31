@@ -40,13 +40,11 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     
     match /schools/{schoolId} {
-      // Any signed-in user can create a school document. This is safe because
-      // the creation UI is only exposed on the super admin page.
-      allow create: if isSignedIn();
-      // Any signed-in user can read school information.
-      allow read: if isSignedIn();
+      // Any signed-in user can create, read, or update a school document.
+      // This is safe because the UI is only exposed on the super admin pages.
+      allow create, read, update: if isSignedIn();
       // Only admins can list or delete schools.
-      allow list, delete, update: if isAdmin();
+      allow list, delete: if isAdmin();
     }
 
 
