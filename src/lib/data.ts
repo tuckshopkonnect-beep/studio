@@ -8,6 +8,7 @@ export interface School {
 
 export interface MenuItem {
   id: string;
+  schoolId?: string;
   name: string;
   description: string;
   price: number;
@@ -24,6 +25,7 @@ export interface MenuItem {
 
 export interface Order {
   id: string;
+  schoolId?: string;
   customerName: string;
   userId: string;
   items: {

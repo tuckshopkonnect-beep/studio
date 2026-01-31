@@ -52,7 +52,7 @@ import {
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, query, doc } from "firebase/firestore";
+import { collection, query, doc, where } from "firebase/firestore";
 import type { Order, User, MenuItem, InventoryItem } from "@/lib/data";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -106,15 +106,15 @@ export default function ReportsPage() {
 
   // Firestore Queries
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
-    return query(collection(firestore, "orders"));
-  }, [firestore, authUser]);
+    if (!firestore || !authUser || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "orders"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, authUser, currentUserProfile?.schoolId]);
   const { data: allOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
   const menuItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !authUser) return null;
-    return query(collection(firestore, "menuItems"));
-  }, [firestore, authUser]);
+    if (!firestore || !authUser || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "menuItems"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, authUser, currentUserProfile?.schoolId]);
   const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsQuery);
   
   // Filter data based on date range

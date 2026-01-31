@@ -26,7 +26,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, query, doc } from 'firebase/firestore';
+import { collection, query, doc, where } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import AccessDenied from '@/components/AccessDenied';
 
@@ -42,15 +42,15 @@ export default function DashboardPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin) return null;
-    return query(collection(firestore, "orders"));
-  }, [firestore, isCurrentUserAdmin]);
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "orders"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
   
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return collection(firestore, "menuItems");
-    }, [firestore]);
+      if (!firestore || !currentUserProfile?.schoolId) return null;
+      return query(collection(firestore, "menuItems"), where("schoolId", "==", currentUserProfile.schoolId));
+    }, [firestore, currentUserProfile?.schoolId]);
   const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
 
@@ -367,5 +367,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    

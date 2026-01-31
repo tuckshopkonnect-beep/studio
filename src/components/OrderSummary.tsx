@@ -71,6 +71,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
     const newOrder: CompletedOrder = {
       id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       userId: student.id,
+      schoolId: student.schoolId,
       items: [...cartItems],
       total: totalPrice,
       status: 'Ready for Pickup',

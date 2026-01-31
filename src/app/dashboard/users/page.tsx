@@ -42,7 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import UserDetailDialog from "@/components/UserDetailDialog";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useAuth, useDoc, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, deleteField } from "firebase/firestore";
+import { collection, doc, deleteField, query, where } from "firebase/firestore";
 import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
@@ -64,9 +64,9 @@ export default function UsersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin) return null;
-    return collection(firestore, "users");
-  },[firestore, isCurrentUserAdmin]);
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
 
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
@@ -160,13 +160,15 @@ export default function UsersPage() {
    
    if (isCreating) {
        try {
+           if(!currentUserProfile?.schoolId) throw new Error("Current admin has no school ID.");
+
            const tempApp = initializeApp(firebaseConfig, `user-creation-${Date.now()}`);
            const tempAuth = getAuth(tempApp);
  
            const userCredential = await createUserWithEmailAndPassword(tempAuth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
  
-           const userDataForFirestore = { ...sanitizedData, id: newUserId, childIds: {} };
+           const userDataForFirestore = { ...sanitizedData, id: newUserId, childIds: {}, schoolId: currentUserProfile.schoolId };
            const userDocRef = doc(firestore, 'users', newUserId);
            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: true });
  
@@ -404,5 +406,3 @@ export default function UsersPage() {
     </>
   );
 }
-
-    

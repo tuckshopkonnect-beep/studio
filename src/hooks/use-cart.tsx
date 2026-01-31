@@ -11,6 +11,7 @@ export interface CartItem extends MenuItem {
 export interface CompletedOrder {
   id: string;
   userId: string;
+  schoolId?: string;
   items: CartItem[];
   total: number;
   status: 'Pending' | 'Preparing' | 'Ready for Pickup' | 'Completed';

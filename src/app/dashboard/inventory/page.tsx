@@ -39,7 +39,7 @@ import Image from "next/image";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@/firebase";
-import { collection, doc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, doc, deleteDoc, setDoc, query, where } from "firebase/firestore";
 import MenuItemDetailDialog from "@/components/MenuItemDetailDialog";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { InventoryItem, User } from "@/lib/data";
@@ -59,9 +59,9 @@ export default function InventoryPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, "menuItems");
-  }, [firestore]);
+    if (!firestore || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "menuItems"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, currentUserProfile?.schoolId]);
 
   const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
@@ -133,14 +133,26 @@ export default function InventoryPage() {
       return false;
     }
 
-    if (!firestore) return false;
+    if (!firestore || !currentUserProfile?.schoolId) {
+        toast({
+            variant: 'destructive',
+            title: 'Cannot save item',
+            description: 'Your school information could not be found. Please log in again.'
+        });
+        return false;
+    }
     
-    const docRef = doc(firestore, "menuItems", String(itemData.id));
-    setDocumentNonBlocking(docRef, itemData, { merge: true });
+    const dataToSave = {
+        ...itemData,
+        schoolId: currentUserProfile.schoolId,
+    };
+    
+    const docRef = doc(firestore, "menuItems", String(dataToSave.id));
+    setDocumentNonBlocking(docRef, dataToSave, { merge: true });
 
     toast({
       title: isCreating ? "Item Added" : "Item Updated",
-      description: `${(itemData as any).name} has been saved successfully.`
+      description: `${(dataToSave as any).name} has been saved successfully.`
     });
     handleCloseDialog();
     return true; 
@@ -303,5 +315,3 @@ export default function InventoryPage() {
     </>
   );
 }
-
-    

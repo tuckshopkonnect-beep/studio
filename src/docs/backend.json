@@ -27,6 +27,10 @@
           "type": "string",
           "description": "Unique identifier for the menu item."
         },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school this menu item belongs to."
+        },
         "name": {
           "type": "string",
           "description": "Name of the menu item."
@@ -72,6 +76,10 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the order."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school where this order was placed."
         },
         "userId": {
           "type": "string",
@@ -320,7 +328,7 @@
           "schema": {
             "$ref": "#/backend/entities/MenuItem"
           },
-          "description": "Stores menu items available at the tuckshop. Accessible to all users for viewing.",
+          "description": "Stores menu items available at the tuckshop. Each document should have a schoolId to scope it to an institution.",
           "params": [
             {
               "name": "menuItemId",
@@ -336,7 +344,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Top-level collection for all orders, intended for admin access.",
+          "description": "Top-level collection for all orders, intended for admin access. Each document should have a schoolId.",
           "params": [
             {
               "name": "orderId",
@@ -372,7 +380,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.",
+          "description": "Stores user profile information. Each document should have a schoolId.",
           "params": [
             {
               "name": "userId",
@@ -438,6 +446,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, and is being updated to support multi-tenancy (multiple schools). A new top-level `schools` collection is added. The `User` entity is updated with a `schoolId` to associate users with their respective institutions. For now, other collections remain unchanged to support existing data, with the plan to partition them by school in a future iteration. Authorization independence is maintained by storing the `userId` directly within `Order` documents."
+    "reasoning": "The Firestore structure is designed to support a multi-tenant application (multiple schools). Key collections like `users`, `orders`, and `menuItems` are intended to be filtered by a `schoolId` field within each document. This ensures that an administrator for one school can only see and manage data relevant to their own institution, preventing data leaks. User-specific data (like a user's own orders) remains nested under `/users/{userId}` for ownership-based security."
   }
 }

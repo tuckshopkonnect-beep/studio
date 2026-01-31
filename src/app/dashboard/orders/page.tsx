@@ -39,7 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, query, doc } from "firebase/firestore";
+import { collection, query, doc, where } from "firebase/firestore";
 import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -56,9 +56,9 @@ export default function OrdersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
   
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin) return null;
-    return query(collection(firestore, "orders"));
-  }, [firestore, isCurrentUserAdmin]);
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "orders"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
 
   const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
@@ -252,5 +252,3 @@ export default function OrdersPage() {
     </>
   );
 }
-
-    
