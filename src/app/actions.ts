@@ -9,8 +9,8 @@ import {
 import { firebaseConfig } from "@/firebase/config";
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, setDoc, addDoc, collection } from "firebase/firestore";
-import type { School, User } from "@/lib/data";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import type { User } from "@/lib/data";
 
 interface ActionResult {
     success: boolean;
@@ -52,7 +52,7 @@ interface CreateSchoolResult {
 }
 
 export async function createSchoolAndAdmin(
-    schoolName: string,
+    schoolId: string,
     adminName: string,
     adminEmail: string,
     adminPassword: string
@@ -64,16 +64,14 @@ export async function createSchoolAndAdmin(
     const firestore = getFirestore(tempApp);
 
     try {
-        // 1. Create the new School document
-        const schoolsCol = collection(firestore, "schools");
-        const schoolDocRef = await addDoc(schoolsCol, { name: schoolName } as Omit<School, 'id'>);
-        const schoolId = schoolDocRef.id;
-
-        // 2. Create the admin user in Firebase Auth
+        // School is now created on the client-side. We just create the user.
+        
+        // 1. Create the admin user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(tempAuth, adminEmail, adminPassword);
         const newAdminUser = userCredential.user;
 
-        // 3. Create the user document in Firestore
+        // 2. Create the user document in Firestore.
+        // This is authenticated as the new user, so security rules must allow a user to create their own 'Admin' profile.
         const userDocRef = doc(firestore, "users", newAdminUser.uid);
         const adminProfile: User = {
             id: newAdminUser.uid,
@@ -89,7 +87,7 @@ export async function createSchoolAndAdmin(
         return { success: true };
 
     } catch (error: any) {
-        console.error("Error during school and admin creation:", error);
+        console.error("Error during admin user creation:", error);
         
         let errorMessage = "An unexpected error occurred.";
         if (error.code) {
@@ -104,7 +102,7 @@ export async function createSchoolAndAdmin(
                     errorMessage = "The password is too weak. It must be at least 6 characters long.";
                     break;
                 case 'permission-denied':
-                    errorMessage = "Permission denied. Make sure you are logged in as an administrator to perform this action.";
+                    errorMessage = "Permission denied. The new admin profile could not be created in the database. Check security rules.";
                     break;
                 default:
                     errorMessage = error.message;

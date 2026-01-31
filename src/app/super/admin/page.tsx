@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSchoolAndAdmin } from "@/app/actions";
+import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import type { School } from "@/lib/data";
 
 export default function SuperAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +29,8 @@ export default function SuperAdminPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,30 +42,55 @@ export default function SuperAdminPage() {
         return;
     }
     
-    setIsLoading(true);
-
-    const result = await createSchoolAndAdmin(schoolName, adminName, adminEmail, adminPassword);
-
-    if (result.success) {
-      toast({
-        title: "School Created Successfully!",
-        description: `School "${schoolName}" and its admin account have been created.`,
-      });
-      // Optionally, redirect or clear form
-      setSchoolName("");
-      setAdminName("");
-      setAdminEmail("");
-      setAdminPassword("");
-
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Creation Failed",
-        description: result.error || "An unknown error occurred.",
-      });
+    if (!firestore || !auth?.currentUser) {
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in as an admin to perform this action.",
+        });
+        return;
     }
 
-    setIsLoading(false);
+    setIsLoading(true);
+
+    try {
+        // Step 1: Create the school document, authenticated as the current admin
+        const schoolsCol = collection(firestore, "schools");
+        const schoolDocRef = await addDoc(schoolsCol, { name: schoolName } as Omit<School, 'id'>);
+        const schoolId = schoolDocRef.id;
+
+        // Step 2: Call the server action to create the new admin user for the school
+        const result = await createSchoolAndAdmin(schoolId, adminName, adminEmail, adminPassword);
+        
+        if (result.success) {
+            toast({
+                title: "School Created Successfully!",
+                description: `School "${schoolName}" and its admin account have been created.`,
+            });
+            // Clear form
+            setSchoolName("");
+            setAdminName("");
+            setAdminEmail("");
+            setAdminPassword("");
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Admin Creation Failed",
+                description: result.error || "The school was created, but the admin account could not be set up.",
+            });
+            // Note: This leaves an orphaned school document, which might need manual cleanup.
+        }
+
+    } catch (error: any) {
+        console.error("Error creating school document:", error);
+        toast({
+            variant: "destructive",
+            title: "School Creation Failed",
+            description: error.message || "Could not create the school document. Check your permissions and network.",
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
