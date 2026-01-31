@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSchoolAndAdmin } from "@/app/actions";
-import { useAuth, useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, addDoc } from "firebase/firestore";
 import type { School } from "@/lib/data";
 
@@ -53,44 +53,52 @@ export default function SuperAdminPage() {
 
     setIsLoading(true);
 
-    try {
-        // Step 1: Create the school document, authenticated as the current admin
-        const schoolsCol = collection(firestore, "schools");
-        const schoolDocRef = await addDoc(schoolsCol, { name: schoolName } as Omit<School, 'id'>);
-        const schoolId = schoolDocRef.id;
+    const schoolsCol = collection(firestore, "schools");
+    const schoolData = { name: schoolName } as Omit<School, 'id'>;
 
-        // Step 2: Call the server action to create the new admin user for the school
-        const result = await createSchoolAndAdmin(schoolId, adminName, adminEmail, adminPassword);
-        
-        if (result.success) {
-            toast({
-                title: "School Created Successfully!",
-                description: `School "${schoolName}" and its admin account have been created.`,
+    addDoc(schoolsCol, schoolData)
+        .then(async (schoolDocRef) => {
+            const schoolId = schoolDocRef.id;
+            const result = await createSchoolAndAdmin(schoolId, adminName, adminEmail, adminPassword);
+            
+            if (result.success) {
+                toast({
+                    title: "School Created Successfully!",
+                    description: `School "${schoolName}" and its admin account have been created.`,
+                });
+                // Clear form
+                setSchoolName("");
+                setAdminName("");
+                setAdminEmail("");
+                setAdminPassword("");
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "Admin Creation Failed",
+                    description: result.error || "The school was created, but the admin account could not be set up.",
+                });
+            }
+        })
+        .catch((error) => {
+            // Create a rich, contextual error and emit it globally.
+            // This will be caught by the FirebaseErrorListener and displayed in the dev overlay.
+            const permissionError = new FirestorePermissionError({
+                path: 'schools', // This is a collection path
+                operation: 'create',
+                requestResourceData: schoolData,
             });
-            // Clear form
-            setSchoolName("");
-            setAdminName("");
-            setAdminEmail("");
-            setAdminPassword("");
-        } else {
+            errorEmitter.emit('permission-error', permissionError);
+
+            // Also show a user-friendly toast.
             toast({
                 variant: "destructive",
-                title: "Admin Creation Failed",
-                description: result.error || "The school was created, but the admin account could not be set up.",
+                title: "School Creation Failed",
+                description: "Permission denied. A detailed error has been logged for debugging.",
             });
-            // Note: This leaves an orphaned school document, which might need manual cleanup.
-        }
-
-    } catch (error: any) {
-        console.error("Error creating school document:", error);
-        toast({
-            variant: "destructive",
-            title: "School Creation Failed",
-            description: error.message || "Could not create the school document. Check your permissions and network.",
+        })
+        .finally(() => {
+            setIsLoading(false);
         });
-    } finally {
-        setIsLoading(false);
-    }
   };
 
   return (
