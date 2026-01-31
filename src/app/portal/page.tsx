@@ -79,7 +79,7 @@ export default function PortalPage() {
 
         <div className="text-center mt-12">
             <Button variant="link" asChild className="text-white/80 hover:text-white">
-                <Link href="/">&larr; Back to Main Site</Link>
+                <Link href="/schools">&larr; Back to School Selection</Link>
             </Button>
         </div>
       </div>

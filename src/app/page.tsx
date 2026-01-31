@@ -72,7 +72,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild>
-                <Link href="/portal">
+                <Link href="/schools">
                   <Utensils className="mr-2" /> Go to Portal
                 </Link>
               </Button>
