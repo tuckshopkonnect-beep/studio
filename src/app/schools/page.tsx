@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from "next/link";
@@ -40,16 +41,16 @@ export default function SchoolsPage() {
             <div className="bg-primary/20 p-3 rounded-full border border-primary/30">
                 <University className="h-8 w-8 text-primary" />
             </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
             Select Your School
           </h1>
-          <p className="text-lg md:text-xl text-black max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-white max-w-2xl mx-auto">
             Please choose your school to proceed to the correct portal.
           </p>
         </div>
         
         {isLoadingSchools ? (
-            <div className="text-black flex items-center gap-2">
+            <div className="text-white flex items-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <p>Loading schools...</p>
             </div>

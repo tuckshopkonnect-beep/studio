@@ -43,10 +43,10 @@ export default function PortalPage() {
             <div className="bg-primary/20 p-3 rounded-full border border-primary/30">
                 <Package className="h-8 w-8 text-primary" />
             </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-black">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
             Welcome to TuckshopKonnect
           </h1>
-          <p className="text-lg md:text-xl text-black max-w-2xl mx-auto">
+          <p className="text-lg md:text-xl text-white max-w-2xl mx-auto">
             Please select your role to continue. Each portal is tailored for a seamless experience.
           </p>
         </div>
@@ -55,7 +55,7 @@ export default function PortalPage() {
           {portals.map((portal) => (
              <Card 
                 key={portal.name} 
-                className="flex flex-col text-center transition-all duration-300 bg-black/30 backdrop-blur-xl hover:bg-black/40 hover:shadow-2xl hover:-translate-y-2 border-white/20 text-black"
+                className="flex flex-col text-center transition-all duration-300 bg-black/30 backdrop-blur-xl hover:bg-black/40 hover:shadow-2xl hover:-translate-y-2 border-white/20 text-white"
              >
                 <CardHeader className="items-center pt-8">
                     <div className="p-4 bg-primary/10 rounded-full mb-4 border border-primary/20">
@@ -64,7 +64,7 @@ export default function PortalPage() {
                     <CardTitle className="text-xl font-semibold">{portal.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                    <CardDescription className="text-black/70">{portal.description}</CardDescription>
+                    <CardDescription className="text-white/80">{portal.description}</CardDescription>
                 </CardContent>
                 <CardContent>
                     <Button asChild className="w-full font-semibold">
@@ -78,7 +78,7 @@ export default function PortalPage() {
         </div>
 
         <div className="text-center mt-12">
-            <Button variant="link" asChild className="text-black hover:text-black/80">
+            <Button variant="link" asChild className="text-white hover:text-white/80">
                 <Link href="/schools">&larr; Back to School Selection</Link>
             </Button>
         </div>
