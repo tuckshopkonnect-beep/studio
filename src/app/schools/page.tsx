@@ -49,7 +49,7 @@ export default function SchoolsPage() {
         </div>
         
         {isLoadingSchools ? (
-            <div className="text-white flex items-center gap-2">
+            <div className="text-black flex items-center gap-2">
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <p>Loading schools...</p>
             </div>
