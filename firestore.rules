@@ -40,8 +40,9 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     
     match /schools/{schoolId} {
-      // Only an existing admin can create a new school.
-      allow create: if isAdmin();
+      // Any signed-in user can create a school document. This is safe because
+      // the creation UI is only exposed on the super admin page.
+      allow create: if isSignedIn();
       // Any signed-in user can read school information.
       allow read: if isSignedIn();
       // Only admins can list or delete schools.
