@@ -69,9 +69,13 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
     
     runTransaction(firestore, async (transaction) => {
         const studentDocRef = doc(firestore, 'users', student.id);
-        
-        // 1. Get student doc and re-check balance
+
+        // --- 1. READ PHASE ---
         const studentDoc = await transaction.get(studentDocRef);
+        const menuItemRefs = cartItems.map(item => doc(firestore, 'menuItems', item.id));
+        const menuItemDocs = await Promise.all(menuItemRefs.map(ref => transaction.get(ref)));
+
+        // --- 2. VALIDATION PHASE ---
         if (!studentDoc.exists()) {
             throw new Error("Student profile not found.");
         }
@@ -80,29 +84,34 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
             throw new Error("Your balance is insufficient to complete this order.");
         }
 
-        // 2. Read, calculate, and update stock for each item
-        for (const cartItem of cartItems) {
-            const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
-            const menuItemDoc = await transaction.get(menuItemRef);
-
+        for (let i = 0; i < cartItems.length; i++) {
+            const cartItem = cartItems[i];
+            const menuItemDoc = menuItemDocs[i];
             if (!menuItemDoc.exists()) {
                 throw new Error(`Menu item "${cartItem.name}" is no longer available.`);
             }
-
             const currentStock = menuItemDoc.data().stock || 0;
             if (currentStock < cartItem.quantity) {
                 throw new Error(`Not enough stock for "${cartItem.name}". Only ${currentStock} left.`);
             }
+        }
 
+        // --- 3. WRITE PHASE ---
+        // Update student's balance
+        const newBalance = studentData.balance - totalPrice;
+        transaction.update(studentDocRef, { balance: newBalance });
+
+        // Update stock for each item
+        for (let i = 0; i < cartItems.length; i++) {
+            const cartItem = cartItems[i];
+            const menuItemRef = menuItemRefs[i];
+            const menuItemDoc = menuItemDocs[i]; // We already have this from the read phase
+            const currentStock = menuItemDoc.data()!.stock || 0;
             const newStock = currentStock - cartItem.quantity;
             transaction.update(menuItemRef, { stock: newStock });
         }
 
-        // 3. Update student's balance
-        const newBalance = studentData.balance - totalPrice;
-        transaction.update(studentDocRef, { balance: newBalance });
-
-        return newBalance;
+        return; // Transaction successful
     })
     .then(async () => {
         // If transaction succeeds, create the order documents
@@ -136,12 +145,11 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
     .catch((e: any) => {
         console.error("Order transaction failed: ", e);
 
-        // Create a representative error. The transaction could fail on multiple paths.
-        // We'll create an error for updating the student's document, which is a likely candidate.
+        // Create a representative error for debugging security rules if needed.
         const permissionError = new FirestorePermissionError({
-            path: `users/${student.id}`,
+            path: `users/${student.id}`, // A likely path to fail
             operation: 'update',
-            requestResourceData: { balance: `(new balance after transaction of ₦${totalPrice})` },
+            requestResourceData: { balance: `(new balance)` },
         });
         errorEmitter.emit('permission-error', permissionError);
 
