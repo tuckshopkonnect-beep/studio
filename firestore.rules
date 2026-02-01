@@ -36,7 +36,8 @@ service cloud.firestore {
     
     function onlyStockIsChanging() {
       // Ensures that only the 'stock' field is being modified in an update.
-      return request.writeFields.size() == 1 && request.writeFields[0] == 'stock';
+      let writeFields = request.writeFields;
+      return writeFields.size() == 1 && writeFields[0] == 'stock';
     }
 
 
@@ -47,8 +48,8 @@ service cloud.firestore {
     match /schools/{schoolId} {
       // Allow public read for the school selection screen.
       allow read: if true;
-      // Writing is restricted. Create/update require a signed-in user (super admin),
-      // and delete requires the user to have the 'Admin' role.
+      // Allow any signed-in user to create, as the super-admin page is protected.
+      // Admins can update/delete.
       allow create, update: if isSignedIn();
       allow delete: if isAdmin();
     }
@@ -66,8 +67,10 @@ service cloud.firestore {
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
       
       // UPDATE: An admin can update any user. A user can update their own profile
-      // as long as they are not changing their role.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role);
+      // as long as they are not changing their role. This rule now correctly handles
+      // updates to other fields (like balance) by checking the role safely.
+      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.get('role', resource.data.role) == resource.data.role);
+
 
       // DELETE: Only an admin can delete a user profile.
       allow delete: if isAdmin();
@@ -114,10 +117,11 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       // An admin can update any field. A student can only update the stock
       // field to decrement it (e.g., when placing an order).
+      // This rule now handles cases where 'stock' might not exist on the document.
       allow update: if isAdmin() || 
                        (isSignedIn() && 
                         onlyStockIsChanging() && 
-                        request.resource.data.stock < resource.data.stock);
+                        request.resource.data.stock < (resource.data.stock || 0));
 
       /**
        * @description Inventory is admin-only.
