@@ -38,9 +38,8 @@ import { ListFilter, MoreHorizontal, File, Download, ShoppingBag, Loader2 } from
 import { Badge } from "@/components/ui/badge";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc } from "@/firebase";
-import { collection, query, doc, where } from "firebase/firestore";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { collection, query, doc, where, increment } from "firebase/firestore";
 import AccessDenied from "@/components/AccessDenied";
 
 export default function OrdersPage() {
@@ -81,6 +80,28 @@ export default function OrdersPage() {
   const handleCancelOrder = () => {
     if (!orderToCancel || !firestore) return;
     
+    // 1. Refund the student's balance
+    if (orderToCancel.userId && orderToCancel.total > 0) {
+        const userDocRef = doc(firestore, 'users', orderToCancel.userId);
+        updateDocumentNonBlocking(userDocRef, {
+            balance: increment(orderToCancel.total)
+        });
+    }
+
+    // 2. Restore item stock
+    if (orderToCancel.items && orderToCancel.items.length > 0) {
+        orderToCancel.items.forEach(item => {
+            const menuItem = item as any;
+            if (menuItem.id && menuItem.quantity > 0) {
+                const menuItemRef = doc(firestore, 'menuItems', menuItem.id);
+                updateDocumentNonBlocking(menuItemRef, {
+                    stock: increment(menuItem.quantity)
+                });
+            }
+        });
+    }
+    
+    // 3. Delete the order records
     const adminOrderRef = doc(firestore, "orders", orderToCancel.id);
     deleteDocumentNonBlocking(adminOrderRef);
 
@@ -90,8 +111,8 @@ export default function OrdersPage() {
     }
     
     toast({
-      title: "Order Cancelled",
-      description: `Order #${orderToCancel.id} has been cancelled.`,
+      title: "Order Cancelled & Refunded",
+      description: `Order #${orderToCancel.id} has been cancelled. ₦${orderToCancel.total.toFixed(2)} refunded and stock updated.`,
     });
     setOrderToCancel(null);
   };
@@ -115,9 +136,9 @@ export default function OrdersPage() {
         onOpenChange={(isOpen) => !isOpen && setOrderToCancel(null)}
         onConfirm={handleCancelOrder}
         title={`Cancel Order #${orderToCancel?.id}?`}
-        description="This will remove the order from the active list. This action may require manual refund processing."
+        description="This will refund the student and restock the items. This action cannot be undone."
         confirmButtonVariant="destructive"
-        confirmButtonText="Yes, Cancel Order"
+        confirmButtonText="Yes, Cancel & Refund"
     />
     <Tabs defaultValue="all">
       <div className="flex items-center">
