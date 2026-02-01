@@ -34,10 +34,13 @@ service cloud.firestore {
       return isOwner(userId) && request.resource.data.userId == userId;
     }
     
-    function onlyStockIsChanging() {
-      // Ensures that only the 'stock' field is being modified in an update.
-      let writeFields = request.writeFields;
-      return writeFields.size() == 1 && writeFields[0] == 'stock';
+    function isDecrementingStock() {
+      // Ensures only 'stock' is being changed, and it's a decrement.
+      let isStockOnly = request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']);
+      let newStock = request.resource.data.stock;
+      let oldStock = resource.data.get('stock', 0); // Default to 0 if stock doesn't exist
+      
+      return isStockOnly && newStock < oldStock && newStock >= 0;
     }
 
 
@@ -115,13 +118,10 @@ service cloud.firestore {
       allow get, list: if true;
       // Admins can create and delete menu items.
       allow create, delete: if isAdmin();
-      // An admin can update any field. A student can only update the stock
-      // field to decrement it (e.g., when placing an order).
-      // This rule now handles cases where 'stock' might not exist on the document.
-      allow update: if isAdmin() || 
-                       (isSignedIn() && 
-                        onlyStockIsChanging() && 
-                        request.resource.data.stock < (resource.data.stock || 0));
+      
+      // An admin can update any field. 
+      // A student can only update the stock field to decrement it when placing an order.
+      allow update: if isAdmin() || (isSignedIn() && isDecrementingStock());
 
       /**
        * @description Inventory is admin-only.
