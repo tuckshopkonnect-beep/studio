@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import type { School } from '@/lib/data';
 import {
@@ -27,10 +27,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import EditSchoolDialog from '@/components/EditSchoolDialog';
 import { useToast } from "@/hooks/use-toast";
+import ConfirmationDialog from '@/components/ConfirmationDialog';
 
 
 export default function SuperAdminDashboardPage() {
@@ -45,6 +47,7 @@ export default function SuperAdminDashboardPage() {
   const { data: schools, isLoading: isLoadingSchools } = useCollection<School>(schoolsCollection);
 
   const [schoolToEdit, setSchoolToEdit] = React.useState<School | null>(null);
+  const [schoolToDelete, setSchoolToDelete] = React.useState<School | null>(null);
 
   const handleUpdateSchool = async (school: School): Promise<boolean> => {
     if (!firestore) {
@@ -67,6 +70,20 @@ export default function SuperAdminDashboardPage() {
     return true;
   };
 
+  const handleDeleteSchool = () => {
+    if (!firestore || !schoolToDelete) return;
+    
+    const schoolDocRef = doc(firestore, 'schools', schoolToDelete.id);
+    deleteDocumentNonBlocking(schoolDocRef);
+    
+    toast({
+        title: "School Deleted",
+        description: `"${schoolToDelete.name}" has been successfully deleted.`,
+    });
+    setSchoolToDelete(null);
+  };
+
+
   return (
     <>
     <EditSchoolDialog
@@ -74,6 +91,14 @@ export default function SuperAdminDashboardPage() {
       isOpen={!!schoolToEdit}
       onOpenChange={(isOpen) => !isOpen && setSchoolToEdit(null)}
       onSave={handleUpdateSchool}
+    />
+     <ConfirmationDialog
+      open={!!schoolToDelete}
+      onOpenChange={(isOpen) => !isOpen && setSchoolToDelete(null)}
+      onConfirm={handleDeleteSchool}
+      title={`Delete "${schoolToDelete?.name}"?`}
+      description="This action cannot be undone. This will permanently delete the school record. It will NOT delete associated users, orders, or menu items."
+      confirmButtonText="Yes, Delete School"
     />
     <div className="grid gap-6">
       <div className="flex items-center">
@@ -131,6 +156,13 @@ export default function SuperAdminDashboardPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onSelect={() => setSchoolToEdit(school)}>
                             Edit Name
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={() => setSchoolToDelete(school)}
+                          >
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
