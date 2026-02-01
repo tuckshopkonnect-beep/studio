@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { User } from "@/lib/data";
 import { CompletedOrder } from "@/hooks/use-cart";
-import { useFirestore } from '@/firebase';
+import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, runTransaction, setDoc } from 'firebase/firestore';
 
 
@@ -67,43 +67,44 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return;
     }
     
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const studentDocRef = doc(firestore, 'users', student.id);
-            
-            // 1. Get student doc and re-check balance to be safe
-            const studentDoc = await transaction.get(studentDocRef);
-            if (!studentDoc.exists()) {
-                throw new Error("Student profile not found.");
-            }
-            const studentData = studentDoc.data() as User;
-            if (totalPrice > studentData.balance) {
-                throw new Error("Your balance is insufficient to complete this order.");
-            }
+    runTransaction(firestore, async (transaction) => {
+        const studentDocRef = doc(firestore, 'users', student.id);
+        
+        // 1. Get student doc and re-check balance
+        const studentDoc = await transaction.get(studentDocRef);
+        if (!studentDoc.exists()) {
+            throw new Error("Student profile not found.");
+        }
+        const studentData = studentDoc.data() as User;
+        if (totalPrice > studentData.balance) {
+            throw new Error("Your balance is insufficient to complete this order.");
+        }
 
-            // 2. Read, calculate, and update stock for each item
-            for (const cartItem of cartItems) {
-                const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
-                const menuItemDoc = await transaction.get(menuItemRef);
+        // 2. Read, calculate, and update stock for each item
+        for (const cartItem of cartItems) {
+            const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
+            const menuItemDoc = await transaction.get(menuItemRef);
 
-                if (!menuItemDoc.exists()) {
-                    throw new Error(`Menu item "${cartItem.name}" is no longer available.`);
-                }
-
-                const currentStock = menuItemDoc.data().stock || 0;
-                if (currentStock < cartItem.quantity) {
-                    throw new Error(`Not enough stock for "${cartItem.name}". Only ${currentStock} left.`);
-                }
-
-                const newStock = currentStock - cartItem.quantity;
-                transaction.update(menuItemRef, { stock: newStock });
+            if (!menuItemDoc.exists()) {
+                throw new Error(`Menu item "${cartItem.name}" is no longer available.`);
             }
 
-            // 3. Update student's balance
-            const newBalance = studentData.balance - totalPrice;
-            transaction.update(studentDocRef, { balance: newBalance });
-        });
+            const currentStock = menuItemDoc.data().stock || 0;
+            if (currentStock < cartItem.quantity) {
+                throw new Error(`Not enough stock for "${cartItem.name}". Only ${currentStock} left.`);
+            }
 
+            const newStock = currentStock - cartItem.quantity;
+            transaction.update(menuItemRef, { stock: newStock });
+        }
+
+        // 3. Update student's balance
+        const newBalance = studentData.balance - totalPrice;
+        transaction.update(studentDocRef, { balance: newBalance });
+
+        return newBalance;
+    })
+    .then(async () => {
         // If transaction succeeds, create the order documents
         const newOrderId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const newOrder: CompletedOrder = {
@@ -131,14 +132,25 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
         clearCart();
         router.push('/student/order/confirmation');
 
-    } catch (e: any) {
+    })
+    .catch((e: any) => {
         console.error("Order transaction failed: ", e);
+
+        // Create a representative error. The transaction could fail on multiple paths.
+        // We'll create an error for updating the student's document, which is a likely candidate.
+        const permissionError = new FirestorePermissionError({
+            path: `users/${student.id}`,
+            operation: 'update',
+            requestResourceData: { balance: `(new balance after transaction of ₦${totalPrice})` },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
         toast({
             variant: "destructive",
             title: "Order Failed",
-            description: e.message || "The order could not be placed due to a conflict. Please try again.",
+            description: e.message || "The order could not be placed due to a conflict or permissions issue. Please try again.",
         });
-    }
+    });
   };
 
   const isBalanceInsufficient = totalPrice > student.balance;
