@@ -63,13 +63,13 @@ export default function OrderConfirmationPage() {
     }, [completedOrder, student, studentBalance, isPosEnabled]);
     
     useEffect(() => {
-        // Auto-download only once when the component mounts with an order
-        if (completedOrder && !downloadTriggered.current) {
+        // Auto-download only once when all data is ready.
+        if (completedOrder && student && !isLoadingStudent && !downloadTriggered.current) {
             downloadTriggered.current = true;
-            // Use a timeout to ensure the QR code is rendered before download
+            // Use a timeout to ensure the QR code and other elements are fully rendered before download
             setTimeout(() => handleDownloadReceipt(), 500);
         }
-    }, [completedOrder, handleDownloadReceipt]);
+    }, [completedOrder, student, isLoadingStudent, handleDownloadReceipt]);
 
     useEffect(() => {
         // Clean up completed order from context and sessionStorage when user navigates away
