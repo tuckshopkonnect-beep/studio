@@ -64,11 +64,33 @@ export default function UsersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
-    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile) return null;
+    
+    // For new admins with a schoolId, fetch only users from their school.
+    if (currentUserProfile.schoolId) {
+        return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
+    }
+    
+    // For the original admin (no schoolId), fetch ALL users to filter on the client.
+    // This is necessary to find other users who also don't have a schoolId.
+    return collection(firestore, "users");
+  }, [firestore, isCurrentUserAdmin, currentUserProfile]);
 
-  const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
+  const { data: fetchedUsers, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
+
+  const users = React.useMemo(() => {
+    if (!fetchedUsers || !currentUserProfile) return [];
+
+    // If the current admin has a schoolId, they see users with that same schoolId.
+    if (currentUserProfile.schoolId) {
+        return fetchedUsers; // The query already filtered this
+    }
+    
+    // If the current admin does NOT have a schoolId, they are the original admin.
+    // They should only see the original users who also do not have a schoolId.
+    return fetchedUsers.filter(u => !u.schoolId);
+  }, [fetchedUsers, currentUserProfile]);
+
 
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -79,11 +101,11 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
-  // This is the critical change: determine if it's the initial setup.
+  // Determine if it's the initial setup for a new school (no users yet)
   const isInitialSetup = !isLoadingUsers && isCurrentUserAdmin && (!users || users.length === 0);
 
   const filteredUsers = React.useMemo(() => {
-    if (isInitialSetup || !users) return [];
+    if (!users) return [];
     return users
       .filter(user => {
         if (activeTab === "all") return true;
@@ -97,7 +119,7 @@ export default function UsersPage() {
           user.email.toLowerCase().includes(searchLower)
         );
       });
-  }, [users, activeTab, searchTerm, isInitialSetup]);
+  }, [users, activeTab, searchTerm]);
 
   const handleExportPDF = async () => {
     if (!filteredUsers) return;
@@ -249,7 +271,7 @@ export default function UsersPage() {
       
       <UserDetailDialog
           user={selectedUser}
-          allUsers={users || []}
+          allUsers={fetchedUsers || []}
           isOpen={isUserDetailOpen}
           onOpenChange={handleCloseDialog}
           onSave={handleSaveUser}
@@ -304,7 +326,7 @@ export default function UsersPage() {
               <CardDescription>
                 {isInitialSetup 
                   ? "No admin account found. Click 'Add User' to create the first administrator."
-                  : `Manage all user accounts. Showing ${filteredUsers.length} of ${users?.length || 0} users.`
+                  : `Manage all user accounts. Showing ${filteredUsers.length} of ${users.length} users.`
                 }
               </CardDescription>
             </CardHeader>
@@ -330,7 +352,7 @@ export default function UsersPage() {
                           <p className="mt-2 text-muted-foreground">Loading users...</p>
                         </TableCell>
                       </TableRow>
-                  ) : isInitialSetup ? (
+                  ) : isInitialSetup && (!users || users.length === 0) ? (
                      <TableRow>
                       <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
                         {isInitialSetup 
