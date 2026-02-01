@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCart } from "@/hooks/use-cart.tsx";
 import { Button } from "@/components/ui/button";
@@ -45,8 +45,8 @@ export default function OrderConfirmationPage() {
 
     const studentBalance = student && completedOrder ? student.balance : 0;
 
-    const handleDownloadReceipt = async () => {
-        if (completedOrder && student && qrCodeRef.current) {
+    const handleDownloadReceipt = useCallback(async () => {
+        if (completedOrder && student) {
             setIsDownloading(true);
             const { default: jsPDF } = await import('jspdf');
             const { default: autoTable } = await import('jspdf-autotable');
@@ -60,7 +60,7 @@ export default function OrderConfirmationPage() {
                 setIsDownloading(false);
             }
         }
-    };
+    }, [completedOrder, student, studentBalance, isPosEnabled]);
     
     useEffect(() => {
         // Auto-download only once when the component mounts with an order
