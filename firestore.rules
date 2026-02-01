@@ -36,13 +36,7 @@ service cloud.firestore {
     
     function onlyStockIsChanging() {
       // Ensures that only the 'stock' field is being modified in an update.
-      // All other fields must remain the same.
-      let incomingData = request.resource.data;
-      let existingData = resource.data;
-      let otherFields = ['name', 'description', 'price', 'category', 'schoolId', 'isAvailable', 'image'];
-      
-      // Check if any other field is being changed
-      return otherFields.size() == otherFields.filter(field => incomingData[field] == existingData[field]).size();
+      return request.writeFields.size() == 1 && request.writeFields[0] == 'stock';
     }
 
 
