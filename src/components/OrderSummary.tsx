@@ -10,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { User } from "@/lib/data";
 import { CompletedOrder } from "@/hooks/use-cart";
-import { useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { collection, doc, increment } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
+import { collection, doc, runTransaction, setDoc } from 'firebase/firestore';
 
 
 interface OrderSummaryProps {
@@ -35,7 +35,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
   const potentialSpentToday = spentToday + totalPrice;
   const remainingLimit = effectiveDailyLimit ? effectiveDailyLimit - spentToday : Infinity;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!firestore) {
       toast({ variant: 'destructive', title: 'Database connection not available.' });
       return;
@@ -67,43 +67,78 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return;
     }
     
-    // Atomically decrement the student's balance on the server
-    const studentDocRef = doc(firestore, 'users', student.id);
-    updateDocumentNonBlocking(studentDocRef, { balance: increment(-totalPrice) });
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const studentDocRef = doc(firestore, 'users', student.id);
+            
+            // 1. Get student doc and re-check balance to be safe
+            const studentDoc = await transaction.get(studentDocRef);
+            if (!studentDoc.exists()) {
+                throw new Error("Student profile not found.");
+            }
+            const studentData = studentDoc.data() as User;
+            if (totalPrice > studentData.balance) {
+                throw new Error("Your balance is insufficient to complete this order.");
+            }
 
-    // Atomically decrement the stock for each item in the cart
-    cartItems.forEach(cartItem => {
-        const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
-        updateDocumentNonBlocking(menuItemRef, {
-            stock: increment(-cartItem.quantity)
+            // 2. Read, calculate, and update stock for each item
+            for (const cartItem of cartItems) {
+                const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
+                const menuItemDoc = await transaction.get(menuItemRef);
+
+                if (!menuItemDoc.exists()) {
+                    throw new Error(`Menu item "${cartItem.name}" is no longer available.`);
+                }
+
+                const currentStock = menuItemDoc.data().stock || 0;
+                if (currentStock < cartItem.quantity) {
+                    throw new Error(`Not enough stock for "${cartItem.name}". Only ${currentStock} left.`);
+                }
+
+                const newStock = currentStock - cartItem.quantity;
+                transaction.update(menuItemRef, { stock: newStock });
+            }
+
+            // 3. Update student's balance
+            const newBalance = studentData.balance - totalPrice;
+            transaction.update(studentDocRef, { balance: newBalance });
         });
-    });
 
+        // If transaction succeeds, create the order documents
+        const newOrderId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const newOrder: CompletedOrder = {
+          id: newOrderId,
+          userId: student.id,
+          schoolId: student.schoolId,
+          items: [...cartItems],
+          total: totalPrice,
+          status: 'Ready for Pickup',
+          orderDate: new Date().toISOString(),
+          customerName: student.name,
+        };
+        
+        // Write to user's private orders subcollection
+        const userOrderDocRef = doc(firestore, 'users', student.id, 'orders', newOrderId);
+        await setDoc(userOrderDocRef, newOrder);
 
-    const newOrder: CompletedOrder = {
-      id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      userId: student.id,
-      schoolId: student.schoolId,
-      items: [...cartItems],
-      total: totalPrice,
-      status: 'Ready for Pickup',
-      orderDate: new Date().toISOString(),
-      customerName: student.name,
-    };
-    
-    // Write to user's private orders subcollection
-    const userOrdersColRef = collection(firestore, 'users', student.id, 'orders');
-    addDocumentNonBlocking(userOrdersColRef, newOrder);
+        // Write to the top-level orders collection for admin view
+        const adminOrderDocRef = doc(firestore, 'orders', newOrderId);
+        await setDoc(adminOrderDocRef, newOrder);
 
-    // Write to the top-level orders collection for admin view
-    const adminOrdersColRef = collection(firestore, 'orders');
-    addDocumentNonBlocking(adminOrdersColRef, newOrder);
+        // All successful, now update UI state
+        setCompletedOrder(newOrder);
+        addOrderToHistory(newOrder);
+        clearCart();
+        router.push('/student/order/confirmation');
 
-
-    setCompletedOrder(newOrder);
-    addOrderToHistory(newOrder); // This updates localStorage for the student history page
-    clearCart();
-    router.push('/student/order/confirmation');
+    } catch (e: any) {
+        console.error("Order transaction failed: ", e);
+        toast({
+            variant: "destructive",
+            title: "Order Failed",
+            description: e.message || "The order could not be placed due to a conflict. Please try again.",
+        });
+    }
   };
 
   const isBalanceInsufficient = totalPrice > student.balance;
