@@ -54,6 +54,10 @@ export interface User {
   balance: number;
   class?: string;
   dailyLimit?: number;
+  spendingToday?: {
+    amount: number;
+    date: string; // YYYY-MM-DD format
+  };
   parentId?: string | null;
   childIds?: { [key: string]: boolean };
 }

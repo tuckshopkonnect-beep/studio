@@ -26,7 +26,6 @@ import type { User } from "@/lib/data";
 import { usePathname } from "next/navigation";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
-import { useTodaysSpending } from "@/hooks/use-spending";
 
 interface AppSettings {
   jssLimit?: number;
@@ -54,7 +53,11 @@ export default function Header() {
   const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 
   const isStudent = currentUser?.role === 'Student';
-  const { spentToday, isLoadingSpending } = useTodaysSpending(isStudent ? authUser?.uid : null);
+  
+  const todayString = new Date().toISOString().split('T')[0];
+  const spentTodayForDisplay = (isStudent && currentUser?.spendingToday?.date === todayString) 
+    ? currentUser.spendingToday.amount 
+    : 0;
 
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function Header() {
 
   const studentUser = currentUser?.role === 'Student' ? currentUser : undefined;
   
-  const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSpending || isLoadingSettings;
+  const isCartDataLoading = isLoadingCurrentUser || isUserLoading || isLoadingSettings;
   const canDisplayCart = !isCartDataLoading && studentUser;
 
   const defaultDailyLimit = useMemo(() => {
@@ -96,6 +99,8 @@ export default function Header() {
     }
     return null;
   }, [appSettings, studentUser]);
+
+  const effectiveDailyLimitForDisplay = studentUser?.dailyLimit ?? defaultDailyLimit;
   
   if (!theme) {
       // Render a placeholder or skeleton while theme is loading to avoid flash
@@ -181,7 +186,11 @@ export default function Header() {
                   </div>
                 )}
                 {canDisplayCart && (
-                  <OrderSummary student={studentUser} spentToday={spentToday} defaultDailyLimit={defaultDailyLimit} />
+                  <OrderSummary 
+                    student={studentUser} 
+                    spentTodayForDisplay={spentTodayForDisplay} 
+                    effectiveDailyLimitForDisplay={effectiveDailyLimitForDisplay} 
+                  />
                 )}
                 {!isCartDataLoading && !studentUser && (
                    <div className="p-6 text-center text-muted-foreground">

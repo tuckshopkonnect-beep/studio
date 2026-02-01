@@ -17,7 +17,6 @@ import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { User } from "@/lib/data";
 import { Skeleton } from "./ui/skeleton";
-import { useTodaysSpending } from "@/hooks/use-spending";
 import Link from 'next/link';
 
 interface ParentChildCardProps {
@@ -63,9 +62,8 @@ export default function ParentChildCard({ childId, onFundWallet }: ParentChildCa
     }, [firestore, childId]);
 
     const { data: child, isLoading: isLoadingChild } = useDoc<User>(childDocRef);
-    const { spentToday, isLoadingSpending } = useTodaysSpending(childId);
   
-    if (isLoadingChild || isLoadingSpending) {
+    if (isLoadingChild) {
         return <ChildCardSkeleton />;
     }
 
@@ -79,6 +77,8 @@ export default function ParentChildCard({ childId, onFundWallet }: ParentChildCa
         );
     }
     
+    const todayString = new Date().toISOString().split('T')[0];
+    const spentToday = child?.spendingToday?.date === todayString ? child.spendingToday.amount : 0;
     const limit = child.dailyLimit || 0;
     const progress = limit > 0 ? (spentToday / limit) * 100 : 0;
 

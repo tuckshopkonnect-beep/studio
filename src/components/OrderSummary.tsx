@@ -13,14 +13,18 @@ import { CompletedOrder } from "@/hooks/use-cart";
 import { useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, runTransaction, setDoc } from 'firebase/firestore';
 
+interface AppSettings {
+  jssLimit?: number;
+  sssLimit?: number;
+}
 
 interface OrderSummaryProps {
   student?: User;
-  spentToday: number;
-  defaultDailyLimit: number | null;
+  spentTodayForDisplay: number;
+  effectiveDailyLimitForDisplay: number | null;
 }
 
-export default function OrderSummary({ student, spentToday, defaultDailyLimit }: OrderSummaryProps) {
+export default function OrderSummary({ student, spentTodayForDisplay, effectiveDailyLimitForDisplay }: OrderSummaryProps) {
   const { cart: cartItems, removeFromCart, updateQuantity, clearCart, totalPrice, setCompletedOrder, addOrderToHistory } = useCart();
   const { toast } = useToast();
   const router = useRouter();
@@ -30,10 +34,9 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return <div className="p-6 text-center text-muted-foreground">Please log in as a student to place an order.</div>
   }
 
-  const effectiveDailyLimit = student.dailyLimit ?? defaultDailyLimit;
   const potentialBalance = student.balance - totalPrice;
-  const potentialSpentToday = spentToday + totalPrice;
-  const remainingLimit = effectiveDailyLimit ? effectiveDailyLimit - spentToday : Infinity;
+  const potentialSpentToday = spentTodayForDisplay + totalPrice;
+  const remainingLimit = effectiveDailyLimitForDisplay ? effectiveDailyLimitForDisplay - spentTodayForDisplay : Infinity;
 
   const handlePlaceOrder = async () => {
     if (!firestore) {
@@ -58,7 +61,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return;
     }
 
-    if (effectiveDailyLimit !== null && potentialSpentToday > effectiveDailyLimit) {
+    if (effectiveDailyLimitForDisplay !== null && potentialSpentToday > effectiveDailyLimitForDisplay) {
       toast({
         variant: "destructive",
         title: "Daily Limit Exceeded",
@@ -69,10 +72,12 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
     
     runTransaction(firestore, async (transaction) => {
         const studentDocRef = doc(firestore, 'users', student.id);
+        const settingsDocRef = doc(firestore, 'settings', 'global');
+        const menuItemRefs = cartItems.map(item => doc(firestore, 'menuItems', item.id));
 
         // --- 1. READ PHASE ---
         const studentDoc = await transaction.get(studentDocRef);
-        const menuItemRefs = cartItems.map(item => doc(firestore, 'menuItems', item.id));
+        const settingsDoc = await transaction.get(settingsDocRef);
         const menuItemDocs = await Promise.all(menuItemRefs.map(ref => transaction.get(ref)));
 
         // --- 2. VALIDATION PHASE ---
@@ -80,6 +85,20 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
             throw new Error("Student profile not found.");
         }
         const studentData = studentDoc.data() as User;
+        const appSettings = settingsDoc.data() as AppSettings || {};
+
+        // Daily Limit Logic
+        const todayString = new Date().toISOString().split('T')[0];
+        const spentTodayAmount = studentData.spendingToday?.date === todayString ? studentData.spendingToday.amount : 0;
+        
+        const studentClass = studentData.class || '';
+        const defaultDailyLimit = studentClass.startsWith('JSS') ? appSettings.jssLimit : (studentClass.startsWith('SSS') ? appSettings.sssLimit : null);
+        const effectiveDailyLimit = studentData.dailyLimit ?? defaultDailyLimit;
+
+        if (effectiveDailyLimit !== null && (spentTodayAmount + totalPrice) > effectiveDailyLimit) {
+            throw new Error(`This order would exceed your daily spending limit of ₦${effectiveDailyLimit.toFixed(2)}.`);
+        }
+
         if (totalPrice > studentData.balance) {
             throw new Error("Your balance is insufficient to complete this order.");
         }
@@ -97,21 +116,23 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
         }
 
         // --- 3. WRITE PHASE ---
-        // Update student's balance
         const newBalance = studentData.balance - totalPrice;
-        transaction.update(studentDocRef, { balance: newBalance });
+        const newSpendingToday = {
+          amount: spentTodayAmount + totalPrice,
+          date: todayString,
+        };
+        transaction.update(studentDocRef, {
+          balance: newBalance,
+          spendingToday: newSpendingToday,
+        });
 
-        // Update stock for each item
         for (let i = 0; i < cartItems.length; i++) {
             const cartItem = cartItems[i];
             const menuItemRef = menuItemRefs[i];
-            const menuItemDoc = menuItemDocs[i]; // We already have this from the read phase
-            const currentStock = menuItemDoc.data()!.stock || 0;
+            const currentStock = menuItemDocs[i].data()!.stock || 0;
             const newStock = currentStock - cartItem.quantity;
             transaction.update(menuItemRef, { stock: newStock });
         }
-
-        return; // Transaction successful
     })
     .then(async () => {
         // If transaction succeeds, create the order documents
@@ -162,7 +183,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
   };
 
   const isBalanceInsufficient = totalPrice > student.balance;
-  const isLimitExceeded = effectiveDailyLimit !== null && potentialSpentToday > effectiveDailyLimit;
+  const isLimitExceeded = effectiveDailyLimitForDisplay !== null && potentialSpentToday > effectiveDailyLimitForDisplay;
   const isButtonDisabled = cartItems.length === 0 || isBalanceInsufficient || isLimitExceeded;
 
   let buttonText = `Place Order (₦${totalPrice.toFixed(2)})`;
@@ -227,7 +248,7 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
              <div className="flex justify-between">
               <span className="text-muted-foreground">Daily Limit Remaining</span>
               <span className={remainingLimit < totalPrice ? "text-destructive" : ""}>
-                {effectiveDailyLimit !== null ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
+                {effectiveDailyLimitForDisplay !== null ? `₦${remainingLimit.toFixed(2)}` : 'Unlimited'}
               </span>
             </div>
             <div className="flex justify-between">

@@ -1,6 +1,22 @@
 
 {
   "entities": {
+    "School": {
+      "title": "School",
+      "type": "object",
+      "description": "Represents an individual school or institution using the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the school."
+        },
+        "name": {
+          "type": "string",
+          "description": "The official name of the school."
+        }
+      },
+      "required": ["id", "name"]
+    },
     "MenuItem": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MenuItem",
@@ -10,6 +26,10 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the menu item."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school this menu item belongs to."
         },
         "name": {
           "type": "string",
@@ -56,6 +76,10 @@
         "id": {
           "type": "string",
           "description": "Unique identifier for the order."
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school where this order was placed."
         },
         "userId": {
           "type": "string",
@@ -178,6 +202,10 @@
           "type": "string",
           "description": "Unique identifier for the user, matching their Firebase Auth UID."
         },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school this user belongs to. This enables multi-tenancy."
+        },
         "name": {
           "type": "string",
           "description": "Full name of the user."
@@ -212,6 +240,19 @@
         "dailyLimit": {
           "type": "number",
           "description": "Individual daily spending limit for a student, which overrides default limits."
+        },
+        "spendingToday": {
+          "type": "object",
+          "description": "Tracks daily spending to enforce limits atomically.",
+          "properties": {
+            "amount": {
+              "type": "number"
+            },
+            "date": {
+              "type": "string",
+              "description": "The date of the spending in YYYY-MM-DD format."
+            }
+          }
         },
         "parentId": {
           "type": "string",
@@ -280,13 +321,27 @@
   "firestore": {
     "structure": [
       {
+        "path": "/schools/{schoolId}",
+        "definition": {
+          "entityName": "School",
+          "schema": { "$ref": "#/backend/entities/School" },
+          "description": "Collection of all schools registered in the application.",
+           "params": [
+            {
+              "name": "schoolId",
+              "description": "Unique identifier for the school."
+            }
+          ]
+        }
+      },
+      {
         "path": "/menuItems/{menuItemId}",
         "definition": {
           "entityName": "MenuItem",
           "schema": {
             "$ref": "#/backend/entities/MenuItem"
           },
-          "description": "Stores menu items available at the tuckshop. Accessible to all users for viewing.",
+          "description": "Stores menu items available at the tuckshop. Each document should have a schoolId to scope it to an institution.",
           "params": [
             {
               "name": "menuItemId",
@@ -302,7 +357,7 @@
           "schema": {
             "$ref": "#/backend/entities/Order"
           },
-          "description": "Top-level collection for all orders, intended for admin access.",
+          "description": "Top-level collection for all orders, intended for admin access. Each document should have a schoolId.",
           "params": [
             {
               "name": "orderId",
@@ -338,7 +393,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profile information.",
+          "description": "Stores user profile information. Each document should have a schoolId.",
           "params": [
             {
               "name": "userId",
@@ -404,6 +459,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the TuckshopKonnect application, focusing on menu display, order placement, order management, and inventory control. It leverages path-based ownership for user-specific data (orders) and a top-level collection for menu items accessible to all users. A top-level `/orders` collection is included for admin-level querying of all orders. Authorization Independence is achieved by storing the `userId` directly within the `Order` documents, eliminating the need for security rules to traverse to parent documents. QAPs are supported by segregating data based on ownership (orders under user IDs) and providing a flat, easily queryable structure for menu items and all orders."
+    "reasoning": "The Firestore structure is designed to support a multi-tenant application (multiple schools). Key collections like `users`, `orders`, and `menuItems` are intended to be filtered by a `schoolId` field within each document. This ensures that an administrator for one school can only see and manage data relevant to their own institution, preventing data leaks. User-specific data (like a user's own orders) remains nested under `/users/{userId}` for ownership-based security."
   }
 }

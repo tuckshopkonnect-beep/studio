@@ -18,7 +18,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { User } from "@/lib/data";
-import { useTodaysSpending } from "@/hooks/use-spending";
 
 interface AppSettings {
   jssLimit?: number;
@@ -35,9 +34,6 @@ export default function StudentDashboard() {
   }, [firestore, authUser]);
 
   const { data: student, isLoading: isLoadingStudent } = useDoc<User>(studentDocRef);
-  
-  // Use the new hook to get today's spending
-  const { spentToday, isLoadingSpending } = useTodaysSpending(authUser?.uid);
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -87,8 +83,10 @@ export default function StudentDashboard() {
     return null;
   }, [appSettings, student]);
 
+  const todayString = new Date().toISOString().split('T')[0];
+  const spentToday = student?.spendingToday?.date === todayString ? student.spendingToday.amount : 0;
 
-  if (isUserLoading || isLoadingStudent || isLoadingSpending || isLoadingSettings) {
+  if (isUserLoading || isLoadingStudent || isLoadingSettings) {
     return (
         <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
