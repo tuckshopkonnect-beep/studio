@@ -40,11 +40,12 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     
     match /schools/{schoolId} {
-      // Any signed-in user can create, read, or update a school document.
-      // This is safe because the UI is only exposed on the super admin pages.
-      allow create, read, update: if isSignedIn();
-      // Only admins can list or delete schools.
-      allow list, delete: if isAdmin();
+      // Allow public read for the school selection screen.
+      allow read: if true;
+      // Writing is restricted. Create/update require a signed-in user (super admin),
+      // and delete requires the user to have the 'Admin' role.
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
 
@@ -81,7 +82,7 @@ service cloud.firestore {
      * @description Top-level orders collection, aggregated for the admin dashboard.
      */
     match /orders/{orderId} {
-      allow get, list: if isSignedIn();
+      allow get, list: if isAdmin();
       // Any signed-in user can create their own order record in this master list.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       // Only admins can modify or delete from this master list.
