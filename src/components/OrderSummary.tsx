@@ -10,9 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import type { User } from "@/lib/data";
 import { CompletedOrder } from "@/hooks/use-cart";
-import { useFirestore } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, doc, increment } from 'firebase/firestore';
 
 
 interface OrderSummaryProps {
@@ -37,6 +36,10 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
   const remainingLimit = effectiveDailyLimit ? effectiveDailyLimit - spentToday : Infinity;
 
   const handlePlaceOrder = () => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Database connection not available.' });
+      return;
+    }
     if (cartItems.length === 0) {
       toast({
         variant: "destructive",
@@ -64,8 +67,17 @@ export default function OrderSummary({ student, spentToday, defaultDailyLimit }:
       return;
     }
     
+    // Atomically decrement the student's balance on the server
     const studentDocRef = doc(firestore, 'users', student.id);
-    updateDocumentNonBlocking(studentDocRef, { balance: potentialBalance });
+    updateDocumentNonBlocking(studentDocRef, { balance: increment(-totalPrice) });
+
+    // Atomically decrement the stock for each item in the cart
+    cartItems.forEach(cartItem => {
+        const menuItemRef = doc(firestore, 'menuItems', cartItem.id);
+        updateDocumentNonBlocking(menuItemRef, {
+            stock: increment(-cartItem.quantity)
+        });
+    });
 
 
     const newOrder: CompletedOrder = {

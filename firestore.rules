@@ -33,6 +33,17 @@ service cloud.firestore {
     function isCreatingValidOrder(userId) {
       return isOwner(userId) && request.resource.data.userId == userId;
     }
+    
+    function onlyStockIsChanging() {
+      // Ensures that only the 'stock' field is being modified in an update.
+      // All other fields must remain the same.
+      let incomingData = request.resource.data;
+      let existingData = resource.data;
+      let otherFields = ['name', 'description', 'price', 'category', 'schoolId', 'isAvailable', 'image'];
+      
+      // Check if any other field is being changed
+      return otherFields.size() == otherFields.filter(field => incomingData[field] == existingData[field]).size();
+    }
 
 
     // --------------------------------------------------------------------
@@ -52,7 +63,7 @@ service cloud.firestore {
     match /users/{userId} {
       // A user can read their own profile. An admin function needs to read any profile.
       // `get` is safe for `isAdmin()` because it's non-recursive and only returns one document.
-      allow get: if isSignedIn();
+      allow get: if isOwner(userId) || isAdmin() || isParent(userId);
       // Only admins can list all users.
       allow list: if isAdmin();
       
@@ -105,8 +116,14 @@ service cloud.firestore {
     match /menuItems/{menuItemId} {
       // Anyone can view the menu.
       allow get, list: if true;
-      // Only admins can modify the menu.
-      allow write: if isAdmin();
+      // Admins can create and delete menu items.
+      allow create, delete: if isAdmin();
+      // An admin can update any field. A student can only update the stock
+      // field to decrement it (e.g., when placing an order).
+      allow update: if isAdmin() || 
+                       (isSignedIn() && 
+                        onlyStockIsChanging() && 
+                        request.resource.data.stock < resource.data.stock);
 
       /**
        * @description Inventory is admin-only.
