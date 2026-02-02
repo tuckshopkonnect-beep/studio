@@ -42,8 +42,34 @@ export default function PasswordResetsPage() {
     const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
     const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
     
-    // In a real app, this would come from a Firestore collection
-    const [requests, setRequests] = React.useState<PasswordResetRequest[]>([]);
+    // In a real app, this would come from a Firestore collection.
+    // For demonstration, we'll use some mock data.
+    const [requests, setRequests] = React.useState<PasswordResetRequest[]>([
+        {
+          id: 'req_1',
+          userId: 'user_student_123',
+          userName: 'Badejo T.',
+          userEmail: 'badejo.t@school.com',
+          userAvatar: `https://i.pravatar.cc/150?u=badejo.t@school.com`,
+          requestDate: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 mins ago
+        },
+        {
+          id: 'req_2',
+          userId: 'user_parent_456',
+          userName: 'Mrs. Okoro',
+          userEmail: 'okoro.fam@example.com',
+          userAvatar: `https://i.pravatar.cc/150?u=okoro.fam@example.com`,
+          requestDate: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+        },
+        {
+          id: 'req_3',
+          userId: 'user_student_789',
+          userName: 'Samson Chi',
+          userEmail: 'samson.c@school.com',
+          userAvatar: `https://i.pravatar.cc/150?u=samson.c@school.com`,
+          requestDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        }
+    ]);
     
     const [requestToDeny, setRequestToDeny] = React.useState<PasswordResetRequest | null>(null);
     const [requestToApprove, setRequestToApprove] = React.useState<PasswordResetRequest | null>(null);
@@ -66,6 +92,7 @@ export default function PasswordResetsPage() {
         if (!requestToApprove) return;
 
         // In a real app, you would now update the user's password in the database.
+        // This would typically involve a Cloud Function.
         console.log(`Password for ${requestToApprove.userName} reset to: ${newPassword}`);
         
         setRequests(prev => prev.filter(r => r.id !== requestToApprove.id));
