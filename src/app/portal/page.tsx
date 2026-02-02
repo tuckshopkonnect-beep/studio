@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,13 +29,13 @@ export default function PortalPage() {
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
       <Image
-        src="https://images.unsplash.com/photo-1491841550275-5d743f3c3450?q=80&w=2070&auto=format&fit=crop"
-        alt="Modern school background"
+        src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=2128&auto=format&fit=crop"
+        alt="Library of books"
         fill
         className="object-cover -z-20"
         priority
       />
-      <div className="absolute inset-0 bg-black/80 -z-10" />
+      <div className="absolute inset-0 bg-black/70 -z-10" />
 
       <div className="container flex flex-col items-center max-w-6xl text-center">
         <div className="mb-12 flex flex-col items-center gap-4">
