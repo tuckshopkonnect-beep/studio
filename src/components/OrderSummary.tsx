@@ -107,11 +107,15 @@ export default function OrderSummary({ student, spentTodayForDisplay, effectiveD
             const cartItem = cartItems[i];
             const menuItemDoc = menuItemDocs[i];
             if (!menuItemDoc.exists()) {
-                throw new Error(`Menu item "${cartItem.name}" is no longer available.`);
+                throw new Error(`Sorry, "${cartItem.name}" is no longer available on the menu.`);
             }
             const currentStock = menuItemDoc.data().stock || 0;
             if (currentStock < cartItem.quantity) {
-                throw new Error(`Not enough stock for "${cartItem.name}". Only ${currentStock} left.`);
+                if (currentStock === 0) {
+                    throw new Error(`Oops! Someone just bought the last of the "${cartItem.name}". It's now finished.`);
+                } else {
+                    throw new Error(`Sorry, someone just bought some "${cartItem.name}" and we only have ${currentStock} left now.`);
+                }
             }
         }
 
@@ -166,18 +170,21 @@ export default function OrderSummary({ student, spentTodayForDisplay, effectiveD
     .catch((e: any) => {
         console.error("Order transaction failed: ", e);
 
-        // Create a representative error for debugging security rules if needed.
-        const permissionError = new FirestorePermissionError({
-            path: `users/${student.id}`, // A likely path to fail
-            operation: 'update',
-            requestResourceData: { balance: `(new balance)` },
-        });
-        errorEmitter.emit('permission-error', permissionError);
+        // Only emit technical permission errors for debugging security rules.
+        // Friendly validation errors (stock/balance) shouldn't trigger the dev overlay.
+        if (e.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: `users/${student.id}`, 
+                operation: 'update',
+                requestResourceData: { balance: `(new balance)` },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        }
 
         toast({
             variant: "destructive",
-            title: "Order Failed",
-            description: e.message || "The order could not be placed due to a conflict or permissions issue. Please try again.",
+            title: "Order Could Not Be Placed",
+            description: e.message || "An unexpected error occurred. Please try again.",
         });
     });
   };
