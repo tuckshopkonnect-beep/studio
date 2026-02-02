@@ -23,7 +23,7 @@ import { Loader2, UserX, ShieldQuestion, KeyRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase, deleteDocumentNonBlocking, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import PasswordResetDialog from "@/components/PasswordResetDialog";
 import { formatDistanceToNow } from 'date-fns';
@@ -46,7 +46,7 @@ export default function PasswordResetsPage() {
     if (!firestore || !authUser) return null;
     return doc(firestore, 'users', authUser.uid);
   }, [firestore, authUser]);
-  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc(currentUserDocRef);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
 
