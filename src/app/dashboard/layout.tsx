@@ -59,6 +59,7 @@ const navItems = [
 ];
 
 const secondaryNavItems = [
+    { href: "/dashboard/password-resets", icon: KeyRound, label: "Password Resets" },
     { href: "/dashboard/scanner", icon: QrCode, label: "POS Scanner", feature: "posScannerEnabled" },
     { href: "/dashboard/appearance", icon: Palette, label: "Appearance" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },

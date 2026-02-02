@@ -53,8 +53,18 @@ service cloud.firestore {
       allow read: if true;
       // Allow any signed-in user to create, as the super-admin page is protected.
       // Admins can update/delete.
-      allow create, update: if isSignedIn();
-      allow delete: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+    
+    match /passwordResetRequests/{requestId} {
+      // Allow anyone to create a request, but validate the fields.
+      // This prevents spamming with malformed data.
+      allow create: if request.resource.data.keys().hasAll(['userEmail', 'requestDate', 'status'])
+                      && request.resource.data.userEmail is string
+                      && request.resource.data.status == 'Pending';
+      // Only admins can read, update, or delete requests.
+      allow read, list, update, delete: if isAdmin();
     }
 
 

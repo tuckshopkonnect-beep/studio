@@ -16,9 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { useAuth, useFirestore } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { addDoc, collection } from "firebase/firestore";
 
 export default function StudentLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +30,7 @@ export default function StudentLoginPage() {
 
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,30 +69,36 @@ export default function StudentLoginPage() {
       toast({
         variant: "destructive",
         title: "Email Required",
-        description: "Please enter your email address in the email field to receive a password reset link.",
+        description: "Please enter your email address in the email field to submit a reset request.",
       });
       return;
     }
-     if (!auth) {
+     if (!firestore) {
         toast({
             variant: "destructive",
-            title: "Authentication service not ready.",
+            title: "Database service not ready.",
         });
         return;
     }
 
     try {
-      await sendPasswordResetEmail(auth, email);
+      const requestsRef = collection(firestore, 'passwordResetRequests');
+      await addDoc(requestsRef, {
+        userEmail: email,
+        requestDate: new Date().toISOString(),
+        status: 'Pending',
+      });
+
       toast({
-        title: "Password Reset Email Sent",
-        description: "Please check your inbox for instructions to reset your password.",
+        title: "Request Sent",
+        description: "Please contact your administrator to receive your reset credentials.",
       });
     } catch (error: any) {
-      console.error("Password reset failed:", error);
+      console.error("Password reset request failed:", error);
       toast({
         variant: "destructive",
-        title: "Password Reset Failed",
-        description: "Could not send reset email. Please ensure the email is correct and try again.",
+        title: "Request Failed",
+        description: "Could not submit your request. Please try again later.",
       });
     }
   };

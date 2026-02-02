@@ -63,10 +63,12 @@ export interface User {
 }
 
 export interface PasswordResetRequest {
-  id: string;
-  userId: string;
-  userName: string;
+  id: string; // Document ID from Firestore
   userEmail: string;
-  userAvatar: string;
   requestDate: string;
+  status: 'Pending';
+  // These fields are added on the client after merging with user data
+  userId?: string;
+  userName?: string;
+  userAvatar?: string;
 }
