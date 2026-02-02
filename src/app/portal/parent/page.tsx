@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ParentLoginPage() {
@@ -62,6 +62,40 @@ export default function ParentLoginPage() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter your email address in the email field to receive a password reset link.",
+      });
+      return;
+    }
+     if (!auth) {
+        toast({
+            variant: "destructive",
+            title: "Authentication service not ready.",
+        });
+        return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Please check your inbox for instructions to reset your password.",
+      });
+    } catch (error: any) {
+      console.error("Password reset failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Password Reset Failed",
+        description: "Could not send reset email. Please ensure the email is correct and try again.",
+      });
+    }
+  };
+
+
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-background">
       <Image
@@ -98,9 +132,14 @@ export default function ParentLoginPage() {
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                    <Link href="#" className="ml-auto inline-block text-sm underline hover:text-primary">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="ml-auto inline-block text-sm underline hover:text-primary px-0 text-white"
+                      onClick={handlePasswordReset}
+                    >
                       Forgot password?
-                    </Link>
+                    </Button>
                 </div>
                  <div className="relative">
                     <Input 
