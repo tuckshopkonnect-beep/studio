@@ -53,6 +53,12 @@ export default function DashboardPage() {
     }, [firestore, currentUserProfile?.schoolId]);
   const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
+  const { data: schoolUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
+
 
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -96,7 +102,7 @@ export default function DashboardPage() {
   const monthlyRevenueChange = calculatePercentageChange(revenueThisMonth, revenueLastMonth);
   const weeklyOrderChange = calculatePercentageChange(ordersLast7Days, ordersPrevious7Days);
 
-  const totalUsers = '–';
+  const totalUsers = schoolUsers?.length.toString() || '0';
   
   // Calculate low stock items. Threshold is 15, consistent with inventory page.
   const lowStockItemsCount = safeMenuItems.filter(
@@ -122,7 +128,7 @@ export default function DashboardPage() {
     }));
 
   const recentActivities: any[] = [
-    // This will now be empty by default
+    // This could be populated from a collection of audit logs if needed
   ];
 
   const recentOrders = safeOrders.slice(0, 5);
@@ -142,7 +148,7 @@ export default function DashboardPage() {
     />;
   }
   
-  if (isLoadingOrders || isLoadingMenuItems) {
+  if (isLoadingOrders || isLoadingMenuItems || isLoadingUsers) {
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -208,7 +214,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground">Go to Users page for count</p>
+            <p className="text-xs text-muted-foreground">Registered in your school</p>
           </CardContent>
         </Card>
          <Card>
