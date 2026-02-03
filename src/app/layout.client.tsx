@@ -15,6 +15,7 @@ export default function RootLayoutClient({ children }: { children: React.ReactNo
     '/student/dashboard',
     '/portal',
     '/schools',
+    '/super', // Hide on super admin pages
   ];
 
   // A more robust check to see if the path starts with any of the noHeaderPaths
