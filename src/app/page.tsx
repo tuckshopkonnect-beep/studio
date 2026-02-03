@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from 'next/image';
@@ -117,13 +116,13 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
           <div className="absolute inset-0 z-0">
-            <AnimatePresence mode="wait">
+            <AnimatePresence initial={false}>
               <motion.div 
                 key={currentImageIndex}
-                initial={{ opacity: 0, scale: 1.1 }}
+                initial={{ opacity: 0, scale: 1.15 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 2 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 2.5, ease: "easeInOut" }}
                 className="absolute inset-0"
               >
                 <div className="absolute inset-0 bg-black/60 z-10" />
