@@ -17,13 +17,14 @@ import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { useAuth, useFirestore } from "@/firebase";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
 
 export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +51,6 @@ export default function AdminLoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         // If user document doesn't exist or doesn't have an admin role, create/update it.
-        // This handles the first-time login for an admin.
         if (!userDoc.exists() || userDoc.data()?.role !== 'Admin') {
             const userProfile = {
                 id: user.uid,
@@ -62,7 +62,6 @@ export default function AdminLoginPage() {
             };
             await setDoc(userDocRef, userProfile, { merge: true });
         }
-
 
         toast({
             title: "Login Successful",
@@ -95,6 +94,34 @@ export default function AdminLoginPage() {
 
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter your admin email address to receive a reset link.",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Reset Email Sent",
+        description: `A password reset link has been sent to ${email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: error.message || "Could not send reset email.",
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -132,7 +159,18 @@ export default function AdminLoginPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="ml-auto inline-block text-sm underline hover:text-primary px-0 text-white"
+                    onClick={handleForgotPassword}
+                    disabled={isResetting}
+                  >
+                    {isResetting ? "Sending..." : "Forgot password?"}
+                  </Button>
+                </div>
                  <div className="relative">
                     <Input
                       id="password"

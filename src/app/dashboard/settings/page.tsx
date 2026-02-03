@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, ChevronsUpDown, Check, Loader2 } from "lucide-react";
+import { ArrowRight, ChevronsUpDown, Check, Loader2, ShieldCheck, Mail } from "lucide-react";
 import ConfirmationDialog from "@/components/ConfirmationDialog";
 import {
   Popover,
@@ -32,9 +32,10 @@ import {
 } from "@/components/ui/command";
 import type { User } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, doc, updateDoc, setDoc } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useCollection, useFirestore, useUser, useMemoFirebase, useDoc, useAuth } from "@/firebase";
+import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { Skeleton } from "@/components/ui/skeleton";
 import AccessDenied from "@/components/AccessDenied";
 
@@ -53,6 +54,7 @@ interface AppSettings {
 export default function SettingsPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user: authUser, isUserLoading } = useUser();
 
   const currentUserDocRef = useMemoFirebase(() => {
@@ -84,6 +86,7 @@ export default function SettingsPage() {
 
 
   const [isPromoteConfirmOpen, setIsPromoteConfirmOpen] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // State for individual limits
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -120,8 +123,6 @@ export default function SettingsPage() {
   };
   
   const handleTimeChange = () => {
-    // The `onChange` handler (`handleTimeInputChange`) already saves the data.
-    // This `onBlur` handler is now only responsible for showing the confirmation toast.
     toast({
         title: "Order times saved",
         description: "The shop open and close times have been updated."
@@ -172,7 +173,7 @@ export default function SettingsPage() {
 
   const handleRemoveIndividualLimit = async () => {
     if (!selectedStudentId || !firestore) return;
-    setIndividualLimit(''); // Clear the input
+    setIndividualLimit(''); 
     
     const studentDocRef = doc(firestore, 'users', selectedStudentId);
     try {
@@ -188,7 +189,6 @@ export default function SettingsPage() {
   };
   
   const handlePromoteStudents = () => {
-    // In a real app, this would be a complex backend operation (e.g., a Cloud Function).
     console.log("Promoting all students...");
     toast({
         title: "Students Promoted",
@@ -200,6 +200,26 @@ export default function SettingsPage() {
   const handleTimeInputChange = (field: keyof AppSettings, value: string) => {
     if (!settingsDocRef) return;
     updateDocumentNonBlocking(settingsDocRef, { [field]: value });
+  };
+
+  const handleRequestAdminPasswordReset = async () => {
+    if (!auth || !authUser?.email) return;
+    setIsResettingPassword(true);
+    try {
+      await sendPasswordResetEmail(auth, authUser.email);
+      toast({
+        title: "Reset Email Sent",
+        description: `A password reset link has been sent to your email: ${authUser.email}`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Request Failed",
+        description: error.message || "Could not send reset email.",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   if (isUserLoading || isLoadingCurrentUser || isLoadingSettings) {
@@ -429,16 +449,32 @@ export default function SettingsPage() {
         </Card>
          <Card>
           <CardHeader>
-            <CardTitle>Payment Gateway</CardTitle>
+            <CardTitle>Account Security</CardTitle>
             <CardDescription>
-                View your integration details for Paystack.
+                Manage your administrator account security.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-2">
-                <Label htmlFor="paystack-key">Paystack Public Key</Label>
-                <Input id="paystack-key" defaultValue="pk_test_94b05b50b19eae02848d09a3b44a52aab1eec139" readOnly />
-              </div>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full h-fit">
+                        <ShieldCheck className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-sm">Change Password</p>
+                        <p className="text-xs text-muted-foreground">Receive an email to securely update your password.</p>
+                    </div>
+                </div>
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRequestAdminPasswordReset}
+                    disabled={isResettingPassword}
+                >
+                    {isResettingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                    {isResettingPassword ? "Sending..." : "Send Reset Email"}
+                </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -464,10 +500,4 @@ export default function SettingsPage() {
     </div>
     </>
   );
-
-    
-
-
-
-    
-
+}
