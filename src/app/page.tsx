@@ -134,7 +134,7 @@ export default function Home() {
                   className="object-cover"
                   data-ai-hint="tuckshop food"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent z-20" />
+                <div className="absolute bottom-0 left-0 right-0 h-[20%] bg-gradient-to-t from-background to-transparent z-20" />
               </motion.div>
             </AnimatePresence>
           </div>
