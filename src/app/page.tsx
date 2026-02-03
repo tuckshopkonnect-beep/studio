@@ -8,9 +8,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, BookUser, Mail, ArrowRight, MousePointer2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Footer from '@/components/Footer';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const words = ["Simplified.", "Seamless.", "Effortless.", "Efficient.", "Smart.", "Intuitive."];
+  const [index, setIndex] = useState(0);
+  const [subIndex, setSubIndex] = useState(0);
+  const [reverse, setReverse] = useState(false);
+
+  // Typewriter effect logic
+  useEffect(() => {
+    if (subIndex === words[index].length + 1 && !reverse) {
+      const timeout = setTimeout(() => setReverse(true), 2000); // Pause before deleting
+      return () => clearTimeout(timeout);
+    }
+
+    if (subIndex === 0 && reverse) {
+      setReverse(false);
+      setIndex((prev) => (prev + 1) % words.length);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1));
+    }, reverse ? 50 : 150);
+
+    return () => clearTimeout(timeout);
+  }, [subIndex, index, reverse]);
+
   const features = [
     {
       icon: <CreditCard className="w-8 h-8 text-primary" />,
@@ -96,8 +122,11 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
-              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-shadow-lg leading-tight">
-                School Lunch, <span className="text-accent italic">Simplified.</span>
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-shadow-lg leading-tight min-h-[1.5em]">
+                School Lunch, <span className="text-accent italic inline-block min-w-[200px]">
+                  {words[index].substring(0, subIndex)}
+                  <span className="inline-block w-[2px] h-[0.8em] bg-accent ml-1 animate-pulse" />
+                </span>
               </h1>
               <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 text-shadow">
                 A modern, cashless solution for school tuckshops. Easy for students, peace of mind for parents, and efficient for schools.
