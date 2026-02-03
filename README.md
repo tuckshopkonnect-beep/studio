@@ -26,11 +26,12 @@ The easiest way to publish is via GitHub integration:
 3.  Connect your GitHub account and select your repository.
 4.  Firebase will automatically detect the Next.js setup and build/deploy your site every time you push to the main branch.
 
-### 4. Setting up the System Owner (Super Admin)
-1.  Once live, navigate to your-site.com**/portal/admin/signup**.
-2.  Create an account. This first account will be your "System Owner".
-3.  Login via the **Super Admin Login** at **/super/login**.
-4.  From here, you can onboard new schools and create their initial administrators.
+### 4. Setting up the System Owner (IMPORTANT)
+**Note on Data:** When you move to a new Firebase project, your database will be empty.
+1.  Once your site is live at its new URL, navigate to: `your-site.com/portal/admin/signup`.
+2.  Create your first account. This account will automatically have the **Admin** role.
+3.  Login via the **Super Admin Login** at `/super/login`.
+4.  From here, you can begin onboarding schools and creating their initial administrators.
 
 ---
 
