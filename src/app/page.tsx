@@ -5,17 +5,34 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, BookUser, Mail, ArrowRight, MousePointer2 } from 'lucide-react';
+import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, BookUser, Mail, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Footer from '@/components/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+
+const heroImages = [
+  "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2787&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1490818387583-1baba5e6382b?q=80&w=2010&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1560624052-449f5ddf0c31?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=2070&auto=format&fit=crop"
+];
 
 export default function Home() {
   const words = ["Simplified.", "Seamless.", "Effortless.", "Efficient.", "Smart.", "Intuitive."];
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [reverse, setReverse] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Slideshow logic
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Typewriter effect logic
   useEffect(() => {
@@ -99,25 +116,31 @@ export default function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
-          <motion.div 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5 }}
-            className="absolute inset-0 z-0"
-          >
-             <div className="absolute inset-0 bg-black/60 z-10" />
-              <Image
-                src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2787&auto=format&fit=crop"
-                alt="Delicious food background"
-                fill
-                priority
-                className="object-cover"
-                data-ai-hint="delicious food"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-          </motion.div>
+          <div className="absolute inset-0 z-0">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={currentImageIndex}
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 2 }}
+                className="absolute inset-0"
+              >
+                <div className="absolute inset-0 bg-black/60 z-10" />
+                <Image
+                  src={heroImages[currentImageIndex]}
+                  alt="School cafeteria and food"
+                  fill
+                  priority
+                  className="object-cover"
+                  data-ai-hint="school lunch"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent z-20" />
+              </motion.div>
+            </AnimatePresence>
+          </div>
           
-          <div className="relative z-20 container px-4">
+          <div className="relative z-30 container px-4">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -151,7 +174,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.5, duration: 1 }}
-            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/70"
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 text-white/70"
           >
             <span className="text-xs uppercase tracking-widest font-semibold">Scroll Down</span>
             <div className="animate-bounce">
