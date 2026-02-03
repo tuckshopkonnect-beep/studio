@@ -20,14 +20,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      let data = getUserData();
-      return isSignedIn() && data != null && data.get('role', '') == 'Admin';
+      return isSignedIn() && getUserData().get('role', '') == 'Admin';
     }
     
     function isParent(childUserId) {
-      let parentData = getUserData();
-      return isSignedIn() && parentData != null
-             && parentData.get('childIds', {})[childUserId] == true;
+      return isSignedIn() && getUserData().get('childIds', {})[childUserId] == true;
     }
     
     function isCreatingValidOrder(userId) {

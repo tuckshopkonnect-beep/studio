@@ -16,9 +16,11 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSchoolAndAdmin } from "@/app/actions";
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, addDoc } from "firebase/firestore";
-import type { School } from "@/lib/data";
+import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { collection, addDoc, doc } from "firebase/firestore";
+import type { School, User } from "@/lib/data";
+import FullPageLoader from "@/components/FullPageLoader";
+import AccessDenied from "@/components/AccessDenied";
 
 export default function SuperAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +33,13 @@ export default function SuperAdminPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user: authUser, isUserLoading } = useUser();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +80,7 @@ export default function SuperAdminPage() {
                 setAdminName("");
                 setAdminEmail("");
                 setAdminPassword("");
+                router.push("/super/dashboard");
             } else {
                 toast({
                     variant: "destructive",
@@ -80,26 +90,38 @@ export default function SuperAdminPage() {
             }
         })
         .catch((error) => {
-            // Create a rich, contextual error and emit it globally.
-            // This will be caught by the FirebaseErrorListener and displayed in the dev overlay.
             const permissionError = new FirestorePermissionError({
-                path: 'schools', // This is a collection path
+                path: 'schools', 
                 operation: 'create',
                 requestResourceData: schoolData,
             });
             errorEmitter.emit('permission-error', permissionError);
 
-            // Also show a user-friendly toast.
             toast({
                 variant: "destructive",
                 title: "School Creation Failed",
-                description: "Permission denied. A detailed error has been logged for debugging.",
+                description: "Permission denied. Please ensure you are logged in as an administrator.",
             });
         })
         .finally(() => {
             setIsLoading(false);
         });
   };
+
+  if (isUserLoading || isLoadingCurrentUser) {
+    return <FullPageLoader message="Verifying credentials..." />;
+  }
+
+  if (!authUser || currentUserProfile?.role !== 'Admin') {
+    return (
+        <div className="container mx-auto p-6">
+            <AccessDenied 
+                currentUserProfile={currentUserProfile} 
+                message="You must be signed in as an administrator to create new schools." 
+            />
+        </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">

@@ -1,9 +1,10 @@
+
 'use client';
 
 import * as React from 'react';
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser, useDoc } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import type { School } from '@/lib/data';
+import type { School, User } from '@/lib/data';
 import {
   Card,
   CardContent,
@@ -33,11 +34,20 @@ import {
 import EditSchoolDialog from '@/components/EditSchoolDialog';
 import { useToast } from "@/hooks/use-toast";
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import FullPageLoader from '@/components/FullPageLoader';
+import AccessDenied from '@/components/AccessDenied';
 
 
 export default function SuperAdminDashboardPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user: authUser, isUserLoading } = useUser();
+
+  const currentUserDocRef = useMemoFirebase(() => {
+    if (!firestore || !authUser) return null;
+    return doc(firestore, 'users', authUser.uid);
+  }, [firestore, authUser]);
+  const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
   const schoolsCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -83,6 +93,20 @@ export default function SuperAdminDashboardPage() {
     setSchoolToDelete(null);
   };
 
+  if (isUserLoading || isLoadingCurrentUser) {
+    return <FullPageLoader message="Verifying administrator status..." />;
+  }
+
+  if (!authUser || currentUserProfile?.role !== 'Admin') {
+    return (
+        <div className="container mx-auto p-6">
+            <AccessDenied 
+                currentUserProfile={currentUserProfile} 
+                message="You must be signed in as an administrator to access the Super Admin Dashboard." 
+            />
+        </div>
+    );
+  }
 
   return (
     <>
