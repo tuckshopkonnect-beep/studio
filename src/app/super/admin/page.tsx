@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,14 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff, ShieldCheck, Building, UserPlus, ArrowLeft } from "lucide-react";
+import { Loader2, Eye, EyeOff, Building, UserPlus, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSchoolAndAdmin } from "@/app/actions";
-import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useUser, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirestore, errorEmitter, FirestorePermissionError, useUser, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, addDoc, doc } from "firebase/firestore";
 import type { School, User } from "@/lib/data";
 import FullPageLoader from "@/components/FullPageLoader";
-import AccessDenied from "@/components/AccessDenied";
 import Link from "next/link";
 
 export default function SuperAdminPage() {
@@ -32,7 +31,6 @@ export default function SuperAdminPage() {
   const [adminPassword, setAdminPassword] = useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
   const firestore = useFirestore();
   const { user: authUser, isUserLoading } = useUser();
 
@@ -41,6 +39,15 @@ export default function SuperAdminPage() {
     return doc(firestore, 'users', authUser.uid);
   }, [firestore, authUser]);
   const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
+
+  // Redirect to super login if not authorized
+  useEffect(() => {
+    if (!isUserLoading && !isLoadingCurrentUser) {
+      if (!authUser || (currentUserProfile && currentUserProfile.role !== 'Admin')) {
+        router.push('/super/login');
+      }
+    }
+  }, [authUser, isUserLoading, isLoadingCurrentUser, currentUserProfile, router]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,7 +93,7 @@ export default function SuperAdminPage() {
   }
 
   if (!authUser || currentUserProfile?.role !== 'Admin') {
-    return <AccessDenied currentUserProfile={currentUserProfile} message="System Owner access required for onboarding." />;
+    return null; // Effect handles redirect
   }
 
   return (

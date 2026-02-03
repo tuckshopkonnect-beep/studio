@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser, useDoc } from '@/firebase';
-import { collection, doc, query } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import type { School, User } from '@/lib/data';
 import {
   Card,
@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle, Building, MoreHorizontal, ShieldCheck, Users, Globe } from 'lucide-react';
+import { Loader2, PlusCircle, Building, MoreHorizontal, Users, Globe } from 'lucide-react';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -35,11 +35,12 @@ import EditSchoolDialog from '@/components/EditSchoolDialog';
 import { useToast } from "@/hooks/use-toast";
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import FullPageLoader from '@/components/FullPageLoader';
-import AccessDenied from '@/components/AccessDenied';
+import { useRouter } from 'next/navigation';
 
 export default function SuperAdminDashboardPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   const { user: authUser, isUserLoading } = useUser();
 
   const currentUserDocRef = useMemoFirebase(() => {
@@ -50,15 +51,22 @@ export default function SuperAdminDashboardPage() {
 
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
+  // Redirect to super login if not authorized
+  React.useEffect(() => {
+    if (!isUserLoading && !isLoadingCurrentUser) {
+      if (!authUser || (currentUserProfile && currentUserProfile.role !== 'Admin')) {
+        router.push('/super/login');
+      }
+    }
+  }, [authUser, isUserLoading, isLoadingCurrentUser, currentUserProfile, router]);
+
   const schoolsCollection = useMemoFirebase(() => {
-    // Only attempt to list schools once we know who the user is
-    if (!firestore || !authUser) return null;
+    if (!firestore || !isCurrentUserAdmin) return null;
     return collection(firestore, 'schools');
-  }, [firestore, authUser]);
+  }, [firestore, isCurrentUserAdmin]);
   const { data: schools, isLoading: isLoadingSchools } = useCollection<School>(schoolsCollection);
 
   const usersCollection = useMemoFirebase(() => {
-    // CRITICAL: Only attempt to list global users if the authenticated user is an Admin
     if (!firestore || !isCurrentUserAdmin) return null;
     return collection(firestore, 'users');
   }, [firestore, isCurrentUserAdmin]);
@@ -88,14 +96,7 @@ export default function SuperAdminDashboardPage() {
   }
 
   if (!authUser || currentUserProfile?.role !== 'Admin') {
-    return (
-        <div className="container mx-auto p-6">
-            <AccessDenied 
-                currentUserProfile={currentUserProfile} 
-                message="This is the Master Control page for the System Owner. You must be signed in with an Administrator account to access these global tools." 
-            />
-        </div>
-    );
+    return null; // Effect handles redirect
   }
 
   return (
