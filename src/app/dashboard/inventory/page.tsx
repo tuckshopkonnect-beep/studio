@@ -141,19 +141,23 @@ export default function InventoryPage() {
       return false;
     }
 
-    if (!firestore || !currentUserProfile?.schoolId) {
+    if (!firestore) {
         toast({
             variant: 'destructive',
-            title: 'Cannot save item',
-            description: 'Your school information could not be found. Please log in again.'
+            title: 'Database connection error',
+            description: 'Could not connect to the database. Please try again.'
         });
         return false;
     }
     
-    const dataToSave = {
+    // Support legacy admins who might not have a schoolId yet
+    const dataToSave: any = {
         ...itemData,
-        schoolId: currentUserProfile.schoolId,
     };
+
+    if (currentUserProfile?.schoolId) {
+        dataToSave.schoolId = currentUserProfile.schoolId;
+    }
     
     const docRef = doc(firestore, "menuItems", String(dataToSave.id));
     setDocumentNonBlocking(docRef, dataToSave, { merge: true });

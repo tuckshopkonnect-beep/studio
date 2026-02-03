@@ -169,15 +169,19 @@ export default function UsersPage() {
    
    if (isCreating) {
        try {
-           if(!currentUserProfile?.schoolId) throw new Error("Current admin has no school ID.");
-
            const tempApp = initializeApp(firebaseConfig, `user-creation-${Date.now()}`);
            const tempAuth = getAuth(tempApp);
  
            const userCredential = await createUserWithEmailAndPassword(tempAuth, userToSave.email, userToSave.password!);
            const newUserId = userCredential.user.uid;
  
-           const userDataForFirestore = { ...sanitizedData, id: newUserId, childIds: {}, schoolId: currentUserProfile.schoolId };
+           const userDataForFirestore: any = { ...sanitizedData, id: newUserId, childIds: {} };
+           
+           // Support legacy admins who don't have a schoolId assigned
+           if (currentUserProfile?.schoolId) {
+               userDataForFirestore.schoolId = currentUserProfile.schoolId;
+           }
+
            const userDocRef = doc(firestore, 'users', newUserId);
            setDocumentNonBlocking(userDocRef, userDataForFirestore, { merge: true });
  

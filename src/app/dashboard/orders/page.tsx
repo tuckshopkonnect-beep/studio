@@ -54,12 +54,20 @@ export default function OrdersPage() {
   const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc(currentUserDocRef);
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
   
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
-    return query(collection(firestore, "orders"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
+  // Use hybrid filtering logic to support legacy orders for legacy admins
+  const ordersCollection = useMemoFirebase(() => {
+    if (!firestore || !isCurrentUserAdmin) return null;
+    return collection(firestore, "orders");
+  }, [firestore, isCurrentUserAdmin]);
 
-  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+  const { data: rawOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
+
+  const adminSchoolId = currentUserProfile?.schoolId;
+
+  const orders = React.useMemo(() => {
+    if (!rawOrders) return [];
+    return rawOrders.filter(o => !o.schoolId || o.schoolId === adminSchoolId);
+  }, [rawOrders, adminSchoolId]);
 
   const [orderToCancel, setOrderToCancel] = React.useState<Order | null>(null);
 
