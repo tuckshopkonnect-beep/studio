@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { User } from "@/lib/data";
-import { ShieldAlert, LogIn } from "lucide-react";
+import { ShieldAlert, LogIn, UserPlus } from "lucide-react";
 
 interface AccessDeniedProps {
     currentUserProfile: User | null | undefined;
@@ -29,13 +29,22 @@ export default function AccessDenied({ currentUserProfile, message }: AccessDeni
                     <p className="text-center text-muted-foreground">{message || defaultMessage}</p>
                     
                     <div className="flex flex-col gap-3">
-                        {!currentUserProfile ? (
-                            <Button asChild className="w-full">
-                                <Link href="/portal/admin">
-                                    <LogIn className="mr-2 h-4 w-4" /> Login as Administrator
-                                </Link>
-                            </Button>
-                        ) : (
+                        {!currentUserProfile || currentUserProfile.role !== 'Admin' ? (
+                            <>
+                                <Button asChild className="w-full">
+                                    <Link href="/portal/admin">
+                                        <LogIn className="mr-2 h-4 w-4" /> Login as Administrator
+                                    </Link>
+                                </Button>
+                                <Button asChild variant="outline" className="w-full">
+                                    <Link href="/portal/admin/signup">
+                                        <UserPlus className="mr-2 h-4 w-4" /> Create Admin Account
+                                    </Link>
+                                </Button>
+                            </>
+                        ) : null}
+
+                        {currentUserProfile && (
                             <>
                                 {currentUserProfile.role === 'Parent' && (
                                     <Button asChild className="w-full">
@@ -49,7 +58,7 @@ export default function AccessDenied({ currentUserProfile, message }: AccessDeni
                                 )}
                             </>
                         )}
-                        <Button asChild variant="outline" className="w-full">
+                        <Button asChild variant="ghost" className="w-full">
                             <Link href="/portal">Return to Portals</Link>
                         </Button>
                     </div>

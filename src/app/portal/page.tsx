@@ -1,7 +1,8 @@
+
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, BookUser, User, ArrowRight, Package } from "lucide-react";
+import { Shield, BookUser, User, ArrowRight, Package, Settings2 } from "lucide-react";
 import Image from "next/image";
 
 export default function PortalPage() {
@@ -65,18 +66,29 @@ export default function PortalPage() {
                 <CardContent className="flex-grow">
                     <CardDescription className="text-white/80">{portal.description}</CardDescription>
                 </CardContent>
-                <CardContent>
+                <CardContent className="flex flex-col gap-2">
                     <Button asChild className="w-full font-semibold">
                         <Link href={portal.href}>
                             Proceed <ArrowRight className="ml-2 size-4" />
                         </Link>
                     </Button>
+                    {portal.name === "Admin Portal" && (
+                      <Button variant="link" asChild className="text-white/60 hover:text-white text-xs">
+                        <Link href="/portal/admin/signup">Create Admin Account</Link>
+                      </Button>
+                    )}
                 </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="text-center mt-12">
+        <div className="mt-12 flex flex-col items-center gap-4">
+            <div className="h-px w-24 bg-white/20" />
+            <Button variant="ghost" asChild className="text-white/50 hover:text-white hover:bg-white/10">
+                <Link href="/super/dashboard">
+                    <Settings2 className="mr-2 h-4 w-4" /> Super Admin Console
+                </Link>
+            </Button>
             <Button variant="link" asChild className="text-white hover:text-white/80">
                 <Link href="/schools">&larr; Back to School Selection</Link>
             </Button>
