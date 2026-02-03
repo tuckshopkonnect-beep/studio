@@ -9,6 +9,11 @@ A modern, cashless solution for school tuckshops.
 - **Parental Controls**: Daily spending limits and transaction history.
 - **AI Powered**: Personalized food recommendations and AI-generated menu images.
 
+## System Owner (Super Admin)
+The **Super Admin Console** is used to onboard new schools and manage the global network.
+- **Path**: `/super/dashboard`
+- **Actions**: Register new schools, provision first administrators, and view global system health.
+
 ## Deployment & Estimated Costs
 This project is built to run on **Firebase App Hosting**.
 
