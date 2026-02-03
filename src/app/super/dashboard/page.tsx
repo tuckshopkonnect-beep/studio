@@ -48,16 +48,20 @@ export default function SuperAdminDashboardPage() {
   }, [firestore, authUser]);
   const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
 
+  const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
+
   const schoolsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only attempt to list schools once we know who the user is
+    if (!firestore || !authUser) return null;
     return collection(firestore, 'schools');
-  }, [firestore]);
+  }, [firestore, authUser]);
   const { data: schools, isLoading: isLoadingSchools } = useCollection<School>(schoolsCollection);
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // CRITICAL: Only attempt to list global users if the authenticated user is an Admin
+    if (!firestore || !isCurrentUserAdmin) return null;
     return collection(firestore, 'users');
-  }, [firestore]);
+  }, [firestore, isCurrentUserAdmin]);
   const { data: globalUsers, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
 
   const [schoolToEdit, setSchoolToEdit] = React.useState<School | null>(null);
