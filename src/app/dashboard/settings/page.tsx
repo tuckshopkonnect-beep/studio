@@ -94,9 +94,12 @@ export default function SettingsPage() {
   const [isComboboxOpen, setIsComboboxOpen] = useState(false);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin) return null;
-    return query(collection(firestore, "users"), where('role', '==', 'Student'));
-  }, [firestore, isLoadingCurrentUser, isCurrentUserAdmin]);
+    if (!firestore || isLoadingCurrentUser || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
+    return query(collection(firestore, "users"), 
+      where('role', '==', 'Student'),
+      where('schoolId', '==', currentUserProfile.schoolId)
+    );
+  }, [firestore, isLoadingCurrentUser, isCurrentUserAdmin, currentUserProfile?.schoolId]);
 
   const { data: studentUsers } = useCollection<User>(usersQuery);
   const allUsers = studentUsers || [];
@@ -189,10 +192,38 @@ export default function SettingsPage() {
   };
   
   const handlePromoteStudents = () => {
-    console.log("Promoting all students...");
+    if (!firestore || !studentUsers || studentUsers.length === 0) {
+        toast({ 
+            variant: "destructive",
+            title: "Promotion Failed",
+            description: "No student records were found to promote." 
+        });
+        setIsPromoteConfirmOpen(false);
+        return;
+    }
+
+    const promotionMap: Record<string, string> = {
+        'JSS1': 'JSS2',
+        'JSS2': 'JSS3',
+        'JSS3': 'SS1',
+        'SS1': 'SS2',
+        'SS2': 'SS3',
+        'SS3': 'Graduate',
+    };
+
+    let count = 0;
+    studentUsers.forEach(student => {
+        if (student.class && promotionMap[student.class]) {
+            const nextClass = promotionMap[student.class];
+            const studentRef = doc(firestore, 'users', student.id);
+            updateDocumentNonBlocking(studentRef, { class: nextClass });
+            count++;
+        }
+    });
+
     toast({
-        title: "Students Promoted",
-        description: "All students have been moved to their next class level."
+        title: "Promotion Successful",
+        description: `Successfully moved ${count} students to their next class level.`,
     });
     setIsPromoteConfirmOpen(false);
   };
