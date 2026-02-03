@@ -1,12 +1,14 @@
+
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, SlidersHorizontal, BookUser, Twitter, Instagram, Facebook, Mail, ArrowRight } from 'lucide-react';
-import { menuItems } from '@/lib/data';
-import MenuItemCard from '@/components/MenuItemCard';
+import { Utensils, CreditCard, ShoppingBag, CheckCircle, Shield, BookUser, Mail, ArrowRight, MousePointer2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Footer from '@/components/Footer';
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const features = [
@@ -46,14 +48,37 @@ export default function Home() {
         avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
         quote: "Managing the tuckshop has never been more efficient. The reports are detailed, and inventory tracking is a breeze. It has completely modernized our operations."
       }
-  ]
+  ];
+
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true },
+    transition: { duration: 0.6 }
+  };
+
+  const staggerContainer = {
+    initial: { opacity: 0 },
+    whileInView: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
+    },
+    viewport: { once: true }
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
-          <div className="absolute inset-0 z-0">
+          <motion.div 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1.5 }}
+            className="absolute inset-0 z-0"
+          >
              <div className="absolute inset-0 bg-black/60 z-10" />
               <Image
                 src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2787&auto=format&fit=crop"
@@ -63,137 +88,205 @@ export default function Home() {
                 className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+          </motion.div>
+          
+          <div className="relative z-20 container px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+            >
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-shadow-lg leading-tight">
+                School Lunch, <span className="text-accent italic">Simplified.</span>
+              </h1>
+              <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 text-shadow">
+                A modern, cashless solution for school tuckshops. Easy for students, peace of mind for parents, and efficient for schools.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button size="lg" className="h-14 px-8 text-lg rounded-full group" asChild>
+                  <Link href="/schools">
+                    <Utensils className="mr-2 group-hover:scale-110 transition-transform" /> Go to Portal
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 rounded-full" asChild>
+                  <Link href="#how-it-works">
+                    Learn More
+                  </Link>
+                </Button>
+              </div>
+            </motion.div>
           </div>
-          <div className="relative z-20 container px-4 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-            <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-shadow-lg">
-              School Lunch, Simplified.
-            </h1>
-            <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 text-shadow">
-              A modern, cashless solution for school tuckshops. Easy for students, peace of mind for parents, and efficient for schools.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" className="h-14 px-8 text-lg" asChild>
-                <Link href="/schools">
-                  <Utensils className="mr-2" /> Go to Portal
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20" asChild>
-                <Link href="#how-it-works">
-                  Learn More
-                </Link>
-              </Button>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5, duration: 1 }}
+            className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2 text-white/70"
+          >
+            <span className="text-xs uppercase tracking-widest font-semibold">Scroll Down</span>
+            <div className="animate-bounce">
+                <ArrowRight className="rotate-90 w-6 h-6" />
             </div>
-          </div>
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 animate-bounce">
-            <Link href="#how-it-works" className="text-white/70 hover:text-white transition-colors">
-                <ArrowRight className="rotate-90 w-8 h-8" />
-            </Link>
-          </div>
+          </motion.div>
         </section>
 
         {/* How It Works Section */}
         <section id="how-it-works" className="py-20 md:py-32 bg-background scroll-mt-10">
           <div className="container px-4">
-            <div className="text-center mb-16">
+            <motion.div 
+              {...fadeInUp}
+              className="text-center mb-16"
+            >
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight">How It Works</h2>
               <p className="text-muted-foreground mt-4 text-lg max-w-2xl mx-auto">A seamless experience in three simple steps.</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-12 md:gap-16 text-center">
-              <div className="flex flex-col items-center gap-6 animate-in fade-in-0 slide-in-from-bottom-10 duration-500">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20">
+            </motion.div>
+
+            <motion.div 
+              variants={staggerContainer}
+              initial="initial"
+              whileInView="whileInView"
+              viewport={{ once: true }}
+              className="grid md:grid-cols-3 gap-12 md:gap-16 text-center"
+            >
+              <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
                   <CreditCard className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">1. Fund Wallet</h3>
                 <p className="text-muted-foreground text-lg">Parents securely add funds to their child's account using Paystack. Fast, safe, and reliable.</p>
-              </div>
-              <div className="flex flex-col items-center gap-6 animate-in fade-in-0 slide-in-from-bottom-10 duration-500 animation-delay-2000">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20">
+              </motion.div>
+
+              <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
                   <ShoppingBag className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">2. Place Order</h3>
                 <p className="text-muted-foreground text-lg">Students browse the menu and place their orders from any device. No more long queues.</p>
-              </div>
-              <div className="flex flex-col items-center gap-6 animate-in fade-in-0 slide-in-from-bottom-10 duration-500 animation-delay-4000">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20">
+              </motion.div>
+
+              <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
                   <CheckCircle className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">3. Collect Meal</h3>
                 <p className="text-muted-foreground text-lg">Students collect their pre-paid meal at the tuckshop. No cash, no fuss, just food.</p>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20 md:py-32 bg-muted/50">
+        <section className="py-20 md:py-32 bg-muted/50 overflow-hidden">
             <div className="container px-4 grid md:grid-cols-2 gap-16 items-center">
-                <div className="space-y-6">
+                <motion.div 
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8 }}
+                  className="space-y-6"
+                >
                     <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Everything You Need for a Modern Tuckshop</h2>
                     <p className="text-xl text-muted-foreground leading-relaxed">
                         From payments to inventory, our platform is designed to make school lunch programs easier for everyone involved—students, parents, and school staff.
                     </p>
-                    <Button size="lg" asChild>
+                    <Button size="lg" asChild className="rounded-full shadow-lg hover:shadow-xl transition-shadow">
                         <Link href="/portal/admin">Admin Dashboard &rarr;</Link>
                     </Button>
-                </div>
-                <div className="grid gap-8">
+                </motion.div>
+
+                <motion.div 
+                  variants={staggerContainer}
+                  initial="initial"
+                  whileInView="whileInView"
+                  viewport={{ once: true }}
+                  className="grid gap-8"
+                >
                     {features.map((feature, index) => (
-                        <div key={index} className="flex items-start gap-6 bg-background p-6 rounded-2xl shadow-sm border border-border/50">
-                            <div className="bg-primary/10 p-4 rounded-xl">
+                        <motion.div 
+                          key={index}
+                          variants={fadeInUp}
+                          className="flex items-start gap-6 bg-background p-6 rounded-2xl shadow-sm border border-border/50 hover:border-primary/30 transition-colors duration-300"
+                        >
+                            <div className="bg-primary/10 p-4 rounded-xl shrink-0">
                                 {feature.icon}
                             </div>
                             <div>
                                 <h3 className="font-bold text-xl mb-2">{feature.title}</h3>
                                 <p className="text-muted-foreground text-lg leading-snug">{feature.description}</p>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </section>
         
         {/* Testimonials Section */}
         <section className="py-20 md:py-32 bg-background">
             <div className="container px-4">
-                <div className="text-center mb-16">
+                <motion.div 
+                  {...fadeInUp}
+                  className="text-center mb-16"
+                >
                     <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Loved by Parents, Students, and Schools</h2>
-                </div>
-                <div className="grid lg:grid-cols-3 gap-8">
+                </motion.div>
+
+                <motion.div 
+                  variants={staggerContainer}
+                  initial="initial"
+                  whileInView="whileInView"
+                  viewport={{ once: true }}
+                  className="grid lg:grid-cols-3 gap-8"
+                >
                     {testimonials.map((testimonial) => (
-                        <Card key={testimonial.name} className="flex flex-col border-none shadow-md bg-muted/30">
-                            <CardContent className="pt-8 flex-grow">
-                                <p className="text-muted-foreground italic text-lg leading-relaxed">"{testimonial.quote}"</p>
-                            </CardContent>
-                            <CardHeader className="flex-row items-center gap-4 pt-4">
-                                <Avatar className="h-12 w-12 border-2 border-primary/20">
-                                    <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
-                                    <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-lg font-bold">{testimonial.name}</CardTitle>
-                                    <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                                </div>
-                            </CardHeader>
-                        </Card>
+                        <motion.div key={testimonial.name} variants={fadeInUp}>
+                          <Card className="flex flex-col h-full border-none shadow-md bg-muted/30 hover:bg-muted/50 transition-colors duration-300">
+                              <CardContent className="pt-8 flex-grow">
+                                  <p className="text-muted-foreground italic text-lg leading-relaxed">"{testimonial.quote}"</p>
+                              </CardContent>
+                              <CardHeader className="flex-row items-center gap-4 pt-4 border-t border-border/50 mx-6 mb-6">
+                                  <Avatar className="h-12 w-12 border-2 border-primary/20">
+                                      <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                                      <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                      <CardTitle className="text-lg font-bold">{testimonial.name}</CardTitle>
+                                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                                  </div>
+                              </CardHeader>
+                          </Card>
+                        </motion.div>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </section>
 
         {/* Contact Section */}
-        <section className="py-20 md:py-32 bg-primary text-primary-foreground">
-            <div className="container px-4 text-center">
-                <Mail className="mx-auto h-16 w-16 opacity-80 mb-6" />
+        <section className="py-20 md:py-32 bg-primary text-primary-foreground relative overflow-hidden">
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+                <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+            </div>
+
+            <motion.div 
+              {...fadeInUp}
+              className="container px-4 text-center relative z-10"
+            >
+                <div className="mx-auto bg-white/20 p-6 rounded-full w-fit mb-8 backdrop-blur-sm">
+                    <Mail className="h-12 w-12 text-white" />
+                </div>
                 <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Ready to Get Started?</h2>
                 <p className="text-primary-foreground/80 mt-6 text-xl max-w-2xl mx-auto leading-relaxed">
                     Join the many schools modernizing their tuckshop experience. For inquiries, support, or a demo, reach out to us.
                 </p>
                 <div className="mt-10">
-                    <Button size="lg" variant="secondary" className="h-14 px-10 text-lg font-bold" asChild>
-                        <a href="mailto:tuckshopkonnect@gmail.com">Contact Us Today</a>
+                    <Button size="lg" variant="secondary" className="h-14 px-10 text-lg font-bold rounded-full group" asChild>
+                        <a href="mailto:tuckshopkonnect@gmail.com">
+                          Contact Us Today <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                        </a>
                     </Button>
                 </div>
-            </div>
+            </motion.div>
         </section>
       </main>
 
