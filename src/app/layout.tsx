@@ -8,8 +8,43 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 
 export const metadata: Metadata = {
-  title: 'TuckshopKonnect',
-  description: 'Online tuckshop app for schools',
+  title: {
+    default: 'TuckshopKonnect | Modern School Tuckshop Solution',
+    template: '%s | TuckshopKonnect'
+  },
+  description: 'TuckshopKonnect is a modern, cashless solution for school tuckshops. Seamless ordering for students, spending controls for parents, and efficient management for schools.',
+  keywords: ['tuckshop', 'school lunch', 'cashless payment', 'school management', 'TuckshopKonnect', 'student ordering', 'parental control', 'school cafeteria', 'DLHS'],
+  authors: [{ name: 'Seme Productions' }],
+  creator: 'Seme Productions',
+  publisher: 'Seme Productions',
+  metadataBase: new URL('https://tuckshopkonnect.com'), // Replace with your actual domain when live
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'TuckshopKonnect | Modern School Tuckshop Solution',
+    description: 'A seamless, cashless ordering experience for students and schools.',
+    url: 'https://tuckshopkonnect.com',
+    siteName: 'TuckshopKonnect',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TuckshopKonnect | Modern School Tuckshop Solution',
+    description: 'A seamless, cashless ordering experience for students and schools.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 
