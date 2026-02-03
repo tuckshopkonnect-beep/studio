@@ -149,10 +149,10 @@ export default function OrderPage() {
   const { data: student, isLoading: isLoadingStudent } = useDoc<User>(currentUserDocRef);
   
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     // We fetch all items and filter client-side to support legacy records missing schoolId
     return collection(firestore, "menuItems");
-  }, [firestore]);
+  }, [firestore, authUser]);
   
   const { data: rawMenuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
 
@@ -172,9 +172,9 @@ export default function OrderPage() {
   }, [rawMenuItems, studentSchoolId]);
 
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "settings", "global");
-  }, [firestore]);
+  }, [firestore, authUser]);
 
   const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
   

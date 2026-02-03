@@ -47,9 +47,9 @@ export default function Header() {
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
   
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "settings", "global");
-  }, [firestore]);
+  }, [firestore, authUser]);
   const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 
   const isStudent = currentUser?.role === 'Student';

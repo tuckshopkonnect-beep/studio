@@ -71,9 +71,9 @@ export default function SettingsPage() {
 
   // Fetch settings from Firestore
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "settings", "global");
-  }, [firestore]);
+  }, [firestore, authUser]);
 
   const { data: appSettings, isLoading: isLoadingSettings } = useDoc<AppSettings>(settingsDocRef);
 

@@ -47,7 +47,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 const navItems = [
@@ -76,12 +76,13 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const firestore = useFirestore();
+  const { user: authUser } = useUser();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const settingsDocRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !authUser) return null;
     return doc(firestore, "settings", "global");
-  }, [firestore]);
+  }, [firestore, authUser]);
   
   const { data: appSettings } = useDoc<AppSettings>(settingsDocRef);
   
@@ -319,7 +320,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-    
-    
-
-    
