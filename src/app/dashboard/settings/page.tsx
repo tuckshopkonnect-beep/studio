@@ -203,13 +203,16 @@ export default function SettingsPage() {
   };
 
   const handleRequestAdminPasswordReset = async () => {
-    if (!auth || !authUser?.email) return;
+    if (!auth || !authUser?.email) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "Your admin account could not be verified." });
+        return;
+    }
     setIsResettingPassword(true);
     try {
       await sendPasswordResetEmail(auth, authUser.email);
       toast({
         title: "Reset Email Sent",
-        description: `A password reset link has been sent to your email: ${authUser.email}`,
+        description: `A secure link has been sent to: ${authUser.email}. Check your inbox to finish updating your password.`,
       });
     } catch (error: any) {
       toast({
@@ -451,7 +454,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Account Security</CardTitle>
             <CardDescription>
-                Manage your administrator account security.
+                Manage your administrator account security settings.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -461,8 +464,8 @@ export default function SettingsPage() {
                         <ShieldCheck className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                        <p className="font-semibold text-sm">Change Password</p>
-                        <p className="text-xs text-muted-foreground">Receive an email to securely update your password.</p>
+                        <p className="font-semibold text-sm">Update Password</p>
+                        <p className="text-xs text-muted-foreground">Receive a secure link to change your password.</p>
                     </div>
                 </div>
                 <Button 

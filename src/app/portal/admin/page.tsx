@@ -15,11 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useFirestore } from "@/firebase";
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { FirebaseError } from "firebase/app";
 
 export default function AdminLoginPage() {
@@ -47,20 +47,24 @@ export default function AdminLoginPage() {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+        
+        // Fetch the user's profile to verify their role
         const userDocRef = doc(firestore, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
-        // If user document doesn't exist or doesn't have an admin role, create/update it.
-        if (!userDoc.exists() || userDoc.data()?.role !== 'Admin') {
-            const userProfile = {
-                id: user.uid,
-                name: user.email?.split('@')[0] || 'Admin',
-                email: user.email!,
-                role: 'Admin' as const,
-                avatarUrl: `https://i.pravatar.cc/150?u=${user.uid}`,
-                balance: 0,
-            };
-            await setDoc(userDocRef, userProfile, { merge: true });
+        const userData = userDoc.data();
+
+        // SECURITY CHECK: Only allow users with the 'Admin' role to proceed.
+        // This prevents students or parents from accessing the admin dashboard even if they know the URL.
+        if (!userDoc.exists() || userData?.role !== 'Admin') {
+            await signOut(auth); // Immediately sign them out
+            toast({
+                variant: "destructive",
+                title: "Access Denied",
+                description: "You do not have administrative privileges. Please use the correct portal.",
+            });
+            setIsLoading(false);
+            return;
         }
 
         toast({
@@ -70,7 +74,7 @@ export default function AdminLoginPage() {
         router.push("/dashboard");
 
     } catch (error: any) {
-      console.error("Login or profile creation failed:", error);
+      console.error("Login failed:", error);
 
       let title = "Login Failed";
       let description = "An unexpected error occurred. Please try again.";
@@ -78,12 +82,11 @@ export default function AdminLoginPage() {
       if (error instanceof FirebaseError) {
         if (error.code.startsWith('auth/')) {
           description = "Invalid email or password. Please check your credentials.";
-        } else if (error.code === 'permission-denied') {
-          title = "Profile Creation Failed";
-          description = "Your account exists, but we couldn't set up your admin profile. This is likely a security rule issue.";
         } else {
           description = error.message;
         }
+      } else if (error instanceof Error) {
+          description = error.message;
       }
 
       toast({
@@ -112,7 +115,7 @@ export default function AdminLoginPage() {
       await sendPasswordResetEmail(auth, email);
       toast({
         title: "Reset Email Sent",
-        description: `A password reset link has been sent to ${email}.`,
+        description: `A secure password reset link has been sent to ${email}. Check your inbox.`,
       });
     } catch (error: any) {
       toast({
@@ -138,9 +141,12 @@ export default function AdminLoginPage() {
 
       <Card className="mx-auto max-w-sm w-full bg-black/30 backdrop-blur-xl border-white/20 text-white rounded-2xl shadow-2xl">
         <CardHeader className="text-center">
+          <div className="mx-auto bg-primary/20 p-3 rounded-full w-fit mb-2 border border-primary/30">
+            <ShieldAlert className="h-6 w-6 text-primary" />
+          </div>
           <CardTitle className="text-3xl font-bold">Admin Portal</CardTitle>
           <CardDescription className="text-white/80 pt-2">
-            Enter your credentials to access the dashboard.
+            Restricted area. Please sign in to manage the system.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,9 +157,9 @@ export default function AdminLoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="admin@school.com"
                   required
-                  className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white"
+                  className="bg-white/10 border-white/20 placeholder:text-white/40 focus:ring-white h-12"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -164,7 +170,7 @@ export default function AdminLoginPage() {
                   <Button
                     type="button"
                     variant="link"
-                    className="ml-auto inline-block text-sm underline hover:text-primary px-0 text-white"
+                    className="ml-auto inline-block text-sm underline hover:text-primary px-0 text-white/70"
                     onClick={handleForgotPassword}
                     disabled={isResetting}
                   >
@@ -176,7 +182,8 @@ export default function AdminLoginPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="bg-white/20 border-white/30 placeholder:text-white/60 focus:ring-white pr-10"
+                      placeholder="••••••••"
+                      className="bg-white/10 border-white/20 placeholder:text-white/40 focus:ring-white pr-10 h-12"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -184,10 +191,10 @@ export default function AdminLoginPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white hover:bg-white/20"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-white/50 hover:text-white hover:bg-white/10"
                         onClick={() => setShowPassword(prev => !prev)}
                       >
-                        {showPassword ? <EyeOff /> : <Eye />}
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         <span className="sr-only">Toggle password visibility</span>
                       </Button>
                 </div>
@@ -196,14 +203,19 @@ export default function AdminLoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Signing In...
+                    Verifying...
                   </>
                 ) : (
-                  "Sign In"
+                  "Access Dashboard"
                 )}
               </Button>
             </div>
           </form>
+          <div className="mt-6 text-center text-sm text-white/50">
+            <Link href="/portal" className="hover:text-white flex items-center justify-center gap-2">
+              &larr; Return to Portals
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
