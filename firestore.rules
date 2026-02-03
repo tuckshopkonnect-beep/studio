@@ -11,18 +11,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     function isAdmin() {
       // Use .get() with a default value to prevent crashes if the 'role' field is missing.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'Admin';
+      return isSignedIn() && getUserData().get('role', '') == 'Admin';
     }
     
     function isParent(childUserId) {
       // Safely access parent document data.
-      let parentData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let parentData = getUserData();
       return isSignedIn()
              && parentData.get('childIds', {})[childUserId] == true;
     }
@@ -60,13 +64,14 @@ service cloud.firestore {
 
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin() || isParent(userId);
-      allow list: if isAdmin();
+      // Allow access if owner, admin of the SAME school, or parent of the child
+      allow get: if isOwner(userId) || (isAdmin() && getUserData().schoolId == resource.data.schoolId) || isParent(userId);
       
-      // Allow creation for new admins or by existing admins.
+      // Administrators can only list users from their own school
+      allow list: if isAdmin() && request.query.filters.schoolId == getUserData().schoolId;
+      
       allow create: if isAdmin() || (isOwner(userId) && request.resource.data.get('role', '') == 'Admin');
       
-      // Allow update if the actor is an admin OR if they are the owner and not changing their role or school.
       allow update: if isAdmin() || (
         isOwner(userId) 
         && request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '')
@@ -83,7 +88,8 @@ service cloud.firestore {
     }
     
     match /orders/{orderId} {
-      allow get, list: if isAdmin();
+      // Admins can only see orders from their own school
+      allow get, list: if isAdmin() && (resource == null || resource.data.schoolId == getUserData().schoolId);
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
@@ -94,7 +100,11 @@ service cloud.firestore {
     }
 
     match /menuItems/{menuItemId} {
-      allow get, list: if true;
+      // Everyone can read a specific item if they know the ID, 
+      // but listing requires filtering by schoolId to prevent cross-school leaks.
+      allow get: if true;
+      allow list: if isSignedIn() && request.query.filters.schoolId == getUserData().schoolId;
+      
       allow create, delete: if isAdmin();
       allow update: if isAdmin() || (isSignedIn() && isDecrementingStock());
 

@@ -64,33 +64,13 @@ export default function UsersPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile) return null;
+    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
     
-    // For new admins with a schoolId, fetch only users from their school.
-    if (currentUserProfile.schoolId) {
-        return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
-    }
-    
-    // For the original admin (no schoolId), fetch ALL users to filter on the client.
-    // This is necessary to find other users who also don't have a schoolId.
-    return collection(firestore, "users");
-  }, [firestore, isCurrentUserAdmin, currentUserProfile]);
+    // STRICT MULTI-TENANCY: Only fetch users belonging to the admin's school.
+    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
+  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
 
-  const { data: fetchedUsers, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
-
-  const users = React.useMemo(() => {
-    if (!fetchedUsers || !currentUserProfile) return [];
-
-    // If the current admin has a schoolId, they see users with that same schoolId.
-    if (currentUserProfile.schoolId) {
-        return fetchedUsers; // The query already filtered this
-    }
-    
-    // If the current admin does NOT have a schoolId, they are the original admin.
-    // They should only see the original users who also do not have a schoolId.
-    return fetchedUsers.filter(u => !u.schoolId);
-  }, [fetchedUsers, currentUserProfile]);
-
+  const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
 
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -142,7 +122,7 @@ export default function UsersPage() {
 
     toast({
       title: "User Profile Deleted",
-      description: `${userToDelete.name}'s profile has been deleted. The authentication record may still exist.`,
+      description: `${userToDelete.name}'s profile has been deleted.`,
     });
     
     setUserToDelete(null);
@@ -271,7 +251,7 @@ export default function UsersPage() {
       
       <UserDetailDialog
           user={selectedUser}
-          allUsers={fetchedUsers || []}
+          allUsers={users || []}
           isOpen={isUserDetailOpen}
           onOpenChange={handleCloseDialog}
           onSave={handleSaveUser}
@@ -325,8 +305,8 @@ export default function UsersPage() {
               <CardTitle>Users</CardTitle>
               <CardDescription>
                 {isInitialSetup 
-                  ? "No admin account found. Click 'Add User' to create the first administrator."
-                  : `Manage all user accounts. Showing ${filteredUsers.length} of ${users.length} users.`
+                  ? "No accounts found for your school yet. Click 'Add User' to get started."
+                  : `Manage accounts for your school. Showing ${filteredUsers.length} of ${users?.length || 0} users.`
                 }
               </CardDescription>
             </CardHeader>
