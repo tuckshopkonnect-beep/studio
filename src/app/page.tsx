@@ -12,11 +12,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
 const heroImages = [
-  "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2787&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1490818387583-1baba5e6382b?q=80&w=2010&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1560624052-449f5ddf0c31?q=80&w=2070&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=2070&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1511690656952-34342bb7c2f2?q=80&w=2787&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1594007654729-407eedc4be65?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1518311297794-ec7298ffba64?q=80&w=2010&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1576618148400-f54bed99fcfd?q=80&w=2070&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?q=80&w=2070&auto=format&fit=crop"
 ];
 
 export default function Home() {
@@ -129,11 +129,11 @@ export default function Home() {
                 <div className="absolute inset-0 bg-black/60 z-10" />
                 <Image
                   src={heroImages[currentImageIndex]}
-                  alt="School cafeteria and food"
+                  alt="School tuckshop food"
                   fill
                   priority
                   className="object-cover"
-                  data-ai-hint="school lunch"
+                  data-ai-hint="tuckshop food"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent z-20" />
               </motion.div>
