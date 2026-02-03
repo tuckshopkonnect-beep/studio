@@ -63,14 +63,21 @@ export default function UsersPage() {
 
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
+  // Fetch all users and filter on client to ensure legacy records are visible
   const usersCollection = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
-    
-    // STRICT MULTI-TENANCY: Only fetch users belonging to the admin's school.
-    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
+    if (!firestore || !isCurrentUserAdmin) return null;
+    return collection(firestore, "users");
+  }, [firestore, isCurrentUserAdmin]);
 
-  const { data: users, isLoading: isLoadingUsers, error: usersError } = useCollection<User>(usersCollection);
+  const { data: rawUsers, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+
+  const adminSchoolId = currentUserProfile?.schoolId;
+
+  // Filter logic: Show users for this school OR orphaned legacy users
+  const users = React.useMemo(() => {
+    if (!rawUsers) return [];
+    return rawUsers.filter(u => !u.schoolId || u.schoolId === adminSchoolId);
+  }, [rawUsers, adminSchoolId]);
 
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -81,7 +88,7 @@ export default function UsersPage() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
 
-  // Determine if it's the initial setup for a new school (no users yet)
+  // Determine if it's the initial setup
   const isInitialSetup = !isLoadingUsers && isCurrentUserAdmin && (!users || users.length === 0);
 
   const filteredUsers = React.useMemo(() => {

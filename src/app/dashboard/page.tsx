@@ -41,23 +41,42 @@ export default function DashboardPage() {
   const { data: currentUserProfile, isLoading: isLoadingCurrentUser } = useDoc<User>(currentUserDocRef);
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
-  const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
-    return query(collection(firestore, "orders"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
-  const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
+  // Fetch all orders and filter on client to support legacy records
+  const ordersCollection = useMemoFirebase(() => {
+    if (!firestore || !isCurrentUserAdmin) return null;
+    return collection(firestore, "orders");
+  }, [firestore, isCurrentUserAdmin]);
+  const { data: rawOrders, isLoading: isLoadingOrders } = useCollection<Order>(ordersCollection);
   
   const menuItemsCollection = useMemoFirebase(() => {
-      if (!firestore || !currentUserProfile?.schoolId) return null;
-      return query(collection(firestore, "menuItems"), where("schoolId", "==", currentUserProfile.schoolId));
-    }, [firestore, currentUserProfile?.schoolId]);
-  const { data: menuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
+      if (!firestore || !isCurrentUserAdmin) return null;
+      return collection(firestore, "menuItems");
+    }, [firestore, isCurrentUserAdmin]);
+  const { data: rawMenuItems, isLoading: isLoadingMenuItems } = useCollection<MenuItem>(menuItemsCollection);
 
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !isCurrentUserAdmin || !currentUserProfile?.schoolId) return null;
-    return query(collection(firestore, "users"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, isCurrentUserAdmin, currentUserProfile?.schoolId]);
-  const { data: schoolUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
+  const usersCollection = useMemoFirebase(() => {
+    if (!firestore || !isCurrentUserAdmin) return null;
+    return collection(firestore, "users");
+  }, [firestore, isCurrentUserAdmin]);
+  const { data: rawUsers, isLoading: isLoadingUsers } = useCollection<User>(usersCollection);
+
+  const adminSchoolId = currentUserProfile?.schoolId;
+
+  // Client-side multi-tenancy filter: Show items for THIS school OR orphaned items (legacy)
+  const orders = React.useMemo(() => {
+    if (!rawOrders) return [];
+    return rawOrders.filter(o => !o.schoolId || o.schoolId === adminSchoolId);
+  }, [rawOrders, adminSchoolId]);
+
+  const menuItems = React.useMemo(() => {
+    if (!rawMenuItems) return [];
+    return rawMenuItems.filter(m => !m.schoolId || m.schoolId === adminSchoolId);
+  }, [rawMenuItems, adminSchoolId]);
+
+  const schoolUsers = React.useMemo(() => {
+    if (!rawUsers) return [];
+    return rawUsers.filter(u => !u.schoolId || u.schoolId === adminSchoolId);
+  }, [rawUsers, adminSchoolId]);
 
 
   const now = new Date();
@@ -104,7 +123,6 @@ export default function DashboardPage() {
 
   const totalUsers = schoolUsers?.length.toString() || '0';
   
-  // Calculate low stock items. Threshold is 15, consistent with inventory page.
   const lowStockItemsCount = safeMenuItems.filter(
     (item) => item.stock > 0 && item.stock < 15
   ).length;
@@ -112,7 +130,6 @@ export default function DashboardPage() {
   const averageOrderValue = ordersThisMonth.length > 0 ? revenueThisMonth / ordersThisMonth.length : 0;
 
 
-  // Calculate top selling items
   const itemSales = safeOrders.flatMap(o => o.items).reduce((acc, item) => {
     acc[item.name] = (acc[item.name] || 0) + item.quantity;
     return acc;
@@ -126,10 +143,6 @@ export default function DashboardPage() {
       quantity,
       image: PlaceHolderImages.find(mi => mi.id === name.toLowerCase().replace(/ /g, '-'))?.imageUrl || 'https://placehold.co/100x100'
     }));
-
-  const recentActivities: any[] = [
-    // This could be populated from a collection of audit logs if needed
-  ];
 
   const recentOrders = safeOrders.slice(0, 5);
 
@@ -314,19 +327,9 @@ export default function DashboardPage() {
                 </Button>
             </CardHeader>
             <CardContent className="grid gap-6">
-              {recentActivities.length > 0 ? recentActivities.map((activity, index) => (
-                 <div key={index} className="flex items-center gap-4">
-                    <div className="grid gap-1">
-                        <p className="text-sm font-medium leading-none">{activity.type}</p>
-                        <p className="text-sm text-muted-foreground">{activity.description}</p>
-                    </div>
-                    <div className="ml-auto text-xs text-muted-foreground">{activity.time}</div>
-                </div>
-              )) : (
                 <div className="text-center text-muted-foreground py-10">
                     <p>No recent activity.</p>
                 </div>
-              )}
             </CardContent>
           </Card>
           <Card className="lg:col-span-4">

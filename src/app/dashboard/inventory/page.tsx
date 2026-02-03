@@ -59,12 +59,20 @@ export default function InventoryPage() {
   const isCurrentUserAdmin = currentUserProfile?.role === 'Admin';
 
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore || !currentUserProfile?.schoolId) return null;
-    return query(collection(firestore, "menuItems"), where("schoolId", "==", currentUserProfile.schoolId));
-  }, [firestore, currentUserProfile?.schoolId]);
+    if (!firestore || !isCurrentUserAdmin) return null;
+    return collection(firestore, "menuItems");
+  }, [firestore, isCurrentUserAdmin]);
 
-  const { data: menu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
+  const { data: rawMenu, isLoading: isLoadingMenu } = useCollection<MenuItemType>(menuItemsCollection);
   
+  const adminSchoolId = currentUserProfile?.schoolId;
+
+  // Filter items for THIS school OR orphaned legacy items
+  const menu = React.useMemo(() => {
+    if (!rawMenu) return [];
+    return rawMenu.filter(m => !m.schoolId || m.schoolId === adminSchoolId);
+  }, [rawMenu, adminSchoolId]);
+
   const [inventory, setInventoryState] = React.useState<InventoryItem[]>([]);
   
   React.useEffect(() => {
