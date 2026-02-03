@@ -4,7 +4,7 @@
 import MenuItemCard from '@/components/MenuItemCard';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Timer, AlertTriangle, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
 import { useCollection, useFirestore, useMemoFirebase, useDoc, useUser } from '@/firebase';
@@ -149,12 +149,27 @@ export default function OrderPage() {
   const { data: student, isLoading: isLoadingStudent } = useDoc<User>(currentUserDocRef);
   
   const menuItemsCollection = useMemoFirebase(() => {
-    if (!firestore || !student?.schoolId) return null;
-    // Multi-tenant filter: Only get items for THIS student's school
-    return query(collection(firestore, "menuItems"), where("schoolId", "==", student.schoolId));
-  }, [firestore, student?.schoolId]);
+    if (!firestore) return null;
+    // We fetch all items and filter client-side to support legacy records missing schoolId
+    return collection(firestore, "menuItems");
+  }, [firestore]);
   
-  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
+  const { data: rawMenuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsCollection);
+
+  const studentSchoolId = student?.schoolId;
+
+  // Multi-tenancy Hybrid Filter: Show items for the user's school OR orphaned legacy items
+  const menuItems = useMemo(() => {
+    if (!rawMenuItems) return [];
+    return rawMenuItems.filter(item => {
+        // If student has a school, show their school's items + legacy items
+        if (studentSchoolId) {
+            return item.schoolId === studentSchoolId || !item.schoolId;
+        }
+        // If student has NO school (legacy user), show legacy items only
+        return !item.schoolId;
+    });
+  }, [rawMenuItems, studentSchoolId]);
 
   const settingsDocRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -213,16 +228,6 @@ export default function OrderPage() {
       <section>
         <h1 className="text-4xl font-headline font-bold mb-8 text-center">Place a New Order</h1>
         
-        {!student?.schoolId && (
-            <Alert variant="destructive" className="mb-8">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>School Not Assigned</AlertTitle>
-                <AlertDescription>
-                    Your account is not linked to a school. Please contact your administrator.
-                </AlertDescription>
-            </Alert>
-        )}
-
         {appSettings?.stopOrders ? (
           <StopOrdersAlert />
         ) : appSettings ? (
@@ -234,12 +239,12 @@ export default function OrderPage() {
                 menuItems.map(item => (
                     <MenuItemCard key={item.id} item={item} isShopOpen={shopOpen} />
                 ))
-            ) : student?.schoolId ? (
+            ) : (
                 <div className="col-span-full text-center py-20 bg-muted/30 rounded-xl border-2 border-dashed">
-                    <p className="text-xl font-semibold text-muted-foreground">The menu for your school is currently empty.</p>
+                    <p className="text-xl font-semibold text-muted-foreground">The menu is currently empty.</p>
                     <p className="text-sm text-muted-foreground mt-2">Check back soon for tasty updates!</p>
                 </div>
-            ) : null}
+            )}
         </div>
       </section>
     </div>
