@@ -1,6 +1,6 @@
 
 import Link from "next/link";
-import { Package, ChevronLeft } from "lucide-react";
+import { Package, ChevronLeft, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function SuperAdminLayout({
@@ -14,9 +14,11 @@ export default function SuperAdminLayout({
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/super/dashboard" className="flex items-center space-x-2">
-              <Package className="h-6 w-6 text-primary" />
+              <div className="bg-primary p-1.5 rounded-lg text-white">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
               <span className="font-bold text-lg hidden sm:inline-block">
-                Super Admin Console
+                TuckshopKonnect <span className="text-muted-foreground font-medium ml-1">| System Owner</span>
               </span>
             </Link>
           </div>
@@ -27,7 +29,7 @@ export default function SuperAdminLayout({
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-4 sm:p-6 container mx-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 container mx-auto">
         {children}
       </main>
     </div>

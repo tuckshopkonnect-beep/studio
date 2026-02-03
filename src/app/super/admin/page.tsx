@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Loader2, Eye, EyeOff, ShieldCheck, Building, UserPlus, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createSchoolAndAdmin } from "@/app/actions";
 import { useAuth, useFirestore, errorEmitter, FirestorePermissionError, useUser, useDoc, useMemoFirebase } from "@/firebase";
@@ -21,6 +21,7 @@ import { collection, addDoc, doc } from "firebase/firestore";
 import type { School, User } from "@/lib/data";
 import FullPageLoader from "@/components/FullPageLoader";
 import AccessDenied from "@/components/AccessDenied";
+import Link from "next/link";
 
 export default function SuperAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -44,19 +45,12 @@ export default function SuperAdminPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!schoolName || !adminName || !adminEmail || !adminPassword) {
-        toast({
-            variant: "destructive",
-            title: "All fields are required",
-        });
+        toast({ variant: "destructive", title: "All fields are required" });
         return;
     }
     
-    if (!firestore || !auth?.currentUser) {
-        toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "You must be logged in as an admin to perform this action.",
-        });
+    if (!firestore || !authUser) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "Session expired. Please log in again." });
         return;
     }
 
@@ -71,149 +65,126 @@ export default function SuperAdminPage() {
             const result = await createSchoolAndAdmin(schoolId, adminName, adminEmail, adminPassword);
             
             if (result.success) {
-                toast({
-                    title: "School Created Successfully!",
-                    description: `School "${schoolName}" and its admin account have been created.`,
-                });
-                // Clear form
-                setSchoolName("");
-                setAdminName("");
-                setAdminEmail("");
-                setAdminPassword("");
+                toast({ title: "School Onboarded!", description: `"${schoolName}" is now active on the platform.` });
                 router.push("/super/dashboard");
             } else {
-                toast({
-                    variant: "destructive",
-                    title: "Admin Creation Failed",
-                    description: result.error || "The school was created, but the admin account could not be set up.",
-                });
+                toast({ variant: "destructive", title: "Local Admin Setup Failed", description: result.error });
             }
         })
         .catch((error) => {
-            const permissionError = new FirestorePermissionError({
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
                 path: 'schools', 
                 operation: 'create',
                 requestResourceData: schoolData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-
-            toast({
-                variant: "destructive",
-                title: "School Creation Failed",
-                description: "Permission denied. Please ensure you are logged in as an administrator.",
-            });
+            }));
         })
-        .finally(() => {
-            setIsLoading(false);
-        });
+        .finally(() => setIsLoading(false));
   };
 
   if (isUserLoading || isLoadingCurrentUser) {
-    return <FullPageLoader message="Verifying credentials..." />;
+    return <FullPageLoader message="Initializing School Onboarding..." />;
   }
 
   if (!authUser || currentUserProfile?.role !== 'Admin') {
-    return (
-        <div className="container mx-auto p-6">
-            <AccessDenied 
-                currentUserProfile={currentUserProfile} 
-                message="You must be signed in as an administrator to create new schools." 
-            />
-        </div>
-    );
+    return <AccessDenied currentUserProfile={currentUserProfile} message="System Owner access required for onboarding." />;
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40 p-4">
-      <Card className="mx-auto max-w-lg w-full">
-        <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit border-2 border-primary/20 mb-2">
-            <ShieldCheck className="h-8 w-8 text-primary" />
+    <div className="flex flex-col gap-6 max-w-2xl mx-auto py-8">
+      <Link href="/super/dashboard" className="flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Network Overview
+      </Link>
+
+      <Card className="shadow-2xl border-primary/10">
+        <CardHeader className="text-center pb-8 border-b bg-muted/30">
+          <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit border-2 border-primary/20 mb-4">
+            <Building className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-bold">Super Admin Portal</CardTitle>
-          <CardDescription className="pt-2">
-            Create a new school and its primary administrator account.
+          <CardTitle className="text-3xl font-bold">Onboard New School</CardTitle>
+          <CardDescription>
+            Register a new institution and provision its first administrator account.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreate}>
-            <div className="grid gap-6">
-              <fieldset className="grid gap-2 border-t pt-4">
-                <legend className="text-sm font-medium text-muted-foreground px-1 -translate-y-4 bg-background w-fit">School Details</legend>
-                <div className="grid gap-2">
-                    <Label htmlFor="school-name">School Name</Label>
-                    <Input
-                    id="school-name"
-                    type="text"
-                    placeholder="Example High School"
-                    required
-                    value={schoolName}
-                    onChange={(e) => setSchoolName(e.target.value)}
-                    />
-                </div>
-              </fieldset>
-
-              <fieldset className="grid gap-2 border-t pt-4">
-                <legend className="text-sm font-medium text-muted-foreground px-1 -translate-y-4 bg-background w-fit">Administrator Account</legend>
-                <div className="grid gap-2">
-                    <Label htmlFor="admin-name">Admin Full Name</Label>
-                    <Input
-                    id="admin-name"
-                    type="text"
-                    placeholder="John Doe"
-                    required
-                    value={adminName}
-                    onChange={(e) => setAdminName(e.target.value)}
-                    />
+        <CardContent className="pt-8">
+          <form onSubmit={handleCreate} className="space-y-8">
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                    <Building className="h-5 w-5" />
+                    <h3>Institution Profile</h3>
                 </div>
                 <div className="grid gap-2">
-                    <Label htmlFor="admin-email">Admin Email</Label>
+                    <Label htmlFor="school-name">Official School Name</Label>
                     <Input
-                    id="admin-email"
-                    type="email"
-                    placeholder="admin@example.com"
-                    required
-                    value={adminEmail}
-                    onChange={(e) => setAdminEmail(e.target.value)}
-                    />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="admin-password">Admin Password</Label>
-                    <div className="relative">
-                        <Input
-                        id="admin-password"
-                        type={showPassword ? "text" : "password"}
+                        id="school-name"
+                        placeholder="e.g., Green Valley International School"
                         required
-                        className="pr-10"
-                        placeholder="Must be at least 6 characters"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
+                        value={schoolName}
+                        onChange={(e) => setSchoolName(e.target.value)}
+                        className="h-12"
+                    />
+                </div>
+            </section>
+
+            <section className="space-y-4">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                    <UserPlus className="h-5 w-5" />
+                    <h3>Primary School Administrator</h3>
+                </div>
+                <div className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-name">Full Name</Label>
+                        <Input
+                            id="admin-name"
+                            placeholder="John Doe"
+                            required
+                            value={adminName}
+                            onChange={(e) => setAdminName(e.target.value)}
                         />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
-                            onClick={() => setShowPassword(prev => !prev)}
-                        >
-                            {showPassword ? <EyeOff /> : <Eye />}
-                            <span className="sr-only">Toggle password visibility</span>
-                        </Button>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-email">Business Email</Label>
+                        <Input
+                            id="admin-email"
+                            type="email"
+                            placeholder="admin@school.com"
+                            required
+                            value={adminEmail}
+                            onChange={(e) => setAdminEmail(e.target.value)}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="admin-password">Initial Password</Label>
+                        <div className="relative">
+                            <Input
+                                id="admin-password"
+                                type={showPassword ? "text" : "password"}
+                                required
+                                placeholder="Min. 6 characters"
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                className="pr-10"
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                onClick={() => setShowPassword(prev => !prev)}
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                        </div>
                     </div>
                 </div>
-              </fieldset>
-              
-              <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
+            </section>
+            
+            <Button type="submit" className="w-full text-lg py-7 rounded-xl shadow-lg hover:shadow-primary/20 transition-all" disabled={isLoading}>
                 {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating...
-                  </>
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Provisioning Institution...</>
                 ) : (
-                  "Create School & Admin"
+                  "Activate School & Admin"
                 )}
-              </Button>
-            </div>
+            </Button>
           </form>
         </CardContent>
       </Card>

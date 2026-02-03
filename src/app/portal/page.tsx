@@ -2,26 +2,26 @@
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, BookUser, User, ArrowRight, Package, Settings2 } from "lucide-react";
+import { Shield, BookUser, User, ArrowRight, Package, Settings2, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 
 export default function PortalPage() {
   const portals = [
     {
       name: "Admin Portal",
-      description: "Manage menu, orders, users, and settings.",
+      description: "Manage menu, orders, users, and settings for your school.",
       href: "/portal/admin",
       icon: <Shield className="size-8 text-primary" />,
     },
     {
       name: "Parent Portal",
-      description: "Manage your children's accounts and funds.",
+      description: "Manage your children's accounts and fund their wallets.",
       href: "/portal/parent",
       icon: <BookUser className="size-8 text-primary" />,
     },
     {
       name: "Student Portal",
-      description: "Order your favorite meals and snacks.",
+      description: "Place orders and view your personalized menu items.",
       href: "/portal/student",
       icon: <User className="size-8 text-primary" />,
     },
@@ -82,13 +82,21 @@ export default function PortalPage() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center gap-4">
-            <div className="h-px w-24 bg-white/20" />
-            <Button variant="ghost" asChild className="text-white/50 hover:text-white hover:bg-white/10">
-                <Link href="/super/dashboard">
-                    <Settings2 className="mr-2 h-4 w-4" /> Super Admin Console
-                </Link>
-            </Button>
+        <div className="mt-16 flex flex-col items-center gap-6">
+            <div className="h-px w-32 bg-white/20" />
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex flex-col items-center gap-4">
+                <div className="flex items-center gap-2 text-white/70 text-sm uppercase tracking-widest font-semibold">
+                    <ShieldCheck className="h-4 w-4" /> System Owner Only
+                </div>
+                <Button variant="secondary" size="lg" asChild className="font-bold px-8 shadow-xl">
+                    <Link href="/super/dashboard">
+                        <Settings2 className="mr-2 h-5 w-5" /> Super Admin Console
+                    </Link>
+                </Button>
+                <p className="text-xs text-white/40 max-w-xs leading-tight">
+                    For platform owners to onboard new institutions and manage the global TuckshopKonnect network.
+                </p>
+            </div>
             <Button variant="link" asChild className="text-white hover:text-white/80">
                 <Link href="/schools">&larr; Back to School Selection</Link>
             </Button>
