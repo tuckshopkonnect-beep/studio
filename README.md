@@ -1,23 +1,40 @@
 # TuckshopKonnect
 
-A modern, cashless solution for school tuckshops.
+A modern, multi-tenant, cashless solution for school tuckshops.
 
-## Features
-- **Multi-tenancy**: Support for multiple schools within one platform.
-- **Cashless Ordering**: Students fund wallets via Paystack and order online.
-- **Admin Dashboard**: Real-time sales tracking, inventory management, and user control.
-- **Parental Controls**: Daily spending limits and transaction history.
-- **AI Powered**: Personalized food recommendations and AI-generated menu images.
+## 🚀 Quick Start & Deployment Guide
 
-## System Owner (Super Admin)
-The **Super Admin Console** is used to onboard new schools and manage the global network.
-- **Path**: `/super/dashboard`
-- **Actions**: Register new schools, provision first administrators, and view global system health.
+To get your own version of TuckshopKonnect live, follow these steps:
 
-## Deployment & Estimated Costs
-This project is built to run on **Firebase App Hosting**.
+### 1. Firebase Project Setup
+1.  Go to the [Firebase Console](https://console.firebase.google.com/).
+2.  Click **Add project** and follow the prompts.
+3.  **Enable Authentication**: Go to "Authentication" -> "Get Started" -> Enable "Email/Password".
+4.  **Enable Firestore**: Go to "Cloud Firestore" -> "Create database" -> Start in **Production Mode** (rules are handled by `firestore.rules`). Choose a location near your users.
+5.  **Enable App Hosting**: Go to "App Hosting" in the left sidebar and click "Get Started".
 
-### Monthly Cost Estimate (Firebase Blaze Plan)
+### 2. Configure Your App
+1.  In the Firebase Console, go to **Project Settings** (gear icon).
+2.  Under "Your apps", click the **Web icon (</>)** to register a new web app.
+3.  Copy the `firebaseConfig` object provided.
+4.  Open `src/firebase/config.ts` in your code and replace the placeholder values with your actual keys.
+
+### 3. Publishing (Firebase App Hosting)
+The easiest way to publish is via GitHub integration:
+1.  Push your code to a **GitHub repository**.
+2.  In the Firebase Console under **App Hosting**, click "New Backend".
+3.  Connect your GitHub account and select your repository.
+4.  Firebase will automatically detect the Next.js setup and build/deploy your site every time you push to the main branch.
+
+### 4. Setting up the System Owner (Super Admin)
+1.  Once live, navigate to your-site.com**/portal/admin/signup**.
+2.  Create an account. This first account will be your "System Owner".
+3.  Login via the **Super Admin Login** at **/super/login**.
+4.  From here, you can onboard new schools and create their initial administrators.
+
+---
+
+## 💰 Estimated Costs (Firebase Blaze Plan)
 For a typical school with ~500-1,000 active students:
 - **Authentication**: $0 (Free up to 50,000 monthly active users).
 - **Firestore Database**: $0 (Free up to 50,000 reads and 20,000 writes *per day*).
@@ -25,9 +42,14 @@ For a typical school with ~500-1,000 active students:
 - **Genkit (Gemini 2.5 Flash AI)**: $0 (Free tier available for standard usage).
 - **Paystack**: No monthly fee. They only take a small percentage (approx. 1.5%) per successful payment.
 
-**Total Estimated Cost: $0/month** for most users. As your school grows to thousands of daily orders, you might see small charges between $5 and $15 for database operations and bandwidth.
+**Total Estimated Cost: $0/month** for most users.
 
-## Setup
-1. Configure your Firebase Project in `src/firebase/config.ts`.
-2. Set up your Paystack public key in `src/components/FundWalletDialog.tsx`.
-3. Deploy using the Firebase CLI: `firebase deploy`.
+## 🛠 Features
+- **Multi-tenancy**: Isolated data for different schools.
+- **Cashless Ordering**: Real-time wallet tracking and Paystack integration.
+- **Admin Dashboard**: Sales analytics, inventory, and user management.
+- **Parental Controls**: Spending limits and real-time history.
+- **AI Powered**: Personalized recommendations using Google Gemini.
+
+## 📄 License
+TuckshopKonnect is a production of Seme Productions. All rights reserved.
