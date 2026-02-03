@@ -16,18 +16,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // A user is an admin if their user document has the 'Admin' role.
-      // This rule allows this function to read any user's profile to check their role.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      // Use .get() with a default value to prevent crashes if the 'role' field is missing.
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'Admin';
     }
     
     function isParent(childUserId) {
-      // A user is a parent of the child if their own document's `childIds` map
-      // contains the child's UID as a key. This is a secure and non-recursive check.
-      let parentDoc = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      // Safely access parent document data.
+      let parentData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isSignedIn()
-             && 'childIds' in parentDoc
-             && childUserId in parentDoc.childIds;
+             && parentData.get('childIds', {})[childUserId] == true;
     }
     
     function isCreatingValidOrder(userId) {
@@ -38,7 +35,7 @@ service cloud.firestore {
       // Ensures only 'stock' is being changed, and it's a decrement.
       let isStockOnly = request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']);
       let newStock = request.resource.data.stock;
-      let oldStock = resource.data.get('stock', 0); // Default to 0 if stock doesn't exist
+      let oldStock = resource.data.get('stock', 0);
       
       return isStockOnly && newStock < oldStock && newStock >= 0;
     }
@@ -49,49 +46,35 @@ service cloud.firestore {
     // --------------------------------------------------------------------
     
     match /schools/{schoolId} {
-      // Allow public read for the school selection screen.
       allow read: if true;
-      // Allow any signed-in user to create, as the super-admin page is protected.
-      // Admins can update/delete.
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
     
     match /passwordResetRequests/{requestId} {
-      // Allow anyone to create a request, but validate the fields.
-      // This prevents spamming with malformed data.
       allow create: if request.resource.data.keys().hasAll(['userEmail', 'requestDate', 'status'])
                       && request.resource.data.userEmail is string
                       && request.resource.data.status == 'Pending';
-      // Only admins can read, update, or delete requests.
       allow read, list, update, delete: if isAdmin();
     }
 
 
     match /users/{userId} {
-      // A user can read their own profile. An admin function needs to read any profile.
-      // `get` is safe for `isAdmin()` because it's non-recursive and only returns one document.
       allow get: if isOwner(userId) || isAdmin() || isParent(userId);
-      // Only admins can list all users.
       allow list: if isAdmin();
       
-      // CREATE: An admin can create any user profile. A user can create their own 'Admin' profile
-      // on initial sign-up. A new user document must have a schoolId if being created by an admin.
-      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.role == 'Admin');
+      // Allow creation for new admins or by existing admins.
+      allow create: if isAdmin() || (isOwner(userId) && request.resource.data.get('role', '') == 'Admin');
       
-      // UPDATE: An admin can update any user. A user can update their own profile
-      // as long as they are not changing their role. This rule now correctly handles
-      // updates to other fields (like balance) by checking the role safely.
-      allow update: if isAdmin() || (isOwner(userId) && request.resource.data.get('role', resource.data.role) == resource.data.role);
+      // Allow update if the actor is an admin OR if they are the owner and not changing their role or school.
+      allow update: if isAdmin() || (
+        isOwner(userId) 
+        && request.resource.data.get('role', resource.data.get('role', '')) == resource.data.get('role', '')
+        && request.resource.data.get('schoolId', resource.data.get('schoolId', '')) == resource.data.get('schoolId', '')
+      );
 
-
-      // DELETE: Only an admin can delete a user profile.
       allow delete: if isAdmin();
 
-
-      /**
-       * @description Manages a user's orders, nested under their profile.
-       */
       match /orders/{orderId} {
         allow get, list: if isOwner(userId) || isAdmin() || isParent(userId);
         allow create: if isCreatingValidOrder(userId);
@@ -99,43 +82,22 @@ service cloud.firestore {
       }
     }
     
-    /**
-     * @description Top-level orders collection, aggregated for the admin dashboard.
-     */
     match /orders/{orderId} {
       allow get, list: if isAdmin();
-      // Any signed-in user can create their own order record in this master list.
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Only admins can modify or delete from this master list.
       allow update, delete: if isAdmin();
     }
     
-    /**
-     * @description Global application settings.
-     */
     match /settings/{settingId} {
-      // Allow any authenticated user to read settings. This is safe as the data is
-      // non-sensitive and it prevents client-side race conditions on app load.
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    /**
-     * @description Publicly viewable tuckshop menu items.
-     */
     match /menuItems/{menuItemId} {
-      // Anyone can view the menu.
       allow get, list: if true;
-      // Admins can create and delete menu items.
       allow create, delete: if isAdmin();
-      
-      // An admin can update any field. 
-      // A student can only update the stock field to decrement it when placing an order.
       allow update: if isAdmin() || (isSignedIn() && isDecrementingStock());
 
-      /**
-       * @description Inventory is admin-only.
-       */
       match /inventory/{inventoryId} {
         allow read, write: if isAdmin();
       }

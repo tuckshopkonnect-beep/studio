@@ -139,7 +139,6 @@ export default function OrderSummary({ student, spentTodayForDisplay, effectiveD
         }
     })
     .then(async () => {
-        // If transaction succeeds, create the order documents
         const newOrderId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const newOrder: CompletedOrder = {
           id: newOrderId,
@@ -152,15 +151,12 @@ export default function OrderSummary({ student, spentTodayForDisplay, effectiveD
           customerName: student.name,
         };
         
-        // Write to user's private orders subcollection
         const userOrderDocRef = doc(firestore, 'users', student.id, 'orders', newOrderId);
         await setDoc(userOrderDocRef, newOrder);
 
-        // Write to the top-level orders collection for admin view
         const adminOrderDocRef = doc(firestore, 'orders', newOrderId);
         await setDoc(adminOrderDocRef, newOrder);
 
-        // All successful, now update UI state
         setCompletedOrder(newOrder);
         addOrderToHistory(newOrder);
         clearCart();
@@ -170,13 +166,17 @@ export default function OrderSummary({ student, spentTodayForDisplay, effectiveD
     .catch((e: any) => {
         console.error("Order transaction failed: ", e);
 
-        // Only emit technical permission errors for debugging security rules.
-        // Friendly validation errors (stock/balance) shouldn't trigger the dev overlay.
         if (e.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: `users/${student.id}`, 
                 operation: 'update',
-                requestResourceData: { balance: `(new balance)` },
+                requestResourceData: { 
+                  balance: `(new balance)`,
+                  spendingToday: `(new metadata)`,
+                  // Include existing fields to match rules logic
+                  role: student.role,
+                  schoolId: student.schoolId
+                },
             });
             errorEmitter.emit('permission-error', permissionError);
         }
