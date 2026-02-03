@@ -112,6 +112,7 @@ export default function Home() {
                 fill
                 priority
                 className="object-cover"
+                data-ai-hint="delicious food"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
           </motion.div>
@@ -122,22 +123,22 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
             >
-              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 text-shadow-lg leading-tight min-h-[1.5em]">
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tighter mb-6 drop-shadow-2xl leading-tight min-h-[1.5em]">
                 School Lunch, <span className="text-accent italic inline-block min-w-[200px]">
                   {words[index].substring(0, subIndex)}
                   <span className="inline-block w-[2px] h-[0.8em] bg-accent ml-1 animate-pulse" />
                 </span>
               </h1>
-              <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 text-shadow">
+              <p className="text-lg md:text-2xl text-white/90 max-w-3xl mx-auto mb-10 drop-shadow-md font-medium">
                 A modern, cashless solution for school tuckshops. Easy for students, peace of mind for parents, and efficient for schools.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button size="lg" className="h-14 px-8 text-lg rounded-full group" asChild>
+                <Button size="lg" className="h-14 px-8 text-lg rounded-full group shadow-xl hover:shadow-primary/20 transition-all duration-300" asChild>
                   <Link href="/schools">
                     <Utensils className="mr-2 group-hover:scale-110 transition-transform" /> Go to Portal
                   </Link>
                 </Button>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 rounded-full" asChild>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20 rounded-full transition-all duration-300" asChild>
                   <Link href="#how-it-works">
                     Learn More
                   </Link>
@@ -160,7 +161,7 @@ export default function Home() {
         </section>
 
         {/* How It Works Section */}
-        <section id="how-it-works" className="py-20 md:py-32 bg-background scroll-mt-10">
+        <section id="how-it-works" className="py-20 md:py-32 bg-background scroll-mt-10 relative">
           <div className="container px-4">
             <motion.div 
               {...fadeInUp}
@@ -178,7 +179,7 @@ export default function Home() {
               className="grid md:grid-cols-3 gap-12 md:gap-16 text-center"
             >
               <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                   <CreditCard className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">1. Fund Wallet</h3>
@@ -186,7 +187,7 @@ export default function Home() {
               </motion.div>
 
               <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                   <ShoppingBag className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">2. Place Order</h3>
@@ -194,7 +195,7 @@ export default function Home() {
               </motion.div>
 
               <motion.div variants={fadeInUp} className="flex flex-col items-center gap-6 group">
-                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 transition-colors duration-300">
+                <div className="bg-primary/10 p-6 rounded-full border-2 border-primary/20 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
                   <CheckCircle className="w-12 h-12 text-primary" />
                 </div>
                 <h3 className="text-2xl font-semibold">3. Collect Meal</h3>
@@ -205,8 +206,14 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-20 md:py-32 bg-muted/50 overflow-hidden">
-            <div className="container px-4 grid md:grid-cols-2 gap-16 items-center">
+        <section className="py-20 md:py-32 bg-muted/50 overflow-hidden relative">
+            {/* Background Blobs */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                <div className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-blob" />
+                <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-blob animation-delay-2000" />
+            </div>
+
+            <div className="container px-4 grid md:grid-cols-2 gap-16 items-center relative z-10">
                 <motion.div 
                   initial={{ opacity: 0, x: -50 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -218,7 +225,7 @@ export default function Home() {
                     <p className="text-xl text-muted-foreground leading-relaxed">
                         From payments to inventory, our platform is designed to make school lunch programs easier for everyone involved—students, parents, and school staff.
                     </p>
-                    <Button size="lg" asChild className="rounded-full shadow-lg hover:shadow-xl transition-shadow">
+                    <Button size="lg" asChild className="rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                         <Link href="/portal/admin">Admin Dashboard &rarr;</Link>
                     </Button>
                 </motion.div>
@@ -234,7 +241,8 @@ export default function Home() {
                         <motion.div 
                           key={index}
                           variants={fadeInUp}
-                          className="flex items-start gap-6 bg-background p-6 rounded-2xl shadow-sm border border-border/50 hover:border-primary/30 transition-colors duration-300"
+                          whileHover={{ scale: 1.02, x: 10 }}
+                          className="flex items-start gap-6 bg-background p-6 rounded-2xl shadow-sm border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-300"
                         >
                             <div className="bg-primary/10 p-4 rounded-xl shrink-0">
                                 {feature.icon}
@@ -267,8 +275,13 @@ export default function Home() {
                   className="grid lg:grid-cols-3 gap-8"
                 >
                     {testimonials.map((testimonial) => (
-                        <motion.div key={testimonial.name} variants={fadeInUp}>
-                          <Card className="flex flex-col h-full border-none shadow-md bg-muted/30 hover:bg-muted/50 transition-colors duration-300">
+                        <motion.div 
+                            key={testimonial.name} 
+                            variants={fadeInUp}
+                            whileHover={{ y: -10 }}
+                            className="h-full"
+                        >
+                          <Card className="flex flex-col h-full border-none shadow-md bg-muted/30 hover:bg-muted/50 transition-all duration-300 hover:shadow-xl">
                               <CardContent className="pt-8 flex-grow">
                                   <p className="text-muted-foreground italic text-lg leading-relaxed">"{testimonial.quote}"</p>
                               </CardContent>
@@ -293,15 +306,15 @@ export default function Home() {
         <section className="py-20 md:py-32 bg-primary text-primary-foreground relative overflow-hidden">
             {/* Background pattern */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+                <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl animate-blob" />
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl animate-blob animation-delay-4000" />
             </div>
 
             <motion.div 
               {...fadeInUp}
               className="container px-4 text-center relative z-10"
             >
-                <div className="mx-auto bg-white/20 p-6 rounded-full w-fit mb-8 backdrop-blur-sm">
+                <div className="mx-auto bg-white/20 p-6 rounded-full w-fit mb-8 backdrop-blur-sm animate-pulse">
                     <Mail className="h-12 w-12 text-white" />
                 </div>
                 <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Ready to Get Started?</h2>
@@ -309,7 +322,7 @@ export default function Home() {
                     Join the many schools modernizing their tuckshop experience. For inquiries, support, or a demo, reach out to us.
                 </p>
                 <div className="mt-10">
-                    <Button size="lg" variant="secondary" className="h-14 px-10 text-lg font-bold rounded-full group" asChild>
+                    <Button size="lg" variant="secondary" className="h-14 px-10 text-lg font-bold rounded-full group shadow-2xl hover:shadow-white/10 hover:-translate-y-1 transition-all duration-300" asChild>
                         <a href="mailto:tuckshopkonnect@gmail.com">
                           Contact Us Today <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                         </a>
