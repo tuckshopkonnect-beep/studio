@@ -1,9 +1,6 @@
-import { Loader2 } from "lucide-react";
+
+import FullPageLoader from "@/components/FullPageLoader";
 
 export default function StudentLoading() {
-  return (
-    <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-    </div>
-  );
+  return <FullPageLoader message="Loading Student Portal..." />;
 }

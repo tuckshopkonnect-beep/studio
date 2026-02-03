@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { User } from "@/lib/data";
+import FullPageLoader from "@/components/FullPageLoader";
 
 interface AppSettings {
   jssLimit?: number;
@@ -87,11 +88,7 @@ export default function StudentDashboard() {
   const spentToday = student?.spendingToday?.date === todayString ? student.spendingToday.amount : 0;
 
   if (isUserLoading || isLoadingStudent || isLoadingSettings) {
-    return (
-        <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    )
+    return <FullPageLoader message="Opening Student Portal..." />;
   }
 
   if (!student) {

@@ -18,6 +18,7 @@ import { useDoc, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import ParentChildCard from "@/components/ParentChildCard";
+import FullPageLoader from "@/components/FullPageLoader";
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg
@@ -88,11 +89,7 @@ export default function ParentDashboard() {
 
 
   if (isUserLoading || isLoadingParent) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    )
+    return <FullPageLoader message="Opening Parent Portal..." />;
   }
 
   if (!parent) {

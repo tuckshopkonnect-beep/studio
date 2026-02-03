@@ -29,6 +29,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser, useDoc } from "@
 import { collection, query, doc, where } from 'firebase/firestore';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import AccessDenied from '@/components/AccessDenied';
+import FullPageLoader from '@/components/FullPageLoader';
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -147,11 +148,7 @@ export default function DashboardPage() {
   const recentOrders = safeOrders.slice(0, 5);
 
   if (isUserLoading || isLoadingCurrentUser) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+    return <FullPageLoader message="Verifying access..." />;
   }
 
   if (!isCurrentUserAdmin) {
@@ -162,11 +159,7 @@ export default function DashboardPage() {
   }
   
   if (isLoadingOrders || isLoadingMenuItems || isLoadingUsers) {
-    return (
-      <div className="flex h-[calc(100vh-10rem)] items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+    return <FullPageLoader message="Fetching dashboard data..." />;
   }
   
   return (
