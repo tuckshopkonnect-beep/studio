@@ -2,68 +2,41 @@
 
 A modern, multi-tenant, cashless solution for school tuckshops.
 
-## 🚀 Deployment Guide (Going Live)
+## 🚀 The Way Forward (Getting Live)
 
-**IMPORTANT:** This app uses Next.js features (Server Actions, AI, and dynamic routing) that require a server. **Do not use GitHub Pages** to host this site, as it will not work. You must use **Firebase App Hosting**.
+If you are seeing billing errors (like `[OR_BACR2_46]`), don't worry. This is a common Google security check. Here is your roadmap to success:
 
-### 1. Store your code on GitHub (Storage)
-1.  Click the **"Push to GitHub"** button in the top toolbar of this Studio environment.
-2.  Follow the prompts to create a new repository (e.g., `tuckshop-konnect`).
-3.  **Note:** GitHub is for *storing* your code. If you see a `github.io` link in your GitHub settings, you can ignore it; that is not where your app will live.
+### 1. Resolve Billing & Setup
+1.  **Google Cloud Billing**: If one card fails, try another. Ensure your address matches your bank statement exactly.
+2.  **Enable Services**: In your [Firebase Console](https://console.firebase.google.com/):
+    *   **Authentication**: Enable Email/Password.
+    *   **Firestore**: Create a database in **Production Mode**.
+    *   **App Hosting**: Connect your GitHub repository.
 
-### 2. Firebase Project Setup
-1.  Go to the [Firebase Console](https://console.firebase.google.com/).
-2.  Click **Add project** and follow the prompts.
-3.  **Enable Authentication**: Go to "Authentication" -> "Get Started" -> Enable "Email/Password".
-4.  **Enable Firestore**: Go to "Cloud Firestore" -> "Create database" -> Start in **Production Mode**. 
+### 2. Connect Your Code
+1.  Push your code to GitHub using the **"Push to GitHub"** button in this Studio.
+2.  Once your Firebase Project is created, go to **Project Settings** (gear icon) -> **General**.
+3.  Scroll down to "Your apps", click the **Web icon (</>)**, and register your app.
+4.  Copy the `firebaseConfig` object and paste it into `src/firebase/config.ts` in your code.
+5.  Push this change to GitHub to update your live site.
 
-### 3. Connect to App Hosting (Hosting)
-1.  In the Firebase Console left sidebar, click **App Hosting**.
-2.  Click **Get Started** and connect it to the GitHub repository you created in Step 1.
-3.  Firebase will automatically detect that this is a Next.js project. It will handle the "index" page (`src/app/page.tsx`) automatically.
-4.  Once the build is complete, Firebase will provide you with a live URL (e.g., `your-app.web.app`). **This is your live site.**
-
-### 4. Configure Your Credentials
-1.  In the Firebase Console, go to **Project Settings** (gear icon).
-2.  Under "Your apps", click the **Web icon (</>)** to register a new web app.
-3.  Copy the `firebaseConfig` object provided.
-4.  Open `src/firebase/config.ts` in your code and replace the values with your actual keys. 
-5.  **Push this change to GitHub** to trigger an automatic update of your live site.
+### 3. Initialize Your Live System
+Once your site is live (e.g., `tuckshop-konnect.web.app`):
+1.  Go to `your-site.com/portal/admin/signup`.
+2.  Create your **System Owner** account.
+3.  Login and go to `/super/dashboard` to start adding your schools!
 
 ---
 
-## 🛠 Features & Hidden Paths
-- **Index Page**: Automatically set to the landing page.
-- **System Owner Setup**: Once live, go to `your-site.com/portal/admin/signup` to create the master account.
-- **Super Admin Login**: Located at `/super/login` for global management.
-- **Cashless Ordering**: Real-time wallet tracking and Paystack integration.
-- **AI Powered**: Personalized recommendations using Google Gemini.
+## 🛠 Features
+*   **Multi-Tenancy**: Separate data for every school.
+*   **Cashless**: Wallet funding via Paystack.
+*   **Security**: Role-based access for Admins, Parents, and Students.
+*   **AI Insights**: Personalized food recommendations for students.
 
-## 💰 Estimated Costs (Firebase Blaze Plan)
-For a typical school with ~500-1,000 active students:
-- **Authentication**: $0 (Free up to 50,000 monthly active users).
-- **Firestore Database**: $0 (Free up to 50,000 reads and 20,000 writes *per day*).
-- **App Hosting**: $0 - $5 (Generous free tier for compute).
-- **Genkit (Gemini 2.5 Flash AI)**: $0 (Free tier available).
-
-**Total Estimated Cost: $0/month** for most users.
-
----
-
-## ⚠️ Troubleshooting Billing & Setup
-
-### Error [OR_BACR2_46]
-If you see this error while adding a card to Firebase:
-1. **Contact your bank**: Ask them to allow international transactions from "Google Services".
-2. **Check Card Type**: Try using a Credit Card instead of a Debit Card if possible.
-3. **Verify Profile**: Ensure your Google Pay name and address match your bank statement exactly.
-4. **Try Later**: Sometimes Google's risk engine requires 24 hours between attempts.
-
-### App Not Showing Updates
-If you pushed code to GitHub but your site hasn't changed:
-1. Go to **Firebase Console** -> **App Hosting**.
-2. Check the **Dashboard** to see if the "Latest Rollout" was successful.
-3. If it failed, click the rollout to see the error logs.
+## 💰 Estimated Costs
+*   **Firebase Free Tier**: Covers up to 50,000 users and daily database limits.
+*   **App Hosting**: Generous free tier; usually $0 for medium-sized schools.
 
 ---
 
