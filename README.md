@@ -48,5 +48,24 @@ For a typical school with ~500-1,000 active students:
 
 **Total Estimated Cost: $0/month** for most users.
 
+---
+
+## ⚠️ Troubleshooting Billing & Setup
+
+### Error [OR_BACR2_46]
+If you see this error while adding a card to Firebase:
+1. **Contact your bank**: Ask them to allow international transactions from "Google Services".
+2. **Check Card Type**: Try using a Credit Card instead of a Debit Card if possible.
+3. **Verify Profile**: Ensure your Google Pay name and address match your bank statement exactly.
+4. **Try Later**: Sometimes Google's risk engine requires 24 hours between attempts.
+
+### App Not Showing Updates
+If you pushed code to GitHub but your site hasn't changed:
+1. Go to **Firebase Console** -> **App Hosting**.
+2. Check the **Dashboard** to see if the "Latest Rollout" was successful.
+3. If it failed, click the rollout to see the error logs.
+
+---
+
 ## 📄 License
 TuckshopKonnect is a production of Seme Productions. All rights reserved.
