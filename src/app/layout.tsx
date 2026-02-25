@@ -9,21 +9,17 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: {
-    default: 'TuckshopKonnect | Modern School Tuckshop Solution',
+    default: 'TuckshopKonnect | The Modern School Tuckshop',
     template: '%s | TuckshopKonnect'
   },
-  description: 'TuckshopKonnect is a modern, cashless solution for school tuckshops. Seamless ordering for students, spending controls for parents, and efficient management for schools.',
-  keywords: ['tuckshop', 'school lunch', 'cashless payment', 'school management', 'TuckshopKonnect', 'student ordering', 'parental control', 'school cafeteria', 'DLHS'],
+  description: 'A seamless, cashless ordering experience for students and schools. Manage orders, fund wallets, and control spending with ease.',
+  keywords: ['tuckshop', 'school lunch', 'cashless payment', 'school management', 'TuckshopKonnect', 'student ordering', 'parental control', 'school cafeteria'],
   authors: [{ name: 'Seme Productions' }],
   creator: 'Seme Productions',
   publisher: 'Seme Productions',
-  metadataBase: new URL('https://tuckshopkonnect.com'), // Replace with your actual domain when live
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
-    title: 'TuckshopKonnect | Modern School Tuckshop Solution',
-    description: 'A seamless, cashless ordering experience for students and schools.',
+    title: 'TuckshopKonnect | The Modern School Tuckshop',
+    description: 'Transforming school lunch into a seamless digital experience.',
     url: 'https://tuckshopkonnect.com',
     siteName: 'TuckshopKonnect',
     locale: 'en_US',
@@ -31,19 +27,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TuckshopKonnect | Modern School Tuckshop Solution',
-    description: 'A seamless, cashless ordering experience for students and schools.',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
+    title: 'TuckshopKonnect',
+    description: 'The cashless solution for modern schools.',
   },
 };
 
