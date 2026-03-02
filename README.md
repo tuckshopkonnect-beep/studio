@@ -20,7 +20,7 @@ If the Firebase Console is giving you errors, follow these 3 steps exactly:
 3. **App Hosting (The final link)**: 
    - In the Firebase Console, select **App Hosting** from the left menu.
    - Click **"Get Started"** and connect the GitHub repository you created in Step 1.
-   - Paste your `firebaseConfig` into `src/firebase/config.ts` and push to GitHub again.
+   - Paste your `firebaseConfig` keys into `src/firebase/config.ts` and push to GitHub again.
 
 **Firebase will then generate your public link (e.g., `tuckshop-123.web.app`) automatically!**
 
