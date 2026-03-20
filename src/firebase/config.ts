@@ -8,10 +8,15 @@
  */
 
 export const firebaseConfig = {
-  "projectId": "studio-2857317523-117ad",
-  "appId": "1:106867145581:web:072d31bc4df02dfb16b864",
-  "apiKey": "AIzaSyBGTgoIQq9qRywnPHMzTSD8w3ElyM_k5WM",
-  "authDomain": "studio-2857317523-117ad.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "106867145581"
+  apiKey: "AIzaSyBGTgoIQq9qRywnPHMzTSD8w3ElyM_k5WM",
+  authDomain: "studio-2857317523-117ad.firebaseapp.com",
+  projectId: "studio-2857317523-117ad",
+  storageBucket: "studio-2857317523-117ad.firebasestorage.app",
+  messagingSenderId: "106867145581",
+  appId: "1:106867145581:web:072d31bc4df02dfb16b864"
 };
+
+// Log a hint if the config appears to be the default studio values in production
+if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && firebaseConfig.projectId.includes('studio-')) {
+  console.info("💡 Tip: Don't forget to update src/firebase/config.ts with your production keys from the Firebase Console to enable your own database!");
+}
